@@ -1,5 +1,7 @@
 import java.io.*;
 import java.net.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class Server {
     private DataOutputStream sOut = null;
@@ -8,7 +10,7 @@ public class Server {
     private ServerSocket serverSocket = null;
 
     private static File f = null;
-
+    final String CRLF = "\r\n";
     public void getServer() throws IOException {
         try {
             serverSocket = new ServerSocket(10008);
@@ -27,12 +29,6 @@ public class Server {
 
         sOut = new DataOutputStream(clientSocket.getOutputStream());
         sIn = new BufferedReader(new InputStreamReader( clientSocket.getInputStream()));
-        final String CRLF = "\r\n";
-        String response = "HTTP/1.1 200 OK" + CRLF+
-                "Content-Length:" + "7824" + CRLF+
-                "Content-Type:" + "text/plain" + CRLF + CRLF;
-//        "Date:" + "" + CRLF+
-//                "Last-Modified:" + "" + CRLF;
 
         String inputLine;
 
@@ -43,19 +39,26 @@ public class Server {
             String[] info = inputLine.split(" ");
             if (info[0].equals("GET")){
                 f = findFile(info[1]);
+                String fType = URLConnection.guessContentTypeFromName(f.getName());
+                Date date = new Date();
+                SimpleDateFormat dateFormat= new SimpleDateFormat("EEEE, dd-MM-yyyy hh:mm:ss");
+                String header = "HTTP/1.1 200 OK" +CRLF+
+                        "Content-Length:" + f.length() +CRLF+
+                        "Content-Type:" + fType +CRLF+
+                        "Date:" +  dateFormat.format(date) +" GMT"+CRLF+
+                        "Last-Modified:" + f.lastModified() +CRLF;
+                System.out.println(header);
                 try{
                     FileInputStream fis = new FileInputStream(f);
                     in = new DataInputStream(fis);
-                    byte[] bytes = new byte[128];
+                    byte[] bytes = new byte[1024];
                     int length = 0;
-                    sOut.writeUTF(response);
-
-                    System.out.println("successful");
+                    sOut.writeUTF(header);
                     while ((length = fis.read(bytes, 0, bytes.length)) != -1) {
                         sOut.write(bytes, 0, length);
                         sOut.flush();
-                        System.out.println("successful");
                     }
+                    System.out.println("successful");
                 } catch (Exception e){
                     e.printStackTrace();
                 }
@@ -80,6 +83,7 @@ public class Server {
         System.out.println(file.exists());
         return file;
     }
+
 
     public static void main(String[] args) throws IOException{
         Server frame = new Server();
