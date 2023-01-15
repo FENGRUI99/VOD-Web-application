@@ -56,21 +56,25 @@ public class Server {
 
 
                     String header = "HTTP/1.1 200 OK" + CRLF +
-                            "Content-Length:" + f.length() + CRLF +
-                            "Content-Type:" + fType + CRLF +
+                            "Content-Length: " + f.length() + CRLF +
+                            "Content-Type: " + fType + CRLF +
+                            "Accept-Ranges: " + "bytes" + CRLF +
 //                            "Content-Range:" + CRLF + start-end/size
-                            "Date:" + dateFormat1.format(date) + dateFormat2.getDisplayName(TextStyle.SHORT, Locale.ENGLISH) + dateFormat3.format(date) + " GMT" + CRLF +
-                            "Last-Modified:" + new Date(f.lastModified()) + CRLF + CRLF;
+                            "Date: " + dateFormat1.format(date) + dateFormat2.getDisplayName(TextStyle.SHORT, Locale.ENGLISH) + dateFormat3.format(date) + " GMT" + CRLF +
+                            "Last-Modified: " + new Date(f.lastModified()) + CRLF + CRLF;
 //                System.out.println(header);
                     try {
                         FileInputStream fis = new FileInputStream(f);
                         in = new DataInputStream(fis);
+                        int max = 10000000;
                         byte[] bytes = new byte[1024000];
-                        int length = 0;
+                        int length;
                         sOut.writeUTF(header);
                         while ((length = fis.read(bytes, 0, bytes.length)) != -1) {
                             sOut.write(bytes, 0, length);
                             sOut.flush();
+                            max -= length;
+                            if (max < 0) break;
                         }
                         System.out.println("successful");
                     } catch (Exception e) {
