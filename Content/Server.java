@@ -29,7 +29,7 @@ public class Server {
         sIn = new BufferedReader(new InputStreamReader( clientSocket.getInputStream()));
         final String CRLF = "\r\n";
         String response = "HTTP/1.1 200 OK" + CRLF+
-                "Content-Length:" + "240" + CRLF+
+                "Content-Length:" + "7824" + CRLF+
                 "Content-Type:" + "text/plain" + CRLF + CRLF;
 //        "Date:" + "" + CRLF+
 //                "Last-Modified:" + "" + CRLF;
@@ -48,15 +48,8 @@ public class Server {
                     in = new DataInputStream(fis);
                     byte[] bytes = new byte[128];
                     int length = 0;
-//                    sOut.writeUTF(response);
-//                    String response_head = "HTTP/1.1 200 OK\r\n" +
-//                            "Content-type:text/html\r\n\r\n";
-//                    String response_body = "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">" +  // 解决乱码问题
-//                            "<style>body{font-family:\"黑体\"}</style>" +
-//                            "欢迎来到小蓝枣的博客<br>" +
-//                            "Welcome to xiaolanzao's blog!";
                     sOut.writeUTF(response);
-//                    sOut.flush();
+
                     System.out.println("successful");
                     while ((length = fis.read(bytes, 0, bytes.length)) != -1) {
                         sOut.write(bytes, 0, length);
