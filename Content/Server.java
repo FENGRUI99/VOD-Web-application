@@ -4,7 +4,9 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.format.TextStyle;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Locale;
 
 public class Server {
@@ -38,57 +40,45 @@ public class Server {
 
             String inputLine;
             String[] info = null;
-            while ((inputLine = sIn.readLine()) != null){
-                System.out.println("Server: " + inputLine);
-                String[] tmp = inputLine.split(" ");
-                if (tmp[0].equals("GET")){
-                    info = tmp;
-                }
-                if (inputLine.equals("")) break;
-            }
-            //TODO
-            System.out.println(info);
-            if (info != null && info[0].equals("GET")) {
-                System.out.println(info);
-                f = findFile(info[1]);
-                if (!f.exists()) continue;
-
-                String fType = URLConnection.guessContentTypeFromName(f.getName());
-                Date date = new Date();
-                SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEEE, dd ");
-                SimpleDateFormat dateFormat3 = new SimpleDateFormat(" yyyy hh:mm:ss");
-                LocalDate localDate = LocalDate.now();
-                Month dateFormat2 = localDate.getMonth();
-
-
-                String header = "HTTP/1.1 200 OK" + CRLF +
-                        "Content-Length: " + f.length() + CRLF +
-                        "Content-Type: " + fType + CRLF +
-                        "Accept-Ranges: " + "bytes" + CRLF +
-//                            "Content-Range:" + CRLF + start-end/size
-                        "Date: " + dateFormat1.format(date) + dateFormat2.getDisplayName(TextStyle.SHORT, Locale.ENGLISH) + dateFormat3.format(date) + " GMT" + CRLF +
-                        "Last-Modified: " + f.lastModified() + CRLF + CRLF;
-//                System.out.println(header);
-                try {
-                    FileInputStream fis = new FileInputStream(f);
-                    in = new DataInputStream(fis);
-                    int max = 10000000;
-                    byte[] bytes = new byte[1024000];
-                    int length;
-                    sOut.writeUTF(header);
-                    while ((length = fis.read(bytes, 0, bytes.length)) != -1) {
-                        sOut.write(bytes, 0, length);
-                        sOut.flush();
-                        max -= length;
-                        if (max < 0) break;
+//            ArrayList<String[]> request = new ArrayList<>();
+            HashMap<String, String> request = new HashMap<>();
+            try{
+                while ((inputLine = sIn.readLine()) != null){
+                    info = inputLine.split(" ");
+//                    System.out.println(inputLine);
+                    while (!(inputLine = sIn.readLine()).equals("")){
+                        String[] tmp = inputLine.split(": ");
+                        request.put(tmp[0], tmp[1]);
+//                        System.out.println(tmp[0] + ": " + tmp[1]);
                     }
-                    System.out.println("successful");
-                } catch (Exception e) {
-                    e.printStackTrace();
+                    if (info[0].equals("GET")){
+                        if (info != null && info[0].equals("GET")) {
+                            if (info[1].equals("/favicon.ico")) break;
+                            System.out.println(info[1]);
+                            f = findFile(info[1]);
+                            if (!f.exists()) continue;
+                            String header;
+                            if (request.containsKey("Range")){
+                                System.out.println("#######################");
+                                String[] startEnd = request.get("Range").split("=")[1].split("-");
+                                partialContent(startEnd[0], startEnd[1]);
+                            }
+                            else {
+                                ok();
+                            }
+
+                        } else if (clientSocket.isClosed()) {
+                            break;
+                        }
+                    }
+//                if (inputLine.equals("")) break;
                 }
-            } else if (clientSocket.isClosed()) {
-                break;
+            } catch (Exception e){
+                System.out.println("12312313123123123213");
             }
+
+            //TODO
+
 
             sIn.close();
             sOut.close();
@@ -100,6 +90,125 @@ public class Server {
     public File findFile(String path) {
         File file = new File("." + path);
         return file;
+    }
+
+
+//    private String partialContent(String head, String tail) throws IOException {
+//        long startByte = Long.parseLong(head);
+//        long endByte = Long.parseLong(tail);
+//
+//        String fType = URLConnection.guessContentTypeFromName(f.getName());
+//        Date date = new Date();
+//        SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEEE, dd ");
+//        SimpleDateFormat dateFormat3 = new SimpleDateFormat(" yyyy hh:mm:ss");
+//        LocalDate localDate = LocalDate.now();
+//        Month dateFormat2 = localDate.getMonth();
+//
+//        //form and send header
+//        String header = "HTTP/1.1 206 Partial Content" + CRLF +
+//                "Content-Length: " + f.length() + CRLF +
+//                "Content-Type: " + fType + CRLF +
+//                "Accept-Ranges: " + "bytes" + CRLF +
+//                "Content-Range: " + "bytes " + 0 + "-" + "/" + f.length() + CRLF +
+//                "Date: " + dateFormat1.format(date) + dateFormat2.getDisplayName(TextStyle.SHORT, Locale.ENGLISH) + dateFormat3.format(date) + " GMT" + CRLF +
+//                "Last-Modified: " + f.lastModified() + CRLF + CRLF;
+//        return header;
+//    }
+
+    public void partialContent(String head, String tail) throws IOException {
+        long startByte = Long.parseLong(head);
+        long endByte;
+        if (tail.equals("")){
+            endByte = f.length();
+        }
+        else{
+            endByte = Long.parseLong(tail);
+        }
+
+
+        String fType = URLConnection.guessContentTypeFromName(f.getName());
+        Date date = new Date();
+        SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEEE, dd ");
+        SimpleDateFormat dateFormat3 = new SimpleDateFormat(" yyyy hh:mm:ss");
+        LocalDate localDate = LocalDate.now();
+        Month dateFormat2 = localDate.getMonth();
+
+        //form and send header
+        String header = "HTTP/1.1 206 Partial Content" + CRLF +
+                "Content-Length: " + (endByte - startByte + 1) + CRLF +
+                "Content-Type: " + fType + CRLF +
+                "Accept-Ranges: " + "bytes" + CRLF +
+                "Content-Range: " + "bytes " + startByte + "-" + endByte + "/" + f.length() +  CRLF +
+                "Date: " + dateFormat1.format(date) + dateFormat2.getDisplayName(TextStyle.SHORT, Locale.ENGLISH) + dateFormat3.format(date) + " GMT" + CRLF +
+                "Last-Modified: " + f.lastModified() + CRLF + CRLF;
+        sOut.writeUTF(header);
+
+        //form and send file
+        try {
+            FileInputStream fis = new FileInputStream(f);
+            in = new DataInputStream(fis);
+            byte[] bytes = new byte[1024000]; //1MB
+
+            int length;
+            long count = 0;  //total bytes that read
+
+            in.skip(startByte);  //Skip 'startbytes' bytes tp reach the start point
+            while ((length = in.read(bytes, 0, bytes.length)) != -1) {   //[)
+                count += length;
+                if(count <= endByte-startByte+1){
+                    sOut.write(bytes, 0, length);
+                    sOut.flush();
+                }
+                else{
+                    if(count-length == endByte-startByte+1) break;
+                    sOut.write(bytes, 0, (length-(int)(count-(endByte-startByte+1))));
+                    sOut.flush();
+                    break;
+                }
+            }
+            System.out.println("successful");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+
+    private void ok() throws IOException {
+        //header
+        String fType = URLConnection.guessContentTypeFromName(f.getName());
+        Date date = new Date();
+        SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEEE, dd ");
+        SimpleDateFormat dateFormat3 = new SimpleDateFormat(" yyyy hh:mm:ss");
+        LocalDate localDate = LocalDate.now();
+        Month dateFormat2 = localDate.getMonth();
+
+        String header = "HTTP/1.1 200 OK" + CRLF +
+                "Content-Length: " + f.length() + CRLF +
+                "Content-Type: " + fType + CRLF +
+                "Accept-Ranges: " + "bytes" + CRLF +
+//                            "Content-Range:" + CRLF + start-end/size
+                "Date: " + dateFormat1.format(date) + dateFormat2.getDisplayName(TextStyle.SHORT, Locale.ENGLISH) + dateFormat3.format(date) + " GMT" + CRLF +
+                "Last-Modified: " + f.lastModified() + CRLF + CRLF;
+        try {
+            FileInputStream fis = new FileInputStream(f);
+            in = new DataInputStream(fis);
+            int max = 10000000;
+            byte[] bytes = new byte[1024000];
+            int length;
+            sOut.writeUTF(header);
+            while ((length = in.read(bytes, 0, bytes.length)) != -1) {
+                sOut.write(bytes, 0, length);
+                sOut.flush();
+                max -= length;
+                if (max < 0) break;
+            }
+            System.out.println("successful");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
 
