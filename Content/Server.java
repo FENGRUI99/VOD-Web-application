@@ -37,52 +37,57 @@ public class Server {
             sIn = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
             String inputLine;
-
+            String[] info = null;
             while ((inputLine = sIn.readLine()) != null){
                 System.out.println("Server: " + inputLine);
-                //TODO
-                String[] info = inputLine.split(" ");
-                if (info[0].equals("GET")) {
-//                    System.out.println(info);
-                    f = findFile(info[1]);
-                    if (!f.exists()) continue;
-
-                    String fType = URLConnection.guessContentTypeFromName(f.getName());
-                    Date date = new Date();
-                    SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEEE, dd ");
-                    SimpleDateFormat dateFormat3 = new SimpleDateFormat(" yyyy hh:mm:ss");
-                    LocalDate localDate = LocalDate.now();
-                    Month dateFormat2 = localDate.getMonth();
-
-
-                    String header = "HTTP/1.1 200 OK" + CRLF +
-                            "Content-Length: " + f.length() + CRLF +
-                            "Content-Type: " + fType + CRLF +
-                            "Accept-Ranges: " + "bytes" + CRLF +
-//                            "Content-Range:" + CRLF + start-end/size
-                            "Date: " + dateFormat1.format(date) + dateFormat2.getDisplayName(TextStyle.SHORT, Locale.ENGLISH) + dateFormat3.format(date) + " GMT" + CRLF +
-                            "Last-Modified: " + new Date(f.lastModified()) + CRLF + CRLF;
-//                System.out.println(header);
-                    try {
-                        FileInputStream fis = new FileInputStream(f);
-                        in = new DataInputStream(fis);
-                        int max = 10000000;
-                        byte[] bytes = new byte[1024000];
-                        int length;
-                        sOut.writeUTF(header);
-                        while ((length = fis.read(bytes, 0, bytes.length)) != -1) {
-                            sOut.write(bytes, 0, length);
-                            sOut.flush();
-                            max -= length;
-                            if (max < 0) break;
-                        }
-                        System.out.println("successful");
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                } else if (clientSocket.isClosed()) {
-                    break;
+                String[] tmp = inputLine.split(" ");
+                if (tmp[0].equals("GET")){
+                    info = tmp;
                 }
+                if (inputLine.equals("")) break;
+            }
+            //TODO
+            System.out.println(info);
+            if (info != null && info[0].equals("GET")) {
+                System.out.println(info);
+                f = findFile(info[1]);
+                if (!f.exists()) continue;
+
+                String fType = URLConnection.guessContentTypeFromName(f.getName());
+                Date date = new Date();
+                SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEEE, dd ");
+                SimpleDateFormat dateFormat3 = new SimpleDateFormat(" yyyy hh:mm:ss");
+                LocalDate localDate = LocalDate.now();
+                Month dateFormat2 = localDate.getMonth();
+
+
+                String header = "HTTP/1.1 200 OK" + CRLF +
+                        "Content-Length: " + f.length() + CRLF +
+                        "Content-Type: " + fType + CRLF +
+                        "Accept-Ranges: " + "bytes" + CRLF +
+//                            "Content-Range:" + CRLF + start-end/size
+                        "Date: " + dateFormat1.format(date) + dateFormat2.getDisplayName(TextStyle.SHORT, Locale.ENGLISH) + dateFormat3.format(date) + " GMT" + CRLF +
+                        "Last-Modified: " + f.lastModified() + CRLF + CRLF;
+//                System.out.println(header);
+                try {
+                    FileInputStream fis = new FileInputStream(f);
+                    in = new DataInputStream(fis);
+                    int max = 10000000;
+                    byte[] bytes = new byte[1024000];
+                    int length;
+                    sOut.writeUTF(header);
+                    while ((length = fis.read(bytes, 0, bytes.length)) != -1) {
+                        sOut.write(bytes, 0, length);
+                        sOut.flush();
+                        max -= length;
+                        if (max < 0) break;
+                    }
+                    System.out.println("successful");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            } else if (clientSocket.isClosed()) {
+                break;
             }
 
             sIn.close();
