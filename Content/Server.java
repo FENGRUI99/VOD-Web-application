@@ -4,7 +4,6 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.format.TextStyle;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
@@ -40,9 +39,9 @@ public class Server {
 
             String inputLine;
             String[] info = null;
-//            ArrayList<String[]> request = new ArrayList<>();
+
             HashMap<String, String> request = new HashMap<>();
-            try{
+
                 while ((inputLine = sIn.readLine()) != null){
                     info = inputLine.split(" ");
 //                    System.out.println(inputLine);
@@ -61,7 +60,13 @@ public class Server {
                             if (request.containsKey("Range")){
                                 System.out.println("#######################");
                                 String[] startEnd = request.get("Range").split("=")[1].split("-");
-                                partialContent(startEnd[0], startEnd[1]);
+                                System.out.println(request.get("Range").split("=")[1]);
+                                if (startEnd.length == 1){
+                                    partialContent(startEnd[0], "");
+                                }
+                                else {
+                                    partialContent(startEnd[0], startEnd[1]);
+                                }
                             }
                             else {
                                 ok();
@@ -73,9 +78,6 @@ public class Server {
                     }
 //                if (inputLine.equals("")) break;
                 }
-            } catch (Exception e){
-                System.out.println("12312313123123123213");
-            }
 
             //TODO
 
@@ -125,7 +127,6 @@ public class Server {
             endByte = Long.parseLong(tail);
         }
 
-
         String fType = URLConnection.guessContentTypeFromName(f.getName());
         Date date = new Date();
         SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEEE, dd ");
@@ -147,7 +148,7 @@ public class Server {
         try {
             FileInputStream fis = new FileInputStream(f);
             in = new DataInputStream(fis);
-            byte[] bytes = new byte[1024000]; //1MB
+            byte[] bytes = new byte[1024 * 1024]; //1MB
 
             int length;
             long count = 0;  //total bytes that read
@@ -188,22 +189,22 @@ public class Server {
                 "Content-Length: " + f.length() + CRLF +
                 "Content-Type: " + fType + CRLF +
                 "Accept-Ranges: " + "bytes" + CRLF +
-//                            "Content-Range:" + CRLF + start-end/size
                 "Date: " + dateFormat1.format(date) + dateFormat2.getDisplayName(TextStyle.SHORT, Locale.ENGLISH) + dateFormat3.format(date) + " GMT" + CRLF +
                 "Last-Modified: " + f.lastModified() + CRLF + CRLF;
         try {
             FileInputStream fis = new FileInputStream(f);
             in = new DataInputStream(fis);
-            int max = 10000000;
-            byte[] bytes = new byte[1024000];
+            int max = 1024 * 1024 * 10;
+            byte[] bytes = new byte[1024 * 1024];
             int length;
             sOut.writeUTF(header);
             while ((length = in.read(bytes, 0, bytes.length)) != -1) {
                 sOut.write(bytes, 0, length);
                 sOut.flush();
                 max -= length;
-                if (max < 0) break;
+                if (max <= 0) break;
             }
+            System.out.println(max);
             System.out.println("successful");
         } catch (Exception e) {
             e.printStackTrace();
