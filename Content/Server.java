@@ -94,29 +94,6 @@ public class Server {
         return file;
     }
 
-
-//    private String partialContent(String head, String tail) throws IOException {
-//        long startByte = Long.parseLong(head);
-//        long endByte = Long.parseLong(tail);
-//
-//        String fType = URLConnection.guessContentTypeFromName(f.getName());
-//        Date date = new Date();
-//        SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEEE, dd ");
-//        SimpleDateFormat dateFormat3 = new SimpleDateFormat(" yyyy hh:mm:ss");
-//        LocalDate localDate = LocalDate.now();
-//        Month dateFormat2 = localDate.getMonth();
-//
-//        //form and send header
-//        String header = "HTTP/1.1 206 Partial Content" + CRLF +
-//                "Content-Length: " + f.length() + CRLF +
-//                "Content-Type: " + fType + CRLF +
-//                "Accept-Ranges: " + "bytes" + CRLF +
-//                "Content-Range: " + "bytes " + 0 + "-" + "/" + f.length() + CRLF +
-//                "Date: " + dateFormat1.format(date) + dateFormat2.getDisplayName(TextStyle.SHORT, Locale.ENGLISH) + dateFormat3.format(date) + " GMT" + CRLF +
-//                "Last-Modified: " + f.lastModified() + CRLF + CRLF;
-//        return header;
-//    }
-
     public void partialContent(String head, String tail) throws IOException {
         long startByte = Long.parseLong(head);
         long endByte;
@@ -138,6 +115,7 @@ public class Server {
         String header = "HTTP/1.1 206 Partial Content" + CRLF +
                 "Content-Length: " + (endByte - startByte + 1) + CRLF +
                 "Content-Type: " + fType + CRLF +
+                "Connection: " + "Keep-Alive" + CRLF +
                 "Accept-Ranges: " + "bytes" + CRLF +
                 "Content-Range: " + "bytes " + startByte + "-" + endByte + "/" + f.length() +  CRLF +
                 "Date: " + dateFormat1.format(date) + dateFormat2.getDisplayName(TextStyle.SHORT, Locale.ENGLISH) + dateFormat3.format(date) + " GMT" + CRLF +
@@ -148,6 +126,7 @@ public class Server {
         try {
             FileInputStream fis = new FileInputStream(f);
             in = new DataInputStream(fis);
+            int max = 1024 * 1024 * 10;
             byte[] bytes = new byte[1024 * 1024]; //1MB
 
             int length;
@@ -188,6 +167,7 @@ public class Server {
         String header = "HTTP/1.1 200 OK" + CRLF +
                 "Content-Length: " + f.length() + CRLF +
                 "Content-Type: " + fType + CRLF +
+                "Connection: " + "Keep-Alive" + CRLF +
                 "Accept-Ranges: " + "bytes" + CRLF +
                 "Date: " + dateFormat1.format(date) + dateFormat2.getDisplayName(TextStyle.SHORT, Locale.ENGLISH) + dateFormat3.format(date) + " GMT" + CRLF +
                 "Last-Modified: " + f.lastModified() + CRLF + CRLF;
