@@ -88,6 +88,7 @@ public class Server {
         }
     }
 
+
     //TODO
     public File findFile(String path) {
         File file = new File("." + path);
@@ -197,6 +198,54 @@ public class Server {
         Server frame = new Server();
         frame.getServer();
     }
+
+    class Listener extends Thread{
+        public Listener(){
+
+        }
+
+        public Listener(String name){
+            super(name);
+        }
+
+        @Override
+        public void run(){
+            try {
+                serverSocket = new ServerSocket(10008);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            while (true){
+                System.out.println("Waiting for connection.....");
+                Socket clientSocket = null;
+                try {
+                    clientSocket = serverSocket.accept();
+                } catch (IOException e){
+                    e.printStackTrace();
+                }
+                System.out.println("Connection successful");
+                System.out.println("Waiting for input.....");
+                try {
+                    BufferedReader sIn = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                Sender sender = new Sender(clientSocket);
+                sender.start();
+
+            }
+
+        }
+    }
+
+    class Sender extends Thread{
+        Socket clientSocket;
+        public Sender(Socket clientSocket){
+            this.clientSocket = clientSocket;
+        }
+    }
+
 
 
 }
