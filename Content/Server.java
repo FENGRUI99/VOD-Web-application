@@ -2,12 +2,8 @@
 import java.io.*;
 import java.net.*;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.Month;
-import java.time.format.TextStyle;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -88,7 +84,6 @@ class Sender extends Thread{
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
     }
     private File findFile(String path) {
         File file = new File("." + path);
@@ -98,46 +93,38 @@ class Sender extends Thread{
         //header
         String fType = URLConnection.guessContentTypeFromName(f.getName());
         Date date = new Date();
-        SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd ");
-        SimpleDateFormat dateFormat3 = new SimpleDateFormat(" yyyy hh:mm:ss");
-        LocalDate localDate = LocalDate.now();
-        Month dateFormat2 = localDate.getMonth();
-
         Date lastModified = new Date(f.lastModified());
+        SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
 
         String header = "HTTP/1.1 200 OK" + CRLF +
                 "Content-Length: " + f.length() + CRLF +
                 "Content-Type: " + fType + CRLF +
-                "Connection: " + "Keep-Alive" + CRLF +
+                "Connection: " + "keep-alive" + CRLF +
                 "Accept-Ranges: " + "bytes" + CRLF +
-                "Date: " + dateFormat1.format(date) + dateFormat2.getDisplayName(TextStyle.SHORT, Locale.ENGLISH) + dateFormat3.format(date) + " GMT" + CRLF +
-                "Last-Modified: " + lastModified + CRLF +CRLF;
+                "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
+                "Last-Modified: " + dateFormat1.format(lastModified) + " GMT" + CRLF +CRLF;
        try {
-           System.out.println(header);
+            System.out.println(header);
             FileInputStream fis = new FileInputStream(f);
             in = new DataInputStream(fis);
-//            int max = 1024 * 1024 * 2;
             byte[] bytes = new byte[1024 * 1024];
             int length;
             sOut.writeUTF(header);
             while ((length = in.read(bytes, 0, bytes.length)) != -1) {
                 sOut.write(bytes, 0, length);
-//                max -= length;
-//                if (max <= 0) break;
                 sOut.flush();
             }
-//            System.out.println(max);
             System.out.println("successful");
        } catch (Exception e) {
             e.printStackTrace();
        }
-
     }
     private void response206(String head, String tail) throws IOException{
         long startByte = Long.parseLong(head);
         long endByte;
+        int max = 1024 * 1024 * 20;
         if (tail.equals("")){
-            endByte = f.length();
+            endByte = startByte + max;
         }
         else{
             endByte = Long.parseLong(tail);
@@ -145,21 +132,19 @@ class Sender extends Thread{
 
         String fType = URLConnection.guessContentTypeFromName(this.f.getName());
         Date date = new Date();
-        SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd ");
-        SimpleDateFormat dateFormat3 = new SimpleDateFormat(" yyyy hh:mm:ss");
-        LocalDate localDate = LocalDate.now();
-        Month dateFormat2 = localDate.getMonth();
-        int max = 1024 * 1024 * 20;
+        Date lastModified = new Date(f.lastModified());
+        SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
+
         //form and send header
         String header = "HTTP/1.1 206 Partial Content" + CRLF +
                 "Content-Length: " + max + CRLF +
                 "Content-Type: " + fType + CRLF +
                 "Cache-Control: " + "public" + CRLF +
-                "Connection: " + "Keep-Alive" + CRLF +
+                "Connection: " + "keep-alive" + CRLF +
                 "Accept-Ranges: " + "bytes" + CRLF +
-                "Content-Range: " + "bytes " + startByte + "-" + (startByte + max) + "/" + this.f.length() +  CRLF +
-                "Date: " + dateFormat1.format(date) + dateFormat2.getDisplayName(TextStyle.SHORT, Locale.ENGLISH) + dateFormat3.format(date) + " GMT" + CRLF +
-                "Last-Modified: " + this.f.lastModified() + CRLF + CRLF;
+                "Content-Range: " + "bytes " + startByte + "-" + endByte + "/" + this.f.length() +  CRLF +
+                "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
+                "Last-Modified: " + dateFormat1.format(lastModified) + " GMT" + CRLF +CRLF;
 
         try {
             FileInputStream fis = new FileInputStream(f);
@@ -172,9 +157,10 @@ class Sender extends Thread{
             while ((length = in.read(bytes, 0, bytes.length)) != -1) {
                 max -= length;
                 sOut.write(bytes, 0, length);
+                sOut.flush();
                 if (max <= 0) break;
             }
-            sOut.flush();
+
             System.out.println("successful");
         } catch (Exception e) {
             e.printStackTrace();
