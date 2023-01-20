@@ -99,6 +99,7 @@ class Sender extends Thread{
         String header = "HTTP/1.1 200 OK" + CRLF +
                 "Content-Length: " + f.length() + CRLF +
                 "Content-Type: " + fType + CRLF +
+                "Cache-Control: " + "public" + CRLF +
                 "Connection: " + "keep-alive" + CRLF +
                 "Accept-Ranges: " + "bytes" + CRLF +
                 "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
