@@ -66,16 +66,20 @@ class Sender extends Thread{
                     System.out.println(info[1]);
                     f = findFile(info[1]);
                     if (f.exists() && !request.containsKey("Range")){
-                        response200();
                         System.out.println("response code: 200");
+                        response200();
                     }
                     else if (f.exists()){
-                        response206("", "");
                         System.out.println("response code: 206");
+                        System.out.println(request.get("Range"));
+                        String[] headTail = request.get("Range").split("bytes=")[1].split("-");
+                        String tail = "";
+                        if (headTail.length == 1) tail = headTail[0];
+                        response206(headTail[0], tail);
                     }
                     else {
-                        response404();
                         System.out.println("response code: 404");
+                        response404();
                     }
                 }
                 sOut.close();
@@ -108,17 +112,17 @@ class Sender extends Thread{
        try {
             FileInputStream fis = new FileInputStream(f);
             in = new DataInputStream(fis);
-            int max = 1024 * 1024 * 10;
+//            int max = 1024 * 1024 * 2;
             byte[] bytes = new byte[1024 * 1024];
             int length;
             sOut.writeUTF(header);
             while ((length = in.read(bytes, 0, bytes.length)) != -1) {
                 sOut.write(bytes, 0, length);
                 sOut.flush();
-                max -= length;
-                if (max <= 0) break;
+//                max -= length;
+//                if (max <= 0) break;
             }
-            System.out.println(max);
+//            System.out.println(max);
             System.out.println("successful");
        } catch (Exception e) {
             e.printStackTrace();
@@ -169,11 +173,13 @@ class Sender extends Thread{
                 }
                 else{
                     if(count-length == endByte-startByte+1) break;
-                    sOut.write(bytes, 0, (length-(int)(count-(endByte-startByte+1))));
+//                    sOut.write(bytes, 0, (length-(int)(count-(endByte-startByte+1))));
                     sOut.flush();
+                    System.out.println("I want to test: " + (length-(int)(count-(endByte-startByte+1))));
                     break;
                 }
             }
+
             System.out.println("successful");
         } catch (Exception e) {
             e.printStackTrace();
