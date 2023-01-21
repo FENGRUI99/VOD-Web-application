@@ -47,43 +47,42 @@ class Sender extends Thread{
     }
     @Override
     public void run() {
-            try {
-                sOut = new DataOutputStream(clientSocket.getOutputStream());
-                sIn = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                HashMap<String, String> request = new HashMap<>();
-                String inputLine;
-                String[] info;
-                while ((inputLine = sIn.readLine()) != null) {
-                    info = inputLine.split(" ");
-                    while (!(inputLine = sIn.readLine()).equals("")) {
-                        String[] tmp = inputLine.split(": ");
-                        request.put(tmp[0], tmp[1]);
-                    }
-                    System.out.println(info[1]);
-                    f = findFile(info[1]);
-                    if (f.exists() && !request.containsKey("Range")){
-                        System.out.println("response code: 200");
-                        response200();
-                    }
-                    else if (f.exists()){
-                        System.out.println("response code: 206");
-                        System.out.println(request.get("Range"));
-                        String[] headTail = request.get("Range").split("bytes=")[1].split("-");
-                        String tail = "";
-                        if (headTail.length > 1) tail = headTail[1];
-                        response206(headTail[0], tail);
-                    }
-                    else {
-                        System.out.println("response code: 404");
-                        response404();
-                    }
-                }
-                sOut.close();
-                in.close();
-                sIn.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+        try {
+            sOut = new DataOutputStream(clientSocket.getOutputStream());
+            sIn = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            HashMap<String, String> request = new HashMap<>();
+            String inputLine = sIn.readLine();
+            String[] info;
+            info = inputLine.split(" ");
+            while (!(inputLine = sIn.readLine()).equals("")) {
+                String[] tmp = inputLine.split(": ");
+                request.put(tmp[0], tmp[1]);
             }
+            System.out.println(info[1]);
+            f = findFile(info[1]);
+            if (f.exists() && !request.containsKey("Range")){
+                System.out.println("response code: 200");
+                response200();
+            }
+            else if (f.exists()){
+                System.out.println("response code: 206");
+                System.out.println(request.get("Range"));
+                String[] headTail = request.get("Range").split("bytes=")[1].split("-");
+                String tail = "";
+                if (headTail.length > 1) tail = headTail[1];
+                response206(headTail[0], tail);
+            }
+            else {
+                System.out.println("response code: 404");
+                response404();
+            }
+            sOut.close();
+            in.close();
+            sIn.close();
+            clientSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
     private File findFile(String path) {
         File file = new File("." + path);
@@ -105,7 +104,7 @@ class Sender extends Thread{
                 "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
                 "Last-Modified: " + dateFormat1.format(lastModified) + " GMT" + CRLF +CRLF;
        try {
-            System.out.println(header);
+//            System.out.println(header);
             FileInputStream fis = new FileInputStream(f);
             in = new DataInputStream(fis);
             byte[] bytes = new byte[1024 * 1024];
