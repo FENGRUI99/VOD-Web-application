@@ -1,10 +1,12 @@
 
 //import java.io.*;
+import com.alibaba.fastjson.JSONObject;
+
 import java.io.InputStream;
 import java.net.*;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileInputStream;
+import java.util.Date;
 
 public class BackEndUdpServer {
     DatagramSocket dsocket = null;
@@ -35,10 +37,51 @@ public class BackEndUdpServer {
         }
     }
 
+    public String getReqHeader (int statusCode, String fileName, long start, long length){
+        return JSONObject.toJSONString(new RequestHeader(statusCode, fileName, start, length));
+    }
+
+    public String getResHeader (int statusCode, String fileName, long start, long length, String type, Date lastModified, String md5){
+        return JSONObject.toJSONString(new ResponseHeader(statusCode, fileName, start, length, type, lastModified, md5));
+    }
 
     public static void main(String[] args) throws Exception{
         BackEndUdpServer server = new BackEndUdpServer();
-        server.getServer();
     }
+
+    class RequestHeader{
+        int statusCode;
+        String fileName;
+        long start;
+        long length;
+
+        public RequestHeader(int statusCode, String fileName, long start, long length){
+            this.statusCode = statusCode;
+            this.fileName = fileName;
+            this.start = start;
+            this.length = length;
+        }
+    }
+
+    class ResponseHeader{
+        int statusCode;
+        String fileName;
+        long start;
+        long length;
+        String type;
+        Date lastModified;
+        String md5;
+
+        public ResponseHeader(int statusCode, String fileName, long start, long length, String type, Date lastModified, String md5){
+            this.statusCode = statusCode;
+            this.fileName = fileName;
+            this.start = start;
+            this.length = length;
+            this.type = type;
+            this.lastModified = lastModified;
+            this.md5 = md5;
+        }
+    }
+
 }
 
