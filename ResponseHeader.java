@@ -18,4 +18,32 @@ public class ResponseHeader{
         this.lastModified = lastModified;
         this.md5 = md5;
     }
+
+    public int getStatusCode() {
+        return statusCode;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public long getStart() {
+        return start;
+    }
+
+    public long getLength() {
+        return length;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public Date getLastModified() {
+        return lastModified;
+    }
+
+    public String getMd5() {
+        return md5;
+    }
 }

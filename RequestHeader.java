@@ -14,12 +14,15 @@ public class RequestHeader{
     public int getStatusCode(){
         return statusCode;
     }
+
     public String getFileName(){
         return fileName;
     }
+
     public long getStart(){
         return start;
     }
+
     public long getLength(){
         return length;
     }
