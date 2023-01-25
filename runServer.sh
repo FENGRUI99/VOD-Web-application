@@ -1,0 +1,2 @@
+javac BackEndUdpServer.java
+java BackEndUdpServer

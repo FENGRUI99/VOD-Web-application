@@ -1,7 +1,5 @@
-
 //import java.io.*;
 import com.alibaba.fastjson.JSONObject;
-
 import java.io.InputStream;
 import java.net.*;
 import java.io.File;
@@ -38,20 +36,33 @@ public class BackEndUdpServer {
     }
 
     public String getReqHeader (int statusCode, String fileName, long start, long length){
-        RequestHeader r = new RequestHeader(statusCode, fileName, start, length);
-        return JSONObject.toJSONString(r);
+        RequestHeader req = new RequestHeader(statusCode, fileName, start, length);
+        return JSONObject.toJSONString(req);
     }
 
     public String getResHeader (int statusCode, String fileName, long start, long length, String type, Date lastModified, String md5){
-        return JSONObject.toJSONString(new ResponseHeader(statusCode, fileName, start, length, type, lastModified, md5));
+        ResponseHeader resp = new ResponseHeader(statusCode, fileName, start, length, type, lastModified, md5);
+        return JSONObject.toJSONString(resp);
+    }
+
+    public byte[] preHeader (String JSON, int byteLen){
+        int len = JSON.getBytes().length;
+        String s = String.format("%0" + byteLen + "d",len);
+        byte[] header = s.getBytes();
+        return header;
     }
 
     public static void main(String[] args) throws Exception{
         BackEndUdpServer server = new BackEndUdpServer();
         String s = server.getReqHeader(0, "test.png", 0, 1000);
-        System.out.println(s);
+        //System.out.println(s);
         RequestHeader r = JSONObject.parseObject(s, RequestHeader.class);
-        System.out.println(r);
+        //System.out.println(r);
+
+        //test for preHeader
+        byte[] a = server.preHeader("fhhdskhjfdfh",4);
+        System.out.println(new String(a));
+
     }
 
 
