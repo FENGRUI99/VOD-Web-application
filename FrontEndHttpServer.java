@@ -8,10 +8,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 
-public class Server {
+public class FrontEndHttpServer {
     String port;
 
-    public Server(String port){
+    public FrontEndHttpServer(String port){
         this.port = port;
     }
 
@@ -37,8 +37,8 @@ public class Server {
 
     public static void main(String[] args) throws IOException{
         System.out.println(args[0]);
-        Server server = new Server(args[0]);
-        server.startServer();
+        FrontEndHttpServer frontEndHttpServer = new FrontEndHttpServer(args[0]);
+        frontEndHttpServer.startServer();
     }
 }
 
