@@ -1,5 +1,4 @@
 
-import java.io.*;
 import com.alibaba.fastjson.JSONObject;
 import java.io.InputStream;
 import java.net.*;
@@ -8,14 +7,14 @@ import java.io.FileInputStream;
 import java.util.Date;
 
 public class BackEndUdpServer {
-    DatagramSocket dscok = null;
+    DatagramSocket dsock = null;
     DatagramPacket dpack = null;
     public void getServer() throws Exception{
-        dscok = new DatagramSocket(7077);
+        dsock = new DatagramSocket(7077);
         byte[] arr1 = new byte[150];
         dpack = new DatagramPacket(arr1, arr1.length);
         while (true){
-            dscok.receive(dpack);
+            dsock.receive(dpack);
             byte[] request = dpack.getData();
             int len = dpack.getLength();
             String fileName = new String(request, 0, len);
@@ -28,10 +27,10 @@ public class BackEndUdpServer {
 
             byte[] fileInfo = (fileName + ":" + b.length).getBytes();
             DatagramPacket dp = new DatagramPacket(fileInfo,0, fileInfo.length, dpack.getAddress(), dpack.getPort());
-            dscok.send(dp);
+            dsock.send(dp);
 
             dp = new DatagramPacket(b,0, b.length, dpack.getAddress(), dpack.getPort());
-            dscok.send(dp);
+            dsock.send(dp);
             System.out.println("Successful");
         }
     }
