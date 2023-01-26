@@ -1,7 +1,6 @@
 
-//import java.io.*;
+import java.io.*;
 import com.alibaba.fastjson.JSONObject;
-
 import java.io.InputStream;
 import java.net.*;
 import java.io.File;
@@ -35,6 +34,15 @@ public class BackEndUdpServer {
             dscok.send(dp);
             System.out.println("Successful");
         }
+    }
+
+    public byte[] preHeader (String header, byte[] content, int byteLen){
+        int len = header.getBytes().length;
+        String s1 = String.format("%0" + byteLen/2 + "d",len);
+        String s2 = String.format("%0" + byteLen/2 + "d",content.length);
+        String s = s1 + s2;
+        byte[] res = s.getBytes();
+        return res;
     }
 
     public String getReqHeader (int statusCode, String fileName, long start, long length){
