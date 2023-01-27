@@ -6,10 +6,10 @@ public class ResponseHeader{
     long start;
     long length;
     String type;
-    Date lastModified;
+    long lastModified;
     String md5;
 
-    public ResponseHeader(int statusCode, String fileName, long start, long length, String type, Date lastModified, String md5){
+    public ResponseHeader(int statusCode, String fileName, long start, long length, String type, long lastModified, String md5){
         this.statusCode = statusCode;
         this.fileName = fileName;
         this.start = start;
