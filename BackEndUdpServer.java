@@ -11,57 +11,105 @@ public class BackEndUdpServer {
     DatagramPacket dpack = null;
     public void getServer() throws Exception{
         dsock = new DatagramSocket(7077);
-        byte[] arr1 = new byte[150];
-        dpack = new DatagramPacket(arr1, arr1.length);
         while (true){
+            // receive request
+            byte[] recArr = new byte[20480];
+            dpack = new DatagramPacket(recArr, recArr.length);
             dsock.receive(dpack);
-            byte[] request = dpack.getData();
-            int len = dpack.getLength();
-            String fileName = new String(request, 0, len);
+            recArr = dpack.getData();
 
-            File f = new File("./content/" + fileName);
-            InputStream fis = new FileInputStream(f);
-            byte[] b = new byte[fis.available()];
-            fis.read(b);
-            fis.close();
+            //preheader
+            int headerLen = convertByteToInt(recArr, 0);    //recArr[0:3]
+            int contentLen = convertByteToInt(recArr, 4); //recArr[4:7]
 
-            byte[] fileInfo = (fileName + ":" + b.length).getBytes();
-            DatagramPacket dp = new DatagramPacket(fileInfo,0, fileInfo.length, dpack.getAddress(), dpack.getPort());
-            dsock.send(dp);
 
-            dp = new DatagramPacket(b,0, b.length, dpack.getAddress(), dpack.getPort());
-            dsock.send(dp);
-            System.out.println("Successful");
+            //header
+
+
+            recArr = new byte[headLen + contentLen];
+            dpack.setData(recArr, 0, recArr.length);
+            dsock.receive(dpack);
+            recArr = dpack.getData();
+            RequestHeader header = JSONObject.parseObject(new String(recArr, 0, headLen), RequestHeader.class);
+//            if (header.statusCode == 0){
+//                String fileName = header.fileName;
+//                File f = new File("./content/" + fileName);
+//                if (f.exists()){
+//                    InputStream fis = new FileInputStream(f);
+//                    byte[] fileArr = new byte[fis.available()];
+//                    fis.read(fileArr);
+//                    fis.close();
+//                    String resHeader = getResHeader(0, fileName, 0, f.length(), URLConnection.guessContentTypeFromName(f.getName()), f.lastModified(), "");
+//
+//                    //send preheader
+//                    sendArr = preHeader(resHeader.length(), fileArr.length);
+//                    dpack.setData(sendArr, 0, sendArr.length);
+//                    dsock.send(dpack);
+//
+//                    //receive ACK
+//                    recArr = new byte[3];
+//                    dpack.setData(recArr, 0, recArr.length);
+//                    dsock.receive(dpack);
+//                    if (new String(dpack.getData()).equals("ACK")){
+//                        // send file info
+//                        sendArr = addBytes(resHeader.getBytes(), fileArr);
+//                        dpack.setData(sendArr);
+//                        dsock.send(dpack);
+//                    }
+//                }
+//                else {
+//                    //404
+//                }
+//            }
+//            else if (header.statusCode == 1){
+//
+//            }
+//            else {
+//
+//            }
+
         }
     }
-
-    public byte[] preHeader (String header, byte[] content, int byteLen){
-        int len = header.getBytes().length;
-        String s1 = String.format("%0" + byteLen/2 + "d",len);
-        String s2 = String.format("%0" + byteLen/2 + "d",content.length);
-        String s = s1 + s2;
-        byte[] res = s.getBytes();
+    public byte[] preHeader (int headerLen, int contentLen){
+        byte[] headerLenBytes = convertIntToByte(headerLen);
+        byte[] contentLenBytes = convertIntToByte(contentLen);
+        byte[] res = addBytes(headerLenBytes, contentLenBytes);
         return res;
+    }
+    public byte[] addBytes(byte[] data1, byte[] data2) {
+        byte[] data3 = new byte[data1.length + data2.length];
+        System.arraycopy(data1, 0, data3, 0, data1.length);
+        System.arraycopy(data2, 0, data3, data1.length, data2.length);
+        return data3;
+    }
+    public int convertByteToInt (byte[] bytes){
+        return ((bytes[0] & 0xFF) << 24) |
+                ((bytes[1] & 0xFF) << 16) |
+                ((bytes[2] & 0xFF) << 8 ) |
+                ((bytes[3] & 0xFF) << 0 );
+    }
+    public int convertByteToInt(byte[] bytes, int start){
+        return ((bytes[start + 0] & 0xFF) << 24) |
+                ((bytes[start + 1] & 0xFF) << 16) |
+                ((bytes[start + 2] & 0xFF) << 8 ) |
+                ((bytes[start + 3] & 0xFF) << 0 );
+    }
+    public byte[] convertIntToByte(int value){
+        return new byte[] {
+                (byte)(value >> 24),
+                (byte)(value >> 16),
+                (byte)(value >> 8),
+                (byte)value };
     }
 
     public String getReqHeader (int statusCode, String fileName, long start, long length){
         RequestHeader r = new RequestHeader(statusCode, fileName, start, length);
         return JSONObject.toJSONString(r);
     }
-
-    public String getResHeader (int statusCode, String fileName, long start, long length, String type, Date lastModified, String md5){
+    public String getResHeader (int statusCode, String fileName, long start, long length, String type, long lastModified, String md5){
         return JSONObject.toJSONString(new ResponseHeader(statusCode, fileName, start, length, type, lastModified, md5));
     }
-
     public static void main(String[] args) throws Exception{
-        BackEndUdpServer server = new BackEndUdpServer();
-        String s = server.getReqHeader(0, "test.png", 0, 1000);
-        System.out.println(s);
-        RequestHeader r = JSONObject.parseObject(s, RequestHeader.class);
-        System.out.println(r);
+
     }
-
-
-
 }
-
