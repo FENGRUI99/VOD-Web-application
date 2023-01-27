@@ -39,7 +39,7 @@ public class ResponseHeader{
         return type;
     }
 
-    public Date getLastModified() {
+    public long getLastModified() {
         return lastModified;
     }
 

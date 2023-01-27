@@ -1,10 +1,8 @@
 
 import com.alibaba.fastjson.JSONObject;
-import java.io.InputStream;
+
 import java.net.*;
 import java.io.File;
-import java.io.FileInputStream;
-import java.util.Date;
 
 public class BackEndUdpServer {
     DatagramSocket dsock = null;
@@ -22,66 +20,69 @@ public class BackEndUdpServer {
             int headerLen = convertByteToInt(recArr, 0);    //recArr[0:3]
             int contentLen = convertByteToInt(recArr, 4); //recArr[4:7]
 
-
-            //header
-
-
-            recArr = new byte[headLen + contentLen];
-            dpack.setData(recArr, 0, recArr.length);
-            dsock.receive(dpack);
-            recArr = dpack.getData();
-            RequestHeader header = JSONObject.parseObject(new String(recArr, 0, headLen), RequestHeader.class);
-//            if (header.statusCode == 0){
-//                String fileName = header.fileName;
-//                File f = new File("./content/" + fileName);
-//                if (f.exists()){
-//                    InputStream fis = new FileInputStream(f);
-//                    byte[] fileArr = new byte[fis.available()];
-//                    fis.read(fileArr);
-//                    fis.close();
-//                    String resHeader = getResHeader(0, fileName, 0, f.length(), URLConnection.guessContentTypeFromName(f.getName()), f.lastModified(), "");
+            //request header
+            RequestHeader header = JSONObject.parseObject(new String(recArr, 8, 8 + headerLen), RequestHeader.class);
+            if (header.statusCode == 0){
+                String fileName = header.fileName;
+                File f = new File("./content/" + fileName);
+                // send file info
+                if (f.exists()){
+                    String resHeader = getResHeader(0, fileName, 0, f.length(), URLConnection.guessContentTypeFromName(f.getName()), f.lastModified(), "");
+                    byte[] preheader = getPreHeader(resHeader.length(), 0);
+                    byte[] sendArr = addTwoBytes(preheader, resHeader.getBytes());
+                    dpack.setData(sendArr);
+                    dsock.send(dpack);
+                }
+                else {
+                    //404
+                }
+            }
+            else if (header.statusCode == 1){
+//                // header
+//                String resHeader = getResHeader(0, fileName, 0, f.length(), URLConnection.guessContentTypeFromName(f.getName()), f.lastModified(), "");
+//                InputStream fis = new FileInputStream(f);
+//                byte[] sendArr = new byte[8 + resHeader.length() + fis.available()];
 //
-//                    //send preheader
-//                    sendArr = preHeader(resHeader.length(), fileArr.length);
-//                    dpack.setData(sendArr, 0, sendArr.length);
+//                //preheader
+//                byte[] preheader = preHeader(resHeader.length(), fis.available());
+//                fis.read(sendArr, 8 + resHeader.length(), fis.available());
+//                fis.close();
+//
+//                System.arraycopy(data1, 0, data3, 0, data1.length);
+//                System.arraycopy(data1, 0, data3, 0, data1.length);
+//
+//                //receive ACK
+//                recArr = new byte[3];
+//                dpack.setData(recArr, 0, recArr.length);
+//                dsock.receive(dpack);
+//                if (new String(dpack.getData()).equals("ACK")){
+//                    // send file info
+//                    sendArr = addBytes(resHeader.getBytes(), fileArr);
+//                    dpack.setData(sendArr);
 //                    dsock.send(dpack);
-//
-//                    //receive ACK
-//                    recArr = new byte[3];
-//                    dpack.setData(recArr, 0, recArr.length);
-//                    dsock.receive(dpack);
-//                    if (new String(dpack.getData()).equals("ACK")){
-//                        // send file info
-//                        sendArr = addBytes(resHeader.getBytes(), fileArr);
-//                        dpack.setData(sendArr);
-//                        dsock.send(dpack);
-//                    }
 //                }
-//                else {
-//                    //404
-//                }
-//            }
-//            else if (header.statusCode == 1){
-//
-//            }
-//            else {
-//
-//            }
+            }
+            else {
+
+            }
 
         }
     }
-    public byte[] preHeader (int headerLen, int contentLen){
+    public byte[] getPreHeader(int headerLen, int contentLen){
         byte[] headerLenBytes = convertIntToByte(headerLen);
         byte[] contentLenBytes = convertIntToByte(contentLen);
-        byte[] res = addBytes(headerLenBytes, contentLenBytes);
+        byte[] res = addTwoBytes(headerLenBytes, contentLenBytes);
         return res;
     }
-    public byte[] addBytes(byte[] data1, byte[] data2) {
+    public byte[] addTwoBytes(byte[] data1, byte[] data2) {
         byte[] data3 = new byte[data1.length + data2.length];
         System.arraycopy(data1, 0, data3, 0, data1.length);
         System.arraycopy(data2, 0, data3, data1.length, data2.length);
         return data3;
     }
+
+
+
     public int convertByteToInt (byte[] bytes){
         return ((bytes[0] & 0xFF) << 24) |
                 ((bytes[1] & 0xFF) << 16) |
