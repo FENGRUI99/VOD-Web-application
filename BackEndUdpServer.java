@@ -111,6 +111,7 @@ public class BackEndUdpServer {
         return JSONObject.toJSONString(new ResponseHeader(statusCode, fileName, start, length, type, lastModified, md5));
     }
     public static void main(String[] args) throws Exception{
-
+        BackEndUdpServer server = new BackEndUdpServer();
+        server.getServer();
     }
 }
