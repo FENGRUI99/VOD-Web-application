@@ -27,4 +27,9 @@ public class RequestHeader{
         return length;
     }
 
+
+    @Override
+    public String toString() {
+        return "status code: " + statusCode + ", file name: " + fileName + ", start: " + start + ", length: " + length;
+    }
 }
