@@ -46,4 +46,10 @@ public class ResponseHeader{
     public String getMd5() {
         return md5;
     }
+
+    @Override
+    public String toString() {
+        return "status code: " + statusCode + ", file name: " + fileName + ", start: " + start +
+                ", length: " + length + ", type: " + type + ", lastModified: " + lastModified + ", md5: " + md5;
+    }
 }
