@@ -14,6 +14,7 @@ public class BackEndUdpServer {
             byte[] recArr = new byte[20480];
             dpack = new DatagramPacket(recArr, recArr.length);
             dsock.receive(dpack);
+            System.out.println("Client ip: " + dpack.getAddress() + ", port: " + dpack.getPort());
             recArr = dpack.getData();
 
             //preheader
@@ -22,6 +23,7 @@ public class BackEndUdpServer {
 
             //request header
             RequestHeader header = JSONObject.parseObject(new String(recArr, 8, 8 + headerLen), RequestHeader.class);
+            System.out.println(header.toString());
             if (header.statusCode == 0){
                 String fileName = header.fileName;
                 File f = new File("./content/" + fileName);
@@ -32,6 +34,7 @@ public class BackEndUdpServer {
                     byte[] sendArr = addTwoBytes(preheader, resHeader.getBytes());
                     dpack.setData(sendArr);
                     dsock.send(dpack);
+                    System.out.println("send successful");
                 }
                 else {
                     //404
