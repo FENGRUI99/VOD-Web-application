@@ -117,8 +117,8 @@ public class BackEndUdpClient {
         RequestHeader r = new RequestHeader(statusCode, fileName, start, length);
         return JSONObject.toJSONString(r);
     }
-    public String getResHeader (int statusCode, String fileName, long start, long length, String type, long lastModified, String md5){
-        return JSONObject.toJSONString(new ResponseHeader(statusCode, fileName, start, length, type, lastModified, md5));
+    public String getResHeader (int statusCode, String fileName, long start, long length, int sequence, long lastModified, String md5){
+        return JSONObject.toJSONString(new ResponseHeader(statusCode, fileName, start, length, sequence, lastModified, md5));
     }
 
     public static void main(String[] args) throws Exception{
