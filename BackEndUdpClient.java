@@ -26,7 +26,7 @@ public class BackEndUdpClient {
 
         System.out.println(header);
     }
-    public String getRequest(InetAddress serverAdd, DatagramSocket dsocket) throws IOException {
+    public String getRequest(InetAddress serverAdd, DatagramSocket dsocket) throws Exception {
         byte[] receiveArr = new byte[9000];
         DatagramPacket dpacket = new DatagramPacket(receiveArr, receiveArr.length, serverAdd, 7077);
         dsocket.receive(dpacket);                                // receive the packet
@@ -41,14 +41,15 @@ public class BackEndUdpClient {
 
         }
         else if(header.statusCode==1){
+            if(){
 
-
-        }else{
-            try {
-                close(header.fileName, serverAdd, dsocket);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
             }
+            else{ //到达接受长度
+                close(header.fileName, serverAdd, dsocket);
+            }
+
+        }else{ //Not found
+
         }
         return header.toString();
     }
