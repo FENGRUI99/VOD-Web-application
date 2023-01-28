@@ -13,7 +13,7 @@ import java.util.function.BiConsumer;
 
 public class BackEndUdpClient {
 
-    public void startClient() throws IOException {
+    public void startClient() throws Exception {
         InetAddress serverAdd = InetAddress.getByName("127.0.0.1");
         DatagramSocket dsocket = new DatagramSocket( );
         try {
@@ -22,19 +22,8 @@ public class BackEndUdpClient {
             e.printStackTrace();
         }
 
-        String header = getRequest(serverAdd, dsocket);
-
-        System.out.println(header);
-    }
-    public String getRequest(InetAddress serverAdd, DatagramSocket dsocket) throws Exception {
-        byte[] receiveArr = new byte[9000];
-        DatagramPacket dpacket = new DatagramPacket(receiveArr, receiveArr.length, serverAdd, 7077);
-        dsocket.receive(dpacket);                                // receive the packet
-        byte[] info = dpacket.getData();
-
-        int headerLen = convertByteToInt(info, 0);
-        int contentLen = convertByteToInt(info, 4);
-        ResponseHeader header = JSONObject.parseObject(new String(info, 8, headerLen), ResponseHeader.class);
+        ResponseHeader header = getRequest(serverAdd, dsocket);
+        System.out.println(header.toString());
 
         HashMap<Integer, DatagramPacket> store = new HashMap<>();
         if(header.statusCode==0){
@@ -51,7 +40,18 @@ public class BackEndUdpClient {
         }else{ //Not found
 
         }
-        return header.toString();
+
+    }
+    public ResponseHeader getRequest(InetAddress serverAdd, DatagramSocket dsocket) throws Exception {
+        byte[] receiveArr = new byte[9000];
+        DatagramPacket dpacket = new DatagramPacket(receiveArr, receiveArr.length, serverAdd, 7077);
+        dsocket.receive(dpacket);                                // receive the packet
+        byte[] info = dpacket.getData();
+
+        int headerLen = convertByteToInt(info, 0);
+        int contentLen = convertByteToInt(info, 4);
+        ResponseHeader header = JSONObject.parseObject(new String(info, 8, headerLen), ResponseHeader.class);
+        return header;
     }
     public void getFileInfo(String fileName, InetAddress serverAdd, DatagramSocket dsocket) throws Exception{
         byte[] header = getReqHeader(0, fileName, 0, 0).getBytes();
@@ -60,10 +60,17 @@ public class BackEndUdpClient {
 
         DatagramPacket dpacket = new DatagramPacket(sendArr, sendArr.length, serverAdd, 7077);
         dsocket.send(dpacket);
-        System.out.println("success");
-
+        System.out.println("Status_0 send success");
     }
+    public void requestRange(String fileName, InetAddress serverAdd, DatagramSocket dsocket, long start, long length) throws Exception{
+        byte[] header = getReqHeader(1, fileName, start, length).getBytes();
+        byte[] preHeader = getPreHeader(header.length, 0);
+        byte[] sendArr = addTwoBytes(preHeader, header);
 
+        DatagramPacket dpacket = new DatagramPacket(sendArr, sendArr.length, serverAdd, 7077);
+        dsocket.send(dpacket);
+        System.out.println("Status_1 send success");
+    }
     public void close (String fileName, InetAddress serverAdd, DatagramSocket dsocket) throws Exception{
         byte[] header = getReqHeader(2, fileName, 0, 0).getBytes();
         byte[] preHeader = getPreHeader(header.length, 0);
@@ -72,13 +79,9 @@ public class BackEndUdpClient {
         DatagramPacket dpacket = new DatagramPacket(sendArr, sendArr.length, serverAdd, 7077);
         dsocket.send(dpacket);
         dsocket.close();
-
+        System.out.println("Status_2 send success");
     }
 
-/*
-    public void getRange(String fileName, InetAddress serverAdd, long start, long length) throws Exception{
-
-    }*/
     public byte[] getPreHeader(int headerLen, int contentLen){
         byte[] headerLenBytes = convertIntToByte(headerLen);
         byte[] contentLenBytes = convertIntToByte(contentLen);
@@ -110,7 +113,6 @@ public class BackEndUdpClient {
                 (byte)(value >> 8),
                 (byte)value };
     }
-
     public String getReqHeader (int statusCode, String fileName, long start, long length){
         RequestHeader r = new RequestHeader(statusCode, fileName, start, length);
         return JSONObject.toJSONString(r);
