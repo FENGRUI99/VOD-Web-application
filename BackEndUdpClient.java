@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileInputStream;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.function.BiConsumer;
 
 
@@ -34,6 +35,21 @@ public class BackEndUdpClient {
         int headerLen = convertByteToInt(info, 0);
         int contentLen = convertByteToInt(info, 4);
         ResponseHeader header = JSONObject.parseObject(new String(info, 8, headerLen), ResponseHeader.class);
+
+        HashMap<Integer, DatagramPacket> store = new HashMap<>();
+        if(header.statusCode==0){
+
+        }
+        else if(header.statusCode==1){
+
+
+        }else{
+            try {
+                close(header.fileName, serverAdd, dsocket);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
         return header.toString();
     }
     public void getFileInfo(String fileName, InetAddress serverAdd, DatagramSocket dsocket) throws Exception{
@@ -46,46 +62,21 @@ public class BackEndUdpClient {
         System.out.println("success");
 
     }
-    /*public void getRange(String fileName, long start, long length, InetAddress serverAdd, DatagramSocket dsocket) throws Exception{
-        InetAddress add = InetAddress.getByName("127.0.0.1");
-        DatagramSocket dsocket = new DatagramSocket( );
-        String message1 = "test.png";
-        byte[] sendArr = message1.getBytes();
-        DatagramPacket dpacket = new DatagramPacket(sendArr, sendArr.length, add, 7078);
-        dsocket.send(dpacket);                                   // send the packet
 
-        sendArr = new byte[25];
-        dpacket = new DatagramPacket(sendArr, sendArr.length, add, 7078);
-        dsocket.receive(dpacket);                                // receive the packet
+    public void close (String fileName, InetAddress serverAdd, DatagramSocket dsocket) throws Exception{
+        byte[] header = getReqHeader(2, fileName, 0, 0).getBytes();
+        byte[] preHeader = getPreHeader(header.length, 0);
+        byte[] sendArr = addTwoBytes(preHeader, header);
 
-        String[] fileInfo = (new String(dpacket.getData( ))).split(":");
+        DatagramPacket dpacket = new DatagramPacket(sendArr, sendArr.length, serverAdd, 7077);
+        dsocket.send(dpacket);
+        dsocket.close();
 
-        int fileLen = Integer.valueOf(fileInfo[1].trim());
-        byte[] recArr = new byte[fileLen];
-        dpacket = new DatagramPacket(recArr, fileLen, add, 7078);
-        dsocket.receive(dpacket);
-        System.out.println(dpacket.getLength());
     }
 
+/*
     public void getRange(String fileName, InetAddress serverAdd, long start, long length) throws Exception{
-        InetAddress add = InetAddress.getByName("127.0.0.1");
-        DatagramSocket dsocket = new DatagramSocket( );
-        String message1 = "test.png";
-        byte[] sendArr = message1.getBytes();
-        DatagramPacket dpacket = new DatagramPacket(sendArr, sendArr.length, add, 7078);
-        dsocket.send(dpacket);                                   // send the packet
 
-        sendArr = new byte[25];
-        dpacket = new DatagramPacket(sendArr, sendArr.length, add, 7078);
-        dsocket.receive(dpacket);                                // receive the packet
-
-        String[] fileInfo = (new String(dpacket.getData( ))).split(":");
-
-        int fileLen = Integer.valueOf(fileInfo[1].trim());
-        byte[] recArr = new byte[fileLen];
-        dpacket = new DatagramPacket(recArr, fileLen, add, 7078);
-        dsocket.receive(dpacket);
-        System.out.println(dpacket.getLength());
     }*/
     public byte[] getPreHeader(int headerLen, int contentLen){
         byte[] headerLenBytes = convertIntToByte(headerLen);
