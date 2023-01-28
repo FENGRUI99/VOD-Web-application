@@ -5,16 +5,16 @@ public class ResponseHeader{
     String fileName;
     long start;
     long length;
-    String type;
+    int sequence;
     long lastModified;
     String md5;
 
-    public ResponseHeader(int statusCode, String fileName, long start, long length, String type, long lastModified, String md5){
+    public ResponseHeader(int statusCode, String fileName, long start, long length, int sequence, long lastModified, String md5){
         this.statusCode = statusCode;
         this.fileName = fileName;
         this.start = start;
         this.length = length;
-        this.type = type;
+        this.sequence = sequence;
         this.lastModified = lastModified;
         this.md5 = md5;
     }
@@ -35,8 +35,8 @@ public class ResponseHeader{
         return length;
     }
 
-    public String getType() {
-        return type;
+    public int getSequence() {
+        return sequence;
     }
 
     public long getLastModified() {
@@ -50,6 +50,6 @@ public class ResponseHeader{
     @Override
     public String toString() {
         return "status code: " + statusCode + ", file name: " + fileName + ", start: " + start +
-                ", length: " + length + ", type: " + type + ", lastModified: " + lastModified + ", md5: " + md5;
+                ", length: " + length + ", sequence: " + sequence + ", lastModified: " + lastModified + ", md5: " + md5;
     }
 }

@@ -30,12 +30,12 @@ public class BackEndUdpClient {
 
         }
         else if(header.statusCode==1){
-            if(){
-
-            }
-            else{ //到达接受长度
-                close(header.fileName, serverAdd, dsocket);
-            }
+//            if(){
+//
+//            }
+//            else{ //到达接受长度
+//                close(header.fileName, serverAdd, dsocket);
+//            }
 
         }else{ //Not found
 

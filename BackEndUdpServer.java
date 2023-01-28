@@ -7,6 +7,7 @@ import java.io.File;
 public class BackEndUdpServer {
     DatagramSocket dsock = null;
     DatagramPacket dpack = null;
+    final int chunkSize = 1024;
     public void getServer() throws Exception{
         dsock = new DatagramSocket(7077);
         while (true){
@@ -16,7 +17,6 @@ public class BackEndUdpServer {
             dsock.receive(dpack);
             System.out.println("Client ip: " + dpack.getAddress() + ", port: " + dpack.getPort());
             recArr = dpack.getData();
-
 
             //preheader
             int headerLen = convertByteToInt(recArr, 0);    //recArr[0:3]
@@ -30,7 +30,7 @@ public class BackEndUdpServer {
                 File f = new File("./content/" + fileName);
                 // send file info
                 if (f.exists()){
-                    String resHeader = getResHeader(0, fileName, 0, f.length(), URLConnection.guessContentTypeFromName(f.getName()), f.lastModified(), "");
+                    String resHeader = getResHeader(0, fileName, 0, f.length(), -1, f.lastModified(), "");
                     byte[] preheader = getPreHeader(resHeader.length(), 0);
                     byte[] sendArr = addTwoBytes(preheader, resHeader.getBytes());
                     dpack.setData(sendArr);
@@ -111,8 +111,8 @@ public class BackEndUdpServer {
         RequestHeader r = new RequestHeader(statusCode, fileName, start, length);
         return JSONObject.toJSONString(r);
     }
-    public String getResHeader (int statusCode, String fileName, long start, long length, String type, long lastModified, String md5){
-        return JSONObject.toJSONString(new ResponseHeader(statusCode, fileName, start, length, type, lastModified, md5));
+    public String getResHeader (int statusCode, String fileName, long start, long length, int sequence, long lastModified, String md5){
+        return JSONObject.toJSONString(new ResponseHeader(statusCode, fileName, start, length, sequence, lastModified, md5));
     }
     public static void main(String[] args) throws Exception{
         BackEndUdpServer server = new BackEndUdpServer();
