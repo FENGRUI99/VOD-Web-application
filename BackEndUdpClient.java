@@ -1,8 +1,10 @@
 //import java.io.*;
 import com.alibaba.fastjson.JSONObject;
 
+import java.io.IOException;
 import java.net.*;
 import java.util.HashMap;
+import java.util.concurrent.TimeoutException;
 
 
 public class BackEndUdpClient {
@@ -11,61 +13,73 @@ public class BackEndUdpClient {
     int start = 0;
     int length = 0;//input
     int windowSize = 2;
+
     public void startClient() throws Exception {
         InetAddress serverAdd = InetAddress.getByName("172.16.7.10");
-        DatagramSocket dsocket = new DatagramSocket( );
+        DatagramSocket dsocket = new DatagramSocket();
         getFileInfo("test.png", serverAdd, dsocket);
-
 
 
         int fileSize = 0;
         int recePointer = 0;
-
         int receSize = 0;
         HashMap<Integer, byte[]> store = new HashMap<>();
-    L1:
-        while(true){
+
+
+        L1:
+        while (true) {
             //get header and content
             byte[] receiveArr = new byte[9000];
             DatagramPacket dpacket = new DatagramPacket(receiveArr, receiveArr.length, serverAdd, 7077);
-            dsocket.receive(dpacket);                                // receive the packet
+            dsocket.receive(dpacket);                           // receive the packet
             byte[] info = dpacket.getData();
             int headerLen = convertByteToInt(info, 0);
             int contentLen = convertByteToInt(info, 4);
             ResponseHeader header = JSONObject.parseObject(new String(info, 8, headerLen), ResponseHeader.class);
             //System.out.println(header.toString());
             byte[] content = new byte[contentLen];
-            for(int i = 0; i < content.length; i++){ content[i] = info[8+headerLen+i]; }
-            //judge header
-            if(header.statusCode==0){
-                fileSize = (int) header.length;
-                length = fileSize-start;
-                requestRange(header.fileName, serverAdd, dsocket, start, length);
+            for (int i = 0; i < content.length; i++) {
+                content[i] = info[8 + headerLen + i];
             }
-            else if(header.statusCode==1){
-                store.put(header.sequence, content);
-                while(store.containsKey(recePointer)){
-                    recePointer++;
-                    start += chunkSize;
-                    length -= chunkSize;
-                    if(length < 0){ //到达接受长度
-                        close(header.fileName, serverAdd, dsocket);
-                        break L1;
-                    }
-                    receSize++;
-                }
-                if(receSize == windowSize) {
+            //judge header
+            try{
+                //dsocket.setSoTimeout(5000);
+                if (header.statusCode == 0) {
+                    fileSize = (int) header.length;
+                    length = fileSize - start;
                     requestRange(header.fileName, serverAdd, dsocket, start, length);
-                    receSize = 0;
                 }
-                //windowSize++;
+                else if (header.statusCode == 1) {
+                    dsocket.setSoTimeout(5000);
+                    store.put(header.sequence, content);
+                    while (store.containsKey(recePointer)) {
+                        recePointer++;
+                        start += chunkSize;
+                        length -= chunkSize;
+                        if (length < 0) { //到达接受长度
+                            close(header.fileName, serverAdd, dsocket);
+                            break L1;
+                        }
+                        receSize++;
+                    }
+                    if (receSize == windowSize) {
+                        requestRange(header.fileName, serverAdd, dsocket, start, length);
+                        receSize = 0;
+                        windowSize++;
+                    }
 
-
-            }else{ //Not found
+                }
+                else{ //Not found
                 break;
+                }
+           }catch (TimeoutException e){ System.out.println("cut window");
+                windowSize = Math.max(windowSize/2, 1);
+                requestRange(header.fileName, serverAdd, dsocket, start, length);
+                receSize = 0;
             }
             System.out.println("end this transmission.");
         }
+
 
 
     }
