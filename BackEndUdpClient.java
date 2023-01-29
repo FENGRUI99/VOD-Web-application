@@ -1,5 +1,6 @@
 //import java.io.*;
 import com.alibaba.fastjson.JSONObject;
+
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -13,21 +14,24 @@ import java.util.concurrent.TimeoutException;
 
 
 public class BackEndUdpClient {
+
     final int chunkSize = 1024;
-    int start = 0;  //frontend client request start point
-    int length = 0; //frontend client request length
+    int start = 0;
+    int length = 0;//input
     int windowSize = 2;
     public void startClient() throws Exception {
         InetAddress serverAdd = InetAddress.getByName("172.16.7.10");
         DatagramSocket dsocket = new DatagramSocket( );
         getFileInfo("test.png", serverAdd, dsocket);
 
+
+
         int fileSize = 0;
         int recePointer = 0;
+
         int receSize = 0;
         String fileName = null;
         HashMap<Integer, byte[]> store = new HashMap<>();
-
         L1:
         while (true) {
             //get header and content
@@ -77,12 +81,15 @@ public class BackEndUdpClient {
                     receSize = 0;
                     windowSize++;
                 }
+
             }
             else{ //Not found
                 break;
             }
+
         }
-        System.out.println("end this transmission.");
+            System.out.println("end this transmission.");
+        }
 
         System.out.println("fileLen: " + map2File(store, fileSize).length);
         byte[] file = map2File(store, fileSize);
