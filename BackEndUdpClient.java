@@ -1,8 +1,16 @@
 //import java.io.*;
 import com.alibaba.fastjson.JSONObject;
 
+import java.io.BufferedOutputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.math.BigInteger;
 import java.net.*;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
+import java.util.concurrent.TimeoutException;
 
 
 public class BackEndUdpClient {
@@ -23,53 +31,90 @@ public class BackEndUdpClient {
 
         int receSize = 0;
         HashMap<Integer, byte[]> store = new HashMap<>();
-    L1:
-        while(true){
+        L1:
+        while (true) {
             //get header and content
             byte[] receiveArr = new byte[9000];
             DatagramPacket dpacket = new DatagramPacket(receiveArr, receiveArr.length, serverAdd, 7077);
-            dsocket.receive(dpacket);                                // receive the packet
+            dsocket.receive(dpacket);                           // receive the packet
             byte[] info = dpacket.getData();
             int headerLen = convertByteToInt(info, 0);
             int contentLen = convertByteToInt(info, 4);
             ResponseHeader header = JSONObject.parseObject(new String(info, 8, headerLen), ResponseHeader.class);
             //System.out.println(header.toString());
             byte[] content = new byte[contentLen];
-            for(int i = 0; i < content.length; i++){ content[i] = info[8+headerLen+i]; }
-            //judge header
-            if(header.statusCode==0){
-                fileSize = (int) header.length;
-                length = fileSize-start;
-                requestRange(header.fileName, serverAdd, dsocket, start, length);
+            for (int i = 0; i < content.length; i++) {
+                content[i] = info[8 + headerLen + i];
             }
-            else if(header.statusCode==1){
-                store.put(header.sequence, content);
-                while(store.containsKey(recePointer)){
-                    recePointer++;
-                    start += chunkSize;
-                    length -= chunkSize;
-                    if(length < 0){ //到达接受长度
-                        close(header.fileName, serverAdd, dsocket);
-                        break L1;
-                    }
-                    receSize++;
-                }
-                if(receSize == windowSize) {
+            //judge header
+            try{
+                //dsocket.setSoTimeout(5000);
+                if (header.statusCode == 0) {
+                    fileSize = (int) header.length;
+                    length = fileSize - start;
                     requestRange(header.fileName, serverAdd, dsocket, start, length);
-                    receSize = 0;
                 }
-                //windowSize++;
+                else if (header.statusCode == 1) {
+                    dsocket.setSoTimeout(5000);
+                    store.put(header.sequence, content);
+                    while (store.containsKey(recePointer)) {
+                        recePointer++;
+                        start += chunkSize;
+                        length -= chunkSize;
+                        if (length < 0) { //到达接受长度
+                            close(header.fileName, serverAdd, dsocket);
+                            break L1;
+                        }
+                        receSize++;
+                    }
+                    if (receSize == windowSize) {
+                        requestRange(header.fileName, serverAdd, dsocket, start, length);
+                        receSize = 0;
+                        windowSize++;
+                    }
 
-
-            }else{ //Not found
-                break;
+                }
+                else{ //Not found
+                    break;
+                }
+            }catch (TimeoutException e){ System.out.println("cut window");
+                windowSize = Math.max(windowSize/2, 1);
+                requestRange(header.fileName, serverAdd, dsocket, start, length);
+                receSize = 0;
             }
             System.out.println("end this transmission.");
         }
 
+        System.out.println("fileLen: " + map2File(store, fileSize).length);
+        byte[] file = map2File(store, fileSize);
+        System.out.println("md5: " + getMD5Str(file));
 
+        DataOutputStream sOut = new DataOutputStream(new FileOutputStream(new File("./content/"+"test1.png")));
+        sOut.write(file, 0, file.length);
+        sOut.flush();
+        sOut.close();
+/*
+        for(int i = 0; i < store.size(); i++){
+            DataOutputStream sOut = new DataOutputStream(new FileOutputStream(new File("./content/"+"test" + i + ".txt")));
+            sOut.write(store.get(i), 0, store.get(i).length);
+            sOut.flush();
+            sOut.close();
+        }
+*/
     }
-
+    public byte[] map2File(HashMap<Integer, byte[]> map, int fileSize){
+        byte[] file = new byte[fileSize];
+        int pointer = 0;
+        int mapSize = map.size();
+        for(int i = 0; i < mapSize; i++){
+            for(int j = 0; j < map.get(i).length; j++){
+                file[pointer] = map.get(i)[j];
+                pointer++;
+            }
+        }
+        System.out.println("pointer: " + pointer);
+        return file;
+    }
     public void getFileInfo(String fileName, InetAddress serverAdd, DatagramSocket dsocket) throws Exception{
         byte[] header = getReqHeader(0, fileName, 0, 0).getBytes();
         byte[] preHeader = getPreHeader(header.length, 0);
@@ -136,6 +181,17 @@ public class BackEndUdpClient {
     }
     public String getResHeader (int statusCode, String fileName, long start, long length, int sequence, long lastModified, String md5){
         return JSONObject.toJSONString(new ResponseHeader(statusCode, fileName, start, length, sequence, lastModified, md5));
+    }
+    public static String getMD5Str(byte[] digest) {
+        try {
+            MessageDigest md5 = MessageDigest.getInstance("md5");
+            digest  = md5.digest(digest);
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        //16是表示转换为16进制数
+        String md5Str = new BigInteger(1, digest).toString(16);
+        return md5Str;
     }
 
     public static void main(String[] args) throws Exception{
