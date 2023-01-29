@@ -1,23 +1,18 @@
 //import java.io.*;
 import com.alibaba.fastjson.JSONObject;
 
-import java.io.IOException;
 import java.net.*;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileInputStream;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.function.BiConsumer;
 
 
 public class BackEndUdpClient {
 
     final int chunkSize = 1024;
     int start = 0;
-    int range = 0;//input
+    int length = 0;//input
+    int windowSize = 2;
     public void startClient() throws Exception {
-        InetAddress serverAdd = InetAddress.getByName("127.0.0.1");
+        InetAddress serverAdd = InetAddress.getByName("172.16.7.10");
         DatagramSocket dsocket = new DatagramSocket( );
         getFileInfo("test.png", serverAdd, dsocket);
 
@@ -25,10 +20,10 @@ public class BackEndUdpClient {
 
         int fileSize = 0;
         int recePointer = 0;
-        int windowSize = 2;
+
         int receSize = 0;
         HashMap<Integer, byte[]> store = new HashMap<>();
-
+    L1:
         while(true){
             //get header and content
             byte[] receiveArr = new byte[9000];
@@ -38,33 +33,33 @@ public class BackEndUdpClient {
             int headerLen = convertByteToInt(info, 0);
             int contentLen = convertByteToInt(info, 4);
             ResponseHeader header = JSONObject.parseObject(new String(info, 8, headerLen), ResponseHeader.class);
+            //System.out.println(header.toString());
             byte[] content = new byte[contentLen];
             for(int i = 0; i < content.length; i++){ content[i] = info[8+headerLen+i]; }
             //judge header
             if(header.statusCode==0){
                 fileSize = (int) header.length;
-                range = fileSize-start;
-                requestRange(header.fileName, serverAdd, dsocket, start, range);
+                length = fileSize-start;
+                requestRange(header.fileName, serverAdd, dsocket, start, length);
             }
             else if(header.statusCode==1){
-                if(range > 0){
-                    store.put(header.sequence, content);
-                    while(store.containsKey(recePointer)){
-                        recePointer++;
-                        start += 1024;
-                        range -= 1024;
-                        receSize++;
+                store.put(header.sequence, content);
+                while(store.containsKey(recePointer)){
+                    recePointer++;
+                    start += chunkSize;
+                    length -= chunkSize;
+                    if(length < 0){ //到达接受长度
+                        close(header.fileName, serverAdd, dsocket);
+                        break L1;
                     }
-                    if(receSize == windowSize) {
-                        requestRange(header.fileName, serverAdd, dsocket, start, range);
-                        receSize = 0;
-                    }
-                    //windowSize++;
+                    receSize++;
                 }
-                else{ //到达接受长度
-                    close(header.fileName, serverAdd, dsocket);
-                    break;
+                if(receSize == windowSize) {
+                    requestRange(header.fileName, serverAdd, dsocket, start, length);
+                    receSize = 0;
                 }
+                //windowSize++;
+
 
             }else{ //Not found
                 break;
