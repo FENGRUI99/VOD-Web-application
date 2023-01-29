@@ -21,21 +21,25 @@ public class BackEndUdpClient {
         DatagramSocket dsocket = new DatagramSocket( );
         getFileInfo("test.png", serverAdd, dsocket);
 
-        //get header and content
-        byte[] receiveArr = new byte[9000];
-        DatagramPacket dpacket = new DatagramPacket(receiveArr, receiveArr.length, serverAdd, 7077);
-        dsocket.receive(dpacket);                                // receive the packet
-        byte[] info = dpacket.getData();
-        int headerLen = convertByteToInt(info, 0);
-        int contentLen = convertByteToInt(info, 4);
-        ResponseHeader header = JSONObject.parseObject(new String(info, 8, headerLen), ResponseHeader.class);
-        byte[] content = new byte[contentLen];
-        for(int i = 0; i < content.length; i++){ content[i] = info[8+headerLen+i]; }
+
 
         int fileSize = 0;
         int recePointer = 0;
+        int windowSize = 2;
+        int receSize = 0;
         HashMap<Integer, byte[]> store = new HashMap<>();
         while(true){
+            //get header and content
+            byte[] receiveArr = new byte[9000];
+            DatagramPacket dpacket = new DatagramPacket(receiveArr, receiveArr.length, serverAdd, 7077);
+            dsocket.receive(dpacket);                                // receive the packet
+            byte[] info = dpacket.getData();
+            int headerLen = convertByteToInt(info, 0);
+            int contentLen = convertByteToInt(info, 4);
+            ResponseHeader header = JSONObject.parseObject(new String(info, 8, headerLen), ResponseHeader.class);
+            byte[] content = new byte[contentLen];
+            for(int i = 0; i < content.length; i++){ content[i] = info[8+headerLen+i]; }
+            //judge header
             if(header.statusCode==0){
                 fileSize = (int) header.length;
                 range = fileSize-start;
@@ -43,13 +47,14 @@ public class BackEndUdpClient {
             }
             else if(header.statusCode==1){
                 if(range > 0){
-                    //store.put(header.sequence, getContent(header, ));
+                    store.put(header.sequence, content);
                     while(store.containsKey(recePointer)){
                         recePointer++;
                         start += 1024;
                         range -= 1024;
+                        receSize++;
                     }
-                    requestRange(header.fileName, serverAdd, dsocket, start, range);
+                    if(receSize == windowSize) requestRange(header.fileName, serverAdd, dsocket, start, range);
                 }
                 else{ //到达接受长度
                     close(header.fileName, serverAdd, dsocket);
