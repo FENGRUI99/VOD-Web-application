@@ -13,33 +13,43 @@ import java.util.function.BiConsumer;
 
 public class BackEndUdpClient {
 
+    final int chunkSize = 1024;
+    int start = 0;
+    int range = 0;//input
     public void startClient() throws Exception {
         InetAddress serverAdd = InetAddress.getByName("127.0.0.1");
         DatagramSocket dsocket = new DatagramSocket( );
-        try {
-            getFileInfo("test.png", serverAdd, dsocket);
-        } catch (Exception e){
-            e.printStackTrace();
-        }
+        getFileInfo("test.png", serverAdd, dsocket);
 
         ResponseHeader header = getRequest(serverAdd, dsocket);
-        System.out.println(header.toString());
+        //System.out.println(header.toString());
 
+        int fileSize = 0;
+        int recePointer = 0;
         HashMap<Integer, DatagramPacket> store = new HashMap<>();
-        if(header.statusCode==0){
+        while(true){
+            if(header.statusCode==0){
+                fileSize = (int) header.length;
+                range = fileSize-start;
+                requestRange(header.fileName, serverAdd, dsocket, start, range);
+            }
+            else if(header.statusCode==1){
+                if(range > 0){
+                    //store.put(header.sequence, );
+                    while(store.containsKey(recePointer)){
+                        recePointer++;
+                    }
+                    requestRange(header.fileName, serverAdd, dsocket, start, range);
+                }
+                else{ //到达接受长度
+                    close(header.fileName, serverAdd, dsocket);
+                }
 
+            }else{ //Not found
+
+            }
         }
-        else if(header.statusCode==1){
-//            if(){
-//
-//            }
-//            else{ //到达接受长度
-//                close(header.fileName, serverAdd, dsocket);
-//            }
 
-        }else{ //Not found
-
-        }
 
     }
     public ResponseHeader getRequest(InetAddress serverAdd, DatagramSocket dsocket) throws Exception {
