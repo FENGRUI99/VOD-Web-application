@@ -26,7 +26,7 @@ public class BackEndUdpClient {
 
         int fileSize = 0;
         int recePointer = 0;
-        HashMap<Integer, DatagramPacket> store = new HashMap<>();
+        HashMap<Integer, byte[]> store = new HashMap<>();
         while(true){
             if(header.statusCode==0){
                 fileSize = (int) header.length;
@@ -35,9 +35,11 @@ public class BackEndUdpClient {
             }
             else if(header.statusCode==1){
                 if(range > 0){
-                    //store.put(header.sequence, );
+                    //store.put(header.sequence, getContent(header, ));
                     while(store.containsKey(recePointer)){
                         recePointer++;
+                        start += 1024;
+                        range -= 1024;
                     }
                     requestRange(header.fileName, serverAdd, dsocket, start, range);
                 }
@@ -46,12 +48,14 @@ public class BackEndUdpClient {
                 }
 
             }else{ //Not found
-
+                break;
             }
         }
 
 
     }
+
+
     public ResponseHeader getRequest(InetAddress serverAdd, DatagramSocket dsocket) throws Exception {
         byte[] receiveArr = new byte[9000];
         DatagramPacket dpacket = new DatagramPacket(receiveArr, receiveArr.length, serverAdd, 7077);
