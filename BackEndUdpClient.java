@@ -30,13 +30,23 @@ public class BackEndUdpClient {
         int recePointer = 0;
 
         int receSize = 0;
+        String fileName = null;
         HashMap<Integer, byte[]> store = new HashMap<>();
         L1:
         while (true) {
             //get header and content
             byte[] receiveArr = new byte[9000];
             DatagramPacket dpacket = new DatagramPacket(receiveArr, receiveArr.length, serverAdd, 7077);
-            dsocket.receive(dpacket);                           // receive the packet
+
+            try {
+                dsocket.setSoTimeout(5000);
+                dsocket.receive(dpacket);                           // receive the packet
+            }catch (SocketTimeoutException e){ System.out.println("cut window");
+                windowSize = Math.max(windowSize/2, 1);
+                requestRange(fileName, serverAdd, dsocket, start, length);
+                receSize = 0;
+            }
+
             byte[] info = dpacket.getData();
             int headerLen = convertByteToInt(info, 0);
             int contentLen = convertByteToInt(info, 4);
@@ -47,41 +57,37 @@ public class BackEndUdpClient {
                 content[i] = info[8 + headerLen + i];
             }
             //judge header
-            try{
-                //dsocket.setSoTimeout(5000);
-                if (header.statusCode == 0) {
-                    fileSize = (int) header.length;
-                    length = fileSize - start;
-                    requestRange(header.fileName, serverAdd, dsocket, start, length);
-                }
-                else if (header.statusCode == 1) {
-                    dsocket.setSoTimeout(5000);
-                    store.put(header.sequence, content);
-                    while (store.containsKey(recePointer)) {
-                        recePointer++;
-                        start += chunkSize;
-                        length -= chunkSize;
-                        if (length < 0) { //到达接受长度
-                            close(header.fileName, serverAdd, dsocket);
-                            break L1;
-                        }
-                        receSize++;
-                    }
-                    if (receSize == windowSize) {
-                        requestRange(header.fileName, serverAdd, dsocket, start, length);
-                        receSize = 0;
-                        windowSize++;
-                    }
-
-                }
-                else{ //Not found
-                    break;
-                }
-            }catch (TimeoutException e){ System.out.println("cut window");
-                windowSize = Math.max(windowSize/2, 1);
+            if (header.statusCode == 0) {
+                fileSize = (int) header.length;
+                length = fileSize - start;
+                fileName = header.fileName;
                 requestRange(header.fileName, serverAdd, dsocket, start, length);
-                receSize = 0;
             }
+            else if (header.statusCode == 1) {
+                dsocket.setSoTimeout(5000);
+                store.put(header.sequence, content);
+                while (store.containsKey(recePointer)) {
+                    recePointer++;
+                    start += chunkSize;
+                    length -= chunkSize;
+                    if (length < 0) { //到达接受长度
+                        close(header.fileName, serverAdd, dsocket);
+                        break L1;
+                    }
+                    receSize++;
+                }
+                if (receSize == windowSize) {
+                    requestRange(header.fileName, serverAdd, dsocket, start, length);
+                    receSize = 0;
+                    windowSize++;
+                }
+
+            }
+            else{ //Not found
+                break;
+            }
+
+        }
             System.out.println("end this transmission.");
         }
 
