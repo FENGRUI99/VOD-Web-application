@@ -21,8 +21,16 @@ public class BackEndUdpClient {
         DatagramSocket dsocket = new DatagramSocket( );
         getFileInfo("test.png", serverAdd, dsocket);
 
-        ResponseHeader header = getRequest(serverAdd, dsocket);
-        //System.out.println(header.toString());
+        //get header and content
+        byte[] receiveArr = new byte[9000];
+        DatagramPacket dpacket = new DatagramPacket(receiveArr, receiveArr.length, serverAdd, 7077);
+        dsocket.receive(dpacket);                                // receive the packet
+        byte[] info = dpacket.getData();
+        int headerLen = convertByteToInt(info, 0);
+        int contentLen = convertByteToInt(info, 4);
+        ResponseHeader header = JSONObject.parseObject(new String(info, 8, headerLen), ResponseHeader.class);
+        byte[] content = new byte[contentLen];
+        for(int i = 0; i < content.length; i++){ content[i] = info[8+headerLen+i]; }
 
         int fileSize = 0;
         int recePointer = 0;
@@ -55,18 +63,6 @@ public class BackEndUdpClient {
 
     }
 
-
-    public ResponseHeader getRequest(InetAddress serverAdd, DatagramSocket dsocket) throws Exception {
-        byte[] receiveArr = new byte[9000];
-        DatagramPacket dpacket = new DatagramPacket(receiveArr, receiveArr.length, serverAdd, 7077);
-        dsocket.receive(dpacket);                                // receive the packet
-        byte[] info = dpacket.getData();
-
-        int headerLen = convertByteToInt(info, 0);
-        int contentLen = convertByteToInt(info, 4);
-        ResponseHeader header = JSONObject.parseObject(new String(info, 8, headerLen), ResponseHeader.class);
-        return header;
-    }
     public void getFileInfo(String fileName, InetAddress serverAdd, DatagramSocket dsocket) throws Exception{
         byte[] header = getReqHeader(0, fileName, 0, 0).getBytes();
         byte[] preHeader = getPreHeader(header.length, 0);
