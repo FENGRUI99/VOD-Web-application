@@ -9,6 +9,7 @@ import java.net.*;
 import java.io.File;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.TimeoutException;
 
 public class BackEndUdpServer {
     DatagramSocket dsock = null;
@@ -16,7 +17,7 @@ public class BackEndUdpServer {
     final int chunkSize = 1024;
     int windowSize = 4;
     private DataInputStream in = null;
-
+    //多client可能会有问题
     int minIndex = 0;
 
     public void getServer() throws Exception{
@@ -29,31 +30,28 @@ public class BackEndUdpServer {
             dsock.receive(dpack);
             System.out.println("Client ip: " + dpack.getAddress() + ", port: " + dpack.getPort());
             recArr = dpack.getData();
-
             //preheader
             int headerLen = convertByteToInt(recArr, 0);    //recArr[0:3]
-
             //request header
             RequestHeader header = JSONObject.parseObject(new String(recArr, 8, 8 + headerLen), RequestHeader.class);
             System.out.println(header.toString());
+            // get info
             if (header.statusCode == 0){
                 String fileName = header.fileName;
                 File f = new File("./content/" + fileName);
                 // send file info
                 if (f.exists()){
-//                    FileInputStream fis = new FileInputStream(f);
-//                    in = new DataInputStream(fis);
                     String resHeader = getResHeader(0, fileName, 0, f.length(), -1, f.lastModified(), "");
                     byte[] preheader = getPreHeader(resHeader.length(), 0);
                     byte[] sendArr = addTwoBytes(preheader, resHeader.getBytes());
                     dpack.setData(sendArr);
                     dsock.send(dpack);
-                    System.out.println("send successful");
                 }
                 else {
                     //404
                 }
             }
+            // get range of file
             else if (header.statusCode == 1){
                 boolean flag = false;
                 long start = header.start;
@@ -65,32 +63,26 @@ public class BackEndUdpServer {
                     windowSize = Math.max(windowSize / 2, 1);
                     minIndex = startSeq;
                 }
-                System.out.println(windowSize);
                 File f = new File("./content/" + header.fileName);
                 FileInputStream fis = new FileInputStream(f);
                 in = new DataInputStream(fis);
-
                 in.skip(start);
-
                 while (startNumber < windowSize){
                     byte[] sendArr;
                     byte[] preheader;
                     String resHeader;
+                    int contentSize;
                     if (start + chunkSize * (startNumber + 1) <= end){
-                        resHeader = getResHeader(1, header.fileName, start + chunkSize * startNumber, chunkSize, startSeq, 0, "");
-                        preheader = getPreHeader(resHeader.length(), chunkSize);
-                        sendArr = new byte[8 + resHeader.length() + chunkSize];
-                        System.out.println(sendArr[8 + resHeader.length() + 200]);
-                        in.read(sendArr, 8 + resHeader.length(), chunkSize);
+                        contentSize = chunkSize;
                     }
                     else {
-                        int contentSize = (int) (end - start - chunkSize * startNumber);
-                        resHeader = getResHeader(1, header.fileName, start + chunkSize * startNumber, contentSize, startSeq, 0, "");
-                        preheader = getPreHeader(resHeader.length(), contentSize);
-                        sendArr = new byte[8 + resHeader.length() + contentSize];
-                        in.read(sendArr, 8 + resHeader.length(), contentSize);
+                        contentSize = (int) (end - start - chunkSize * startNumber);
                         flag = true;
                     }
+                    resHeader = getResHeader(1, header.fileName, start + chunkSize * startNumber, contentSize, startSeq, 0, "");
+                    preheader = getPreHeader(resHeader.length(), contentSize);
+                    sendArr = new byte[8 + resHeader.length() + contentSize];
+                    in.read(sendArr, 8 + resHeader.length(), contentSize);
                     System.arraycopy(preheader, 0, sendArr, 0, preheader.length);
                     System.arraycopy(resHeader.getBytes(), 0, sendArr, 8, resHeader.length());
                     dpack.setData(sendArr);
@@ -101,6 +93,7 @@ public class BackEndUdpServer {
                 }
                 in.close();
             }
+            // close
             else {
                 // status code == 2 -> finish
 //                in.close();
@@ -108,8 +101,6 @@ public class BackEndUdpServer {
 
         }
     }
-
-
 
     public byte[] getPreHeader(int headerLen, int contentLen){
         byte[] headerLenBytes = convertIntToByte(headerLen);
@@ -123,9 +114,6 @@ public class BackEndUdpServer {
         System.arraycopy(data2, 0, data3, data1.length, data2.length);
         return data3;
     }
-
-
-
     public int convertByteToInt (byte[] bytes){
         return ((bytes[0] & 0xFF) << 24) |
                 ((bytes[1] & 0xFF) << 16) |
@@ -165,10 +153,6 @@ public class BackEndUdpServer {
             String md5Str = new BigInteger(1, digest).toString(16);
             return md5Str;
     }
-
-
-
-
 
     public static void main(String[] args) throws Exception{
         FileInputStream fis = new FileInputStream(new File("./content/test.png"));
