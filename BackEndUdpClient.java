@@ -28,6 +28,7 @@ public class BackEndUdpClient {
         int windowSize = 2;
         int receSize = 0;
         HashMap<Integer, byte[]> store = new HashMap<>();
+
         while(true){
             //get header and content
             byte[] receiveArr = new byte[9000];
@@ -55,14 +56,18 @@ public class BackEndUdpClient {
                         receSize++;
                     }
                     if(receSize == windowSize) requestRange(header.fileName, serverAdd, dsocket, start, range);
+                    receSize = 0;
+                    //windowSize++;
                 }
                 else{ //到达接受长度
                     close(header.fileName, serverAdd, dsocket);
+                    break;
                 }
 
             }else{ //Not found
                 break;
             }
+            System.out.println("end this transmission.");
         }
 
 
