@@ -55,8 +55,10 @@ public class BackEndUdpClient {
                         range -= 1024;
                         receSize++;
                     }
-                    if(receSize == windowSize) requestRange(header.fileName, serverAdd, dsocket, start, range);
-                    receSize = 0;
+                    if(receSize == windowSize) {
+                        requestRange(header.fileName, serverAdd, dsocket, start, range);
+                        receSize = 0;
+                    }
                     //windowSize++;
                 }
                 else{ //到达接受长度
