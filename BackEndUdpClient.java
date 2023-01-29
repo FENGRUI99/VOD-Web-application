@@ -14,7 +14,6 @@ import java.util.concurrent.TimeoutException;
 
 
 public class BackEndUdpClient {
-
     final int chunkSize = 1024;
     int start = 0;
     int length = 0;//input
@@ -24,14 +23,12 @@ public class BackEndUdpClient {
         DatagramSocket dsocket = new DatagramSocket( );
         getFileInfo("test.png", serverAdd, dsocket);
 
-
-
         int fileSize = 0;
         int recePointer = 0;
-
         int receSize = 0;
         String fileName = null;
         HashMap<Integer, byte[]> store = new HashMap<>();
+
         L1:
         while (true) {
             //get header and content
@@ -46,7 +43,6 @@ public class BackEndUdpClient {
                 requestRange(fileName, serverAdd, dsocket, start, length);
                 receSize = 0;
             }
-
             byte[] info = dpacket.getData();
             int headerLen = convertByteToInt(info, 0);
             int contentLen = convertByteToInt(info, 4);
@@ -81,15 +77,12 @@ public class BackEndUdpClient {
                     receSize = 0;
                     windowSize++;
                 }
-
             }
             else{ //Not found
                 break;
             }
-
         }
-            System.out.println("end this transmission.");
-        }
+        System.out.println("end this transmission.");
 
         System.out.println("fileLen: " + map2File(store, fileSize).length);
         byte[] file = map2File(store, fileSize);
