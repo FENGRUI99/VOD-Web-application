@@ -1,14 +1,12 @@
 import com.alibaba.fastjson.JSONObject;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
+
 import java.math.BigInteger;
 import java.net.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 
-public class BackEndUdpClient {
+public class BackEndRequest {
     //server initialization
     final int chunkSize = 1024;
     int windowSize = 2;
@@ -182,7 +180,7 @@ public class BackEndUdpClient {
         return md5Str;
     }
     public static void main(String[] args) throws Exception{
-        BackEndUdpClient client = new BackEndUdpClient();
+        BackEndRequest client = new BackEndRequest();
         client.startClient();
     }
 }

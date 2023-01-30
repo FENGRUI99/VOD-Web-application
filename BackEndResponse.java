@@ -8,7 +8,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 
-public class BackEndUdpServer {
+public class BackEndResponse {
     DatagramSocket dsock = null;
     DatagramPacket dpack = null;
     final int chunkSize = 1024;
@@ -145,7 +145,7 @@ public class BackEndUdpServer {
         byte[] bytes = new byte[fis.available()];
         qqq.read(bytes);
         System.out.println(getMD5Str(bytes));
-        BackEndUdpServer server = new BackEndUdpServer();
+        BackEndResponse server = new BackEndResponse();
         server.getServer();
 
     }
