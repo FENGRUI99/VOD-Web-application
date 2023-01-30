@@ -1,19 +1,31 @@
 import com.alibaba.fastjson.JSONObject;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.net.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 
-public class BackEndRequest {
+public class BackEndRequest extends Thread{
     //server initialization
     final int chunkSize = 1024;
-    int windowSize = 2;
+    int windowSize;
     //start：browser请求的文件的起始点； 假设browser请求文件从0开始，实际值要从前端获取
     //length：browser请求的文件的长度；  实际值要从前端获取
-    int start = 0;
-    int length = 0;
+    int start;
+    int length;
+    public BackEndRequest(int windowSize, int start, int length){
+        this.windowSize = windowSize;
+        this.start = start;
+        this.length = length;
+    }
+    @Override
+    public void run(){
+        try {startClient(); }
+        catch (Exception e) {throw new RuntimeException(e); }
+
+    }
     public void startClient() throws Exception {
         InetAddress serverAdd = InetAddress.getByName("172.16.7.10");
         DatagramSocket dsocket = new DatagramSocket( );
@@ -60,7 +72,6 @@ public class BackEndRequest {
                 requestRange(header.fileName, serverAdd, dsocket, start, length);
             }
             else if (header.statusCode == 1) {
-                //dsocket.setSoTimeout(5000);     /////////////////////////////////////////////////////我不确定是否要这行
                 fileMap.put(header.sequence, content);
                 while (fileMap.containsKey(recePointer)) {
                     recePointer++;
@@ -165,9 +176,6 @@ public class BackEndRequest {
     public String getReqHeader (int statusCode, String fileName, long start, long length){
         return JSONObject.toJSONString(new RequestHeader(statusCode, fileName, start, length));
     }
-    public String getResHeader (int statusCode, String fileName, long start, long length, int sequence, long lastModified, String md5){
-        return JSONObject.toJSONString(new ResponseHeader(statusCode, fileName, start, length, sequence, lastModified, md5));
-    }
     public static String getMD5Str(byte[] digest) {
         try {
             MessageDigest md5 = MessageDigest.getInstance("md5");
@@ -178,9 +186,5 @@ public class BackEndRequest {
         //16是表示转换为16进制数
         String md5Str = new BigInteger(1, digest).toString(16);
         return md5Str;
-    }
-    public static void main(String[] args) throws Exception{
-        BackEndRequest client = new BackEndRequest();
-        client.startClient();
     }
 }
