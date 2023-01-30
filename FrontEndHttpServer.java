@@ -21,6 +21,7 @@ public class FrontEndHttpServer {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
         ExecutorService pool = Executors.newCachedThreadPool();
         while (true){
             Socket clientSocket = null;

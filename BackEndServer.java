@@ -18,25 +18,30 @@ public class BackEndServer {
         this.port = port;
     }
     public void startServer(){
-
         ExecutorService pool = Executors.newCachedThreadPool();
+        while(true){
+            //listener
+        }
+
     }
 }
-
-
 
 class BackEndRequest extends Thread{
     //server initialization
     final int chunkSize = 1024;
-    int windowSize;
+    int windowSize = 2;
     //start：browser请求的文件的起始点； 假设browser请求文件从0开始，实际值要从前端获取
     //length：browser请求的文件的长度；  实际值要从前端获取
     int start;
     int length;
-    public BackEndRequest(int windowSize, int start, int length){
-        this.windowSize = windowSize;
+    InetAddress serverAdd;
+    String fileName;
+
+    public BackEndRequest(int start, int length, InetAddress serverAdd, String fileName){
         this.start = start;
         this.length = length;
+        this.serverAdd = serverAdd;
+        this.fileName = fileName;
     }
     @Override
     public void run(){
@@ -45,9 +50,8 @@ class BackEndRequest extends Thread{
 
     }
     public void startClient() throws Exception {
-        InetAddress serverAdd = InetAddress.getByName("172.16.7.10");
         DatagramSocket dsocket = new DatagramSocket( );
-        getFileInfo("test.png", serverAdd, dsocket);
+        getFileInfo(fileName, serverAdd, dsocket);
 
         //initialization
         int fileSize = 0;
