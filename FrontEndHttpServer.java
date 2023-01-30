@@ -11,11 +11,9 @@ import java.util.concurrent.Executors;
 
 public class FrontEndHttpServer {
     String port;
-
     public FrontEndHttpServer(String port){
         this.port = port;
     }
-
     public void startServer(){
         ServerSocket serverSocket = null;
         try {
