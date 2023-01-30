@@ -1,7 +1,4 @@
-//import java.io.*;
 import com.alibaba.fastjson.JSONObject;
-
-import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -10,31 +7,33 @@ import java.net.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
-import java.util.concurrent.TimeoutException;
-
 
 public class BackEndUdpClient {
+    //server initialization
     final int chunkSize = 1024;
-    int start = 0;
-    int length = 0;//input
     int windowSize = 2;
+    //start：browser请求的文件的起始点； 假设browser请求文件从0开始，实际值要从前端获取
+    //length：browser请求的文件的长度；  实际值要从前端获取
+    int start = 0;
+    int length = 0;
     public void startClient() throws Exception {
         InetAddress serverAdd = InetAddress.getByName("172.16.7.10");
         DatagramSocket dsocket = new DatagramSocket( );
         getFileInfo("test.png", serverAdd, dsocket);
 
+        //initialization
         int fileSize = 0;
         int recePointer = 0;
         int receSize = 0;
         String fileName = null;
-        HashMap<Integer, byte[]> store = new HashMap<>();
+        HashMap<Integer, byte[]> fileMap = new HashMap<>();
 
         L1:
         while (true) {
-            //get header and content
             byte[] receiveArr = new byte[9000];
             DatagramPacket dpacket = new DatagramPacket(receiveArr, receiveArr.length, serverAdd, 7077);
 
+            //AIMD过程
             try {
                 dsocket.setSoTimeout(5000);
                 dsocket.receive(dpacket);                           // receive the packet
@@ -43,6 +42,8 @@ public class BackEndUdpClient {
                 requestRange(fileName, serverAdd, dsocket, start, length);
                 receSize = 0;
             }
+
+            //从dpacket中获取header和content信息，分别存在header和content[]中
             byte[] info = dpacket.getData();
             int headerLen = convertByteToInt(info, 0);
             int contentLen = convertByteToInt(info, 4);
@@ -52,6 +53,7 @@ public class BackEndUdpClient {
             for (int i = 0; i < content.length; i++) {
                 content[i] = info[8 + headerLen + i];
             }
+
             //judge header
             if (header.statusCode == 0) {
                 fileSize = (int) header.length;
@@ -60,9 +62,9 @@ public class BackEndUdpClient {
                 requestRange(header.fileName, serverAdd, dsocket, start, length);
             }
             else if (header.statusCode == 1) {
-                dsocket.setSoTimeout(5000);
-                store.put(header.sequence, content);
-                while (store.containsKey(recePointer)) {
+                //dsocket.setSoTimeout(5000);     /////////////////////////////////////////////////////我不确定是否要这行
+                fileMap.put(header.sequence, content);
+                while (fileMap.containsKey(recePointer)) {
                     recePointer++;
                     start += chunkSize;
                     length -= chunkSize;
@@ -84,15 +86,15 @@ public class BackEndUdpClient {
         }
         System.out.println("end this transmission.");
 
-        System.out.println("fileLen: " + map2File(store, fileSize).length);
-        byte[] file = map2File(store, fileSize);
+        //测试用：将接收文件的map转存为byte数组求md5，将文件保存到本地。
+        /*
+        byte[] file = map2File(fileMap, fileSize);
         System.out.println("md5: " + getMD5Str(file));
-
         DataOutputStream sOut = new DataOutputStream(new FileOutputStream(new File("./content/"+"test1.png")));
         sOut.write(file, 0, file.length);
         sOut.flush();
         sOut.close();
-
+        */
     }
     public byte[] map2File(HashMap<Integer, byte[]> map, int fileSize){
         byte[] file = new byte[fileSize];
@@ -107,6 +109,7 @@ public class BackEndUdpClient {
         System.out.println("pointer: " + pointer);
         return file;
     }
+    //发送相应报文
     public void getFileInfo(String fileName, InetAddress serverAdd, DatagramSocket dsocket) throws Exception{
         byte[] header = getReqHeader(0, fileName, 0, 0).getBytes();
         byte[] preHeader = getPreHeader(header.length, 0);
@@ -148,12 +151,6 @@ public class BackEndUdpClient {
         System.arraycopy(data2, 0, data3, data1.length, data2.length);
         return data3;
     }
-    public int convertByteToInt (byte[] bytes){
-        return ((bytes[0] & 0xFF) << 24) |
-                ((bytes[1] & 0xFF) << 16) |
-                ((bytes[2] & 0xFF) << 8 ) |
-                ((bytes[3] & 0xFF) << 0 );
-    }
     public int convertByteToInt(byte[] bytes, int start){
         return ((bytes[start + 0] & 0xFF) << 24) |
                 ((bytes[start + 1] & 0xFF) << 16) |
@@ -168,8 +165,7 @@ public class BackEndUdpClient {
                 (byte)value };
     }
     public String getReqHeader (int statusCode, String fileName, long start, long length){
-        RequestHeader r = new RequestHeader(statusCode, fileName, start, length);
-        return JSONObject.toJSONString(r);
+        return JSONObject.toJSONString(new RequestHeader(statusCode, fileName, start, length));
     }
     public String getResHeader (int statusCode, String fileName, long start, long length, int sequence, long lastModified, String md5){
         return JSONObject.toJSONString(new ResponseHeader(statusCode, fileName, start, length, sequence, lastModified, md5));
@@ -185,7 +181,6 @@ public class BackEndUdpClient {
         String md5Str = new BigInteger(1, digest).toString(16);
         return md5Str;
     }
-
     public static void main(String[] args) throws Exception{
         BackEndUdpClient client = new BackEndUdpClient();
         client.startClient();
