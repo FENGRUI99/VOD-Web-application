@@ -1,4 +1,5 @@
 
+import java.awt.*;
 import java.io.*;
 import java.net.*;
 import java.text.SimpleDateFormat;
@@ -36,6 +37,9 @@ public class FrontEndHttpServer {
     }
 
     public static void main(String[] args) throws IOException{
+        File htmlFile = new File("Search/frontPage.html");
+        Desktop.getDesktop().browse(htmlFile.toURI());
+
         System.out.println(args[0]);
         FrontEndHttpServer frontEndHttpServer = new FrontEndHttpServer(args[0]);
         frontEndHttpServer.startServer();
