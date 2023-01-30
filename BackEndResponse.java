@@ -8,15 +8,29 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 
-public class BackEndResponse {
+public class BackEndResponse extends Thread{
+
+    int ip;
     DatagramSocket dsock = null;
     DatagramPacket dpack = null;
     final int chunkSize = 1024;
     int windowSize = 4;
     private DataInputStream in = null;
     int minIndex = 0;     //多client可能会有问题
-    public void getServer() throws Exception{
-        dsock = new DatagramSocket(7077);
+    public BackEndResponse(int ip){
+        this.ip = ip;
+    }
+
+    @Override
+    public void run(){
+        try {
+            getServer(ip);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    public void getServer(int ip) throws Exception{
+        dsock = new DatagramSocket(ip);
 //        dsock.setSoTimeout(5 * 1000);
         while (true){
             // receive request
@@ -139,14 +153,14 @@ public class BackEndResponse {
             String md5Str = new BigInteger(1, digest).toString(16);
             return md5Str;
     }
-    public static void main(String[] args) throws Exception{
-        FileInputStream fis = new FileInputStream(new File("./content/test.png"));
-        DataInputStream qqq = new DataInputStream(fis);
-        byte[] bytes = new byte[fis.available()];
-        qqq.read(bytes);
-        System.out.println(getMD5Str(bytes));
-        BackEndResponse server = new BackEndResponse();
-        server.getServer();
-
-    }
+//    public static void main(String[] args) throws Exception{
+//        FileInputStream fis = new FileInputStream(new File("./content/test.png"));
+//        DataInputStream qqq = new DataInputStream(fis);
+//        byte[] bytes = new byte[fis.available()];
+//        qqq.read(bytes);
+//        System.out.println(getMD5Str(bytes));
+//        BackEndResponse server = new BackEndResponse();
+//        server.getServer();
+//
+//    }
 }
