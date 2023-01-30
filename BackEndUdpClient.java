@@ -92,14 +92,7 @@ public class BackEndUdpClient {
         sOut.write(file, 0, file.length);
         sOut.flush();
         sOut.close();
-/*
-        for(int i = 0; i < store.size(); i++){
-            DataOutputStream sOut = new DataOutputStream(new FileOutputStream(new File("./content/"+"test" + i + ".txt")));
-            sOut.write(store.get(i), 0, store.get(i).length);
-            sOut.flush();
-            sOut.close();
-        }
-*/
+
     }
     public byte[] map2File(HashMap<Integer, byte[]> map, int fileSize){
         byte[] file = new byte[fileSize];
