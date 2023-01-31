@@ -13,11 +13,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class BackEndServer {
-    String port;
-    public BackEndServer(String port){
+    int port;
+    public BackEndServer(int port){
         this.port = port;
     }
-    public void startServer(){
+    public void startServer() throws SocketException {
+        DatagramSocket dSocket = new DatagramSocket(port);
         ExecutorService pool = Executors.newCachedThreadPool();
         while(true){
             //listener
@@ -36,29 +37,36 @@ class BackEndRequest extends Thread{
     int length;
     InetAddress serverAdd;
     String fileName;
-
     public BackEndRequest(int start, int length, InetAddress serverAdd, String fileName){
         this.start = start;
         this.length = length;
         this.serverAdd = serverAdd;
         this.fileName = fileName;
     }
+
     @Override
     public void run(){
         try {startClient(); }
         catch (Exception e) {throw new RuntimeException(e); }
-
     }
+
     public void startClient() throws Exception {
         DatagramSocket dsocket = new DatagramSocket( );
-        getFileInfo(fileName, serverAdd, dsocket);
-
         //initialization
         int fileSize = 0;
         int recePointer = 0;
         int receSize = 0;
         String fileName = null;
         HashMap<Integer, byte[]> fileMap = new HashMap<>();
+        //say hello
+        sendMyInfo(serverAdd, dsocket);
+        byte[] receiveArr = new byte[9000];
+        DatagramPacket dpacket = new DatagramPacket(receiveArr, receiveArr.length, serverAdd, 7077);
+        dsocket.receive(dpacket);
+        serverAdd = dpacket.getAddress();
+        int serverPort = dpacket.getPort();
+
+        getFileInfo(fileName, serverAdd, dsocket);
 
         L1:
         while (true) {
@@ -127,19 +135,6 @@ class BackEndRequest extends Thread{
         sOut.close();
         */
     }
-    public byte[] map2File(HashMap<Integer, byte[]> map, int fileSize){
-        byte[] file = new byte[fileSize];
-        int pointer = 0;
-        int mapSize = map.size();
-        for(int i = 0; i < mapSize; i++){
-            for(int j = 0; j < map.get(i).length; j++){
-                file[pointer] = map.get(i)[j];
-                pointer++;
-            }
-        }
-        System.out.println("pointer: " + pointer);
-        return file;
-    }
     //发送相应报文
     public void getFileInfo(String fileName, InetAddress serverAdd, DatagramSocket dsocket) throws Exception{
         byte[] header = getReqHeader(0, fileName, 0, 0).getBytes();
@@ -168,6 +163,15 @@ class BackEndRequest extends Thread{
         dsocket.send(dpacket);
         dsocket.close();
         System.out.println("Status_2 send success");
+    }
+    public void sendMyInfo(InetAddress serverAdd, DatagramSocket dsocket) throws Exception{
+        byte[] header = getReqHeader(3, null, 0, 0).getBytes();
+        byte[] preHeader = getPreHeader(header.length, 0);
+        byte[] sendArr = addTwoBytes(preHeader, header);
+
+        DatagramPacket dpacket = new DatagramPacket(sendArr, sendArr.length, serverAdd, 7077);
+        dsocket.send(dpacket);
+        System.out.println("Status_3 send success");
     }
 
     public byte[] getPreHeader(int headerLen, int contentLen){
@@ -209,8 +213,20 @@ class BackEndRequest extends Thread{
         String md5Str = new BigInteger(1, digest).toString(16);
         return md5Str;
     }
+    public byte[] map2File(HashMap<Integer, byte[]> map, int fileSize){
+        byte[] file = new byte[fileSize];
+        int pointer = 0;
+        int mapSize = map.size();
+        for(int i = 0; i < mapSize; i++){
+            for(int j = 0; j < map.get(i).length; j++){
+                file[pointer] = map.get(i)[j];
+                pointer++;
+            }
+        }
+        System.out.println("pointer: " + pointer);
+        return file;
+    }
 }
-
 
 class BackEndResponse extends Thread{
 
