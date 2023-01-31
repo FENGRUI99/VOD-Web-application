@@ -1,9 +1,9 @@
 import com.alibaba.fastjson.JSONObject;
+import org.w3c.dom.CharacterData;
 
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.math.BigInteger;
 import java.net.*;
 import java.security.MessageDigest;
@@ -17,13 +17,30 @@ public class BackEndServer {
     public BackEndServer(int port){
         this.port = port;
     }
-    public void startServer() throws SocketException {
-        DatagramSocket dSocket = new DatagramSocket(port);
+    public void startServer() throws Exception{
         ExecutorService pool = Executors.newCachedThreadPool();
+        DatagramSocket dsock = new DatagramSocket(port);
         while(true){
             //listener
+            byte[] recArr = new byte[2048];
+            DatagramPacket dpack = new DatagramPacket(recArr, recArr.length);
+            dsock.receive(dpack);
+            ListenerHeader header = JSONObject.parseObject(new String(recArr), ListenerHeader.class);
+            // message from http server
+            if (header.getSrc() == 0){
+                pool.execute(new BackEndRequest(header.frontEndIp, header.frontEndPort, header.peerIp, header.peerPort, header.fileName, header.start, header.length));
+            }
+            // message from peer back-end server
+            else {
+                pool.execute(new BackEndResponse(dpack.getAddress(), dpack.getPort()));
+            }
         }
+    }
 
+    public static void main(String[] args) throws Exception{
+
+        BackEndServer server = new BackEndServer(8081);
+        server.startServer();
     }
 }
 
@@ -33,88 +50,95 @@ class BackEndRequest extends Thread{
     int windowSize = 2;
     //start：browser请求的文件的起始点； 假设browser请求文件从0开始，实际值要从前端获取
     //length：browser请求的文件的长度；  实际值要从前端获取
-    int start;
-    int length;
-    InetAddress serverAdd;
+    DatagramSocket dsock;
+    DatagramPacket dpack;
+    long start;
+    long length;
+    InetAddress frontEndAddress;
+    int frontEndPort;
+    InetAddress peerListenAddress;
+    int peerListenPort;
     String fileName;
-    public BackEndRequest(int start, int length, InetAddress serverAdd, String fileName){
+
+    public BackEndRequest(InetAddress frontEndAddress, int frontEndPort, InetAddress peerListenAddress, int peerListenPort, String fileName, long start, long length){
+        this.frontEndAddress = frontEndAddress;
+        this.frontEndPort = frontEndPort;
+        this.peerListenAddress = peerListenAddress;
+        this.peerListenPort = peerListenPort;
+        this.fileName = fileName;
         this.start = start;
         this.length = length;
-        this.serverAdd = serverAdd;
-        this.fileName = fileName;
     }
-
     @Override
     public void run(){
-        try {startClient(); }
+        try {startRequest(); }
         catch (Exception e) {throw new RuntimeException(e); }
     }
+    public void startRequest() throws Exception {
+        dsock = new DatagramSocket();
+        dsock.setSoTimeout(5000);
+        // say hello to Peer listener thread
+        String message = JSONObject.toJSONString(new ListenerHeader(1));
+        byte[] sendArr = message.getBytes();
+        dpack = new DatagramPacket(sendArr, sendArr.length, peerListenAddress, peerListenPort);
+        dsock.send(dpack);
 
-    public void startClient() throws Exception {
-        DatagramSocket dsocket = new DatagramSocket( );
+        // wait for hello from Peer response thread
+        byte[] recArr = new byte[1024];
+        dpack = new DatagramPacket(recArr, recArr.length);
+        dsock.receive(dpack);
+        InetAddress peerResAddress = dpack.getAddress();
+        int peerResPort = dpack.getPort();
+
+        getFileInfo(peerResAddress, peerResPort);
+
         //initialization
-        int fileSize = 0;
         int recePointer = 0;
         int receSize = 0;
-        String fileName = null;
         HashMap<Integer, byte[]> fileMap = new HashMap<>();
-        //say hello
-        sendMyInfo(serverAdd, dsocket);
-        byte[] receiveArr = new byte[9000];
-        DatagramPacket dpacket = new DatagramPacket(receiveArr, receiveArr.length, serverAdd, 7077);
-        dsocket.receive(dpacket);
-        serverAdd = dpacket.getAddress();
-        int serverPort = dpacket.getPort();
-
-        getFileInfo(fileName, serverAdd, dsocket);
 
         L1:
         while (true) {
-            byte[] receiveArr = new byte[9000];
-            DatagramPacket dpacket = new DatagramPacket(receiveArr, receiveArr.length, serverAdd, 7077);
-
+            recArr = new byte[20480];
+            dpack.setData(recArr, 0, recArr.length);
             //AIMD过程
             try {
-                dsocket.setSoTimeout(5000);
-                dsocket.receive(dpacket);                           // receive the packet
-            }catch (SocketTimeoutException e){ System.out.println("cut window");
+                dsock.receive(dpack);                           // receive the packet
+            }catch (SocketTimeoutException e){
+                System.out.println("cut window");
                 windowSize = Math.max(windowSize/2, 1);
-                requestRange(fileName, serverAdd, dsocket, start, length);
+                requestRange();
                 receSize = 0;
+                //TODO CFR觉得这里有问题
             }
 
-            //从dpacket中获取header和content信息，分别存在header和content[]中
-            byte[] info = dpacket.getData();
+            //从dpack中获取header和content信息，分别存在header和content[]中
+            byte[] info = dpack.getData();
             int headerLen = convertByteToInt(info, 0);
             int contentLen = convertByteToInt(info, 4);
             ResponseHeader header = JSONObject.parseObject(new String(info, 8, headerLen), ResponseHeader.class);
             //System.out.println(header.toString());
-            byte[] content = new byte[contentLen];
-            for (int i = 0; i < content.length; i++) {
-                content[i] = info[8 + headerLen + i];
-            }
 
             //judge header
             if (header.statusCode == 0) {
-                fileSize = (int) header.length;
-                length = fileSize - start;
-                fileName = header.fileName;
-                requestRange(header.fileName, serverAdd, dsocket, start, length);
+                requestRange();
             }
             else if (header.statusCode == 1) {
+                byte[] content = new byte[contentLen];
+                System.arraycopy(info, 8 + headerLen, content, 0, contentLen);
                 fileMap.put(header.sequence, content);
                 while (fileMap.containsKey(recePointer)) {
                     recePointer++;
                     start += chunkSize;
                     length -= chunkSize;
                     if (length < 0) { //到达接受长度
-                        close(header.fileName, serverAdd, dsocket);
+                        close();
                         break L1;
                     }
                     receSize++;
                 }
                 if (receSize == windowSize) {
-                    requestRange(header.fileName, serverAdd, dsocket, start, length);
+                    requestRange();
                     receSize = 0;
                     windowSize++;
                 }
@@ -135,43 +159,46 @@ class BackEndRequest extends Thread{
         sOut.close();
         */
     }
+    public byte[] map2File(HashMap<Integer, byte[]> map, int fileSize){
+        byte[] file = new byte[fileSize];
+        int pointer = 0;
+        int mapSize = map.size();
+        for(int i = 0; i < mapSize; i++){
+            for(int j = 0; j < map.get(i).length; j++){
+                file[pointer] = map.get(i)[j];
+                pointer++;
+            }
+        }
+        System.out.println("pointer: " + pointer);
+        return file;
+    }
     //发送相应报文
-    public void getFileInfo(String fileName, InetAddress serverAdd, DatagramSocket dsocket) throws Exception{
+    public void getFileInfo(InetAddress peerResAddress, int peerResPort) throws Exception{
         byte[] header = getReqHeader(0, fileName, 0, 0).getBytes();
         byte[] preHeader = getPreHeader(header.length, 0);
         byte[] sendArr = addTwoBytes(preHeader, header);
-
-        DatagramPacket dpacket = new DatagramPacket(sendArr, sendArr.length, serverAdd, 7077);
-        dsocket.send(dpacket);
+        dpack = new DatagramPacket(sendArr, sendArr.length, peerResAddress, peerResPort);
+        dsock.send(dpack);
         System.out.println("Status_0 send success");
     }
-    public void requestRange(String fileName, InetAddress serverAdd, DatagramSocket dsocket, long start, long length) throws Exception{
+    public void requestRange() throws Exception{
         byte[] header = getReqHeader(1, fileName, start, length).getBytes();
         byte[] preHeader = getPreHeader(header.length, 0);
         byte[] sendArr = addTwoBytes(preHeader, header);
 
-        DatagramPacket dpacket = new DatagramPacket(sendArr, sendArr.length, serverAdd, 7077);
-        dsocket.send(dpacket);
+        dpack.setData(sendArr, 0, sendArr.length);
+        dsock.send(dpack);
         System.out.println("Status_1 send success");
     }
-    public void close (String fileName, InetAddress serverAdd, DatagramSocket dsocket) throws Exception{
+    public void close () throws Exception{
         byte[] header = getReqHeader(2, fileName, 0, 0).getBytes();
         byte[] preHeader = getPreHeader(header.length, 0);
         byte[] sendArr = addTwoBytes(preHeader, header);
 
-        DatagramPacket dpacket = new DatagramPacket(sendArr, sendArr.length, serverAdd, 7077);
-        dsocket.send(dpacket);
-        dsocket.close();
+        dpack.setData(sendArr, 0, sendArr.length);
+        dsock.send(dpack);
+        dsock.close();
         System.out.println("Status_2 send success");
-    }
-    public void sendMyInfo(InetAddress serverAdd, DatagramSocket dsocket) throws Exception{
-        byte[] header = getReqHeader(3, null, 0, 0).getBytes();
-        byte[] preHeader = getPreHeader(header.length, 0);
-        byte[] sendArr = addTwoBytes(preHeader, header);
-
-        DatagramPacket dpacket = new DatagramPacket(sendArr, sendArr.length, serverAdd, 7077);
-        dsocket.send(dpacket);
-        System.out.println("Status_3 send success");
     }
 
     public byte[] getPreHeader(int headerLen, int contentLen){
@@ -213,44 +240,34 @@ class BackEndRequest extends Thread{
         String md5Str = new BigInteger(1, digest).toString(16);
         return md5Str;
     }
-    public byte[] map2File(HashMap<Integer, byte[]> map, int fileSize){
-        byte[] file = new byte[fileSize];
-        int pointer = 0;
-        int mapSize = map.size();
-        for(int i = 0; i < mapSize; i++){
-            for(int j = 0; j < map.get(i).length; j++){
-                file[pointer] = map.get(i)[j];
-                pointer++;
-            }
-        }
-        System.out.println("pointer: " + pointer);
-        return file;
-    }
 }
 
-class BackEndResponse extends Thread{
 
-    int ip;
+class BackEndResponse extends Thread{
+    InetAddress peerIp;
+    int peerPort;
     DatagramSocket dsock = null;
     DatagramPacket dpack = null;
     final int chunkSize = 1024;
     int windowSize = 4;
     private DataInputStream in = null;
     int minIndex = 0;     //多client可能会有问题
-    public BackEndResponse(int ip){
-        this.ip = ip;
+    public BackEndResponse(InetAddress peerIp, int peerPort){
+        this.peerIp = peerIp;
+        this.peerPort = peerPort;
     }
-
     @Override
     public void run(){
         try {
-            getServer(ip);
+            startResponse();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
-    public void getServer(int ip) throws Exception{
-        dsock = new DatagramSocket(ip);
+    public void startResponse() throws Exception{
+        dsock = new DatagramSocket();
+        byte[] message = "hello".getBytes();
+        dpack = new DatagramPacket(message, message.length, peerIp, peerPort);
 //        dsock.setSoTimeout(5 * 1000);
         while (true){
             // receive request
@@ -373,14 +390,4 @@ class BackEndResponse extends Thread{
         String md5Str = new BigInteger(1, digest).toString(16);
         return md5Str;
     }
-//    public static void main(String[] args) throws Exception{
-//        FileInputStream fis = new FileInputStream(new File("./content/test.png"));
-//        DataInputStream qqq = new DataInputStream(fis);
-//        byte[] bytes = new byte[fis.available()];
-//        qqq.read(bytes);
-//        System.out.println(getMD5Str(bytes));
-//        BackEndResponse server = new BackEndResponse();
-//        server.getServer();
-//
-//    }
 }
