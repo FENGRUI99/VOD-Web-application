@@ -150,6 +150,9 @@ class BackEndRequest extends Thread{
             }
         }
         System.out.println("end this transmission.");
+        byte[] file = map2File(fileMap, (int) length);
+        System.out.println("md5: " + getMD5Str(file));
+
 
         //测试用：将接收文件的map转存为byte数组求md5，将文件保存到本地。
         /*
@@ -171,7 +174,7 @@ class BackEndRequest extends Thread{
                 pointer++;
             }
         }
-        System.out.println("pointer: " + pointer);
+
         return file;
     }
     //发送相应报文
@@ -270,6 +273,7 @@ class BackEndResponse extends Thread{
         dsock = new DatagramSocket();
         byte[] message = "hello".getBytes();
         dpack = new DatagramPacket(message, message.length, peerIp, peerPort);
+        dsock.send(dpack);
 //        dsock.setSoTimeout(5 * 1000);
         while (true){
             // receive request
