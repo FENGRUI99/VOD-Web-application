@@ -37,9 +37,7 @@ public class BackEndServer {
             }
         }
     }
-
     public static void main(String[] args) throws Exception{
-
         BackEndServer server = new BackEndServer(8081);
         server.startServer();
     }
@@ -152,7 +150,7 @@ class BackEndRequest extends Thread{
         }
         System.out.println("end this transmission.");
         System.out.println(length);
-        byte[] file = map2File(fileMap, (int) length);
+        byte[] file = map2File(fileMap, 102400);
         System.out.println("md5: " + getMD5Str(file));
 
 
@@ -176,7 +174,7 @@ class BackEndRequest extends Thread{
                 pointer++;
             }
         }
-
+        System.out.println(pointer);
         return file;
     }
     //发送相应报文
