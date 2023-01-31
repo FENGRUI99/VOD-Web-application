@@ -1,9 +1,7 @@
 import com.alibaba.fastjson.JSONObject;
 import org.w3c.dom.CharacterData;
 
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.*;
 import java.math.BigInteger;
 import java.net.*;
 import java.security.MessageDigest;
@@ -47,12 +45,11 @@ class BackEndRequest extends Thread{
     //server initialization
     final int chunkSize = 1024;
     int windowSize = 2;
-    //start：browser请求的文件的起始点； 假设browser请求文件从0开始，实际值要从前端获取
-    //length：browser请求的文件的长度；  实际值要从前端获取
     DatagramSocket dsock;
     DatagramPacket dpack;
     long start;
     long length;
+    long fileLen;
     InetAddress frontEndAddress;
     int frontEndPort;
     InetAddress peerListenAddress;
@@ -67,6 +64,7 @@ class BackEndRequest extends Thread{
         this.fileName = fileName;
         this.start = start;
         this.length = length;
+        this.fileLen = length;
     }
     @Override
     public void run(){
@@ -77,7 +75,6 @@ class BackEndRequest extends Thread{
         dsock = new DatagramSocket();
         dsock.setSoTimeout(5000);
         // say hello to Peer listener thread
-        System.out.println("say hello to Peer listener thread");
         String message = JSONObject.toJSONString(new ListenerHeader(1));
         byte[] sendArr = message.getBytes();
         dpack = new DatagramPacket(sendArr, sendArr.length, peerListenAddress, peerListenPort);
@@ -93,14 +90,15 @@ class BackEndRequest extends Thread{
         getFileInfo(peerResAddress, peerResPort);
 
         //initialization
-        long fileLen = length;
+        int fileSize = 0;
         int recePointer = 0;
         int receSize = 0;
+        String fileName = null;
         HashMap<Integer, byte[]> fileMap = new HashMap<>();
 
         L1:
         while (true) {
-            recArr = new byte[20480];
+            recArr = new byte[9000];
             dpack.setData(recArr, 0, recArr.length);
             //AIMD过程
             try {
@@ -108,7 +106,7 @@ class BackEndRequest extends Thread{
             }catch (SocketTimeoutException e){
                 System.out.println("cut window");
                 windowSize = Math.max(windowSize/2, 1);
-                requestRange();
+                requestRange(fileName, start, length);
                 receSize = 0;
                 //TODO CFR觉得这里有问题
             }
@@ -118,11 +116,14 @@ class BackEndRequest extends Thread{
             int headerLen = convertByteToInt(info, 0);
             int contentLen = convertByteToInt(info, 4);
             ResponseHeader header = JSONObject.parseObject(new String(info, 8, headerLen), ResponseHeader.class);
-            //System.out.println(header.toString());
+            System.out.println(header.toString());
 
             //judge header
             if (header.statusCode == 0) {
-                requestRange();
+                fileSize = (int) header.length;
+                length = fileSize - start;
+                fileName = header.fileName;
+                requestRange(header.fileName, start, length);
             }
             else if (header.statusCode == 1) {
                 byte[] content = new byte[contentLen];
@@ -131,15 +132,15 @@ class BackEndRequest extends Thread{
                 while (fileMap.containsKey(recePointer)) {
                     recePointer++;
                     start += chunkSize;
-                    fileLen -= chunkSize;
-                    if (fileLen < 0) { //到达接受长度
+                    length -= chunkSize;
+                    if (length < 0) { //到达接受长度
                         close();
                         break L1;
                     }
                     receSize++;
                 }
                 if (receSize == windowSize) {
-                    requestRange();
+                    requestRange(fileName, start, length);
                     receSize = 0;
                     windowSize++;
                 }
@@ -149,20 +150,15 @@ class BackEndRequest extends Thread{
             }
         }
         System.out.println("end this transmission.");
-        System.out.println(length);
-        byte[] file = map2File(fileMap, 102400);
-        System.out.println("md5: " + getMD5Str(file));
-
 
         //测试用：将接收文件的map转存为byte数组求md5，将文件保存到本地。
-        /*
-        byte[] file = map2File(fileMap, fileSize);
-        System.out.println("md5: " + getMD5Str(file));
+        byte[] fi = map2File(fileMap, fileSize);
+        System.out.println("md5: " + getMD5Str(fi));
         DataOutputStream sOut = new DataOutputStream(new FileOutputStream(new File("./content/"+"test1.png")));
-        sOut.write(file, 0, file.length);
+        sOut.write(fi, 0, fi.length);
         sOut.flush();
         sOut.close();
-        */
+
     }
     public byte[] map2File(HashMap<Integer, byte[]> map, int fileSize){
         byte[] file = new byte[fileSize];
@@ -186,7 +182,7 @@ class BackEndRequest extends Thread{
         dsock.send(dpack);
         System.out.println("Status_0 send success");
     }
-    public void requestRange() throws Exception{
+    public void requestRange(String fileName, long start, long length) throws Exception{
         byte[] header = getReqHeader(1, fileName, start, length).getBytes();
         byte[] preHeader = getPreHeader(header.length, 0);
         byte[] sendArr = addTwoBytes(preHeader, header);
