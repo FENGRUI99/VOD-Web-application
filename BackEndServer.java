@@ -95,6 +95,7 @@ class BackEndRequest extends Thread{
         getFileInfo(peerResAddress, peerResPort);
 
         //initialization
+        long fileLen = length;
         int recePointer = 0;
         int receSize = 0;
         HashMap<Integer, byte[]> fileMap = new HashMap<>();
@@ -132,8 +133,8 @@ class BackEndRequest extends Thread{
                 while (fileMap.containsKey(recePointer)) {
                     recePointer++;
                     start += chunkSize;
-                    length -= chunkSize;
-                    if (length < 0) { //到达接受长度
+                    fileLen -= chunkSize;
+                    if (fileLen < 0) { //到达接受长度
                         close();
                         break L1;
                     }
@@ -150,6 +151,7 @@ class BackEndRequest extends Thread{
             }
         }
         System.out.println("end this transmission.");
+        System.out.println(length);
         byte[] file = map2File(fileMap, (int) length);
         System.out.println("md5: " + getMD5Str(file));
 
@@ -316,6 +318,13 @@ class BackEndResponse extends Thread{
         byte[] sendArr = addTwoBytes(preheader, resHeader.getBytes());
         dpack.setData(sendArr);
         dsock.send(dpack);
+
+        FileInputStream fis = new FileInputStream(f);
+        in = new DataInputStream(fis);
+        sendArr = new byte[fis.available()];
+        in.read(sendArr);
+        in.close();
+        System.out.println(getMD5Str(sendArr));
     }
     public void sendRange(RequestHeader header) throws Exception{
         boolean flag = false;
