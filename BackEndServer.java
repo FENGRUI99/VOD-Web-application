@@ -26,6 +26,7 @@ public class BackEndServer {
             DatagramPacket dpack = new DatagramPacket(recArr, recArr.length);
             dsock.receive(dpack);
             ListenerHeader header = JSONObject.parseObject(new String(recArr), ListenerHeader.class);
+            System.out.println(header.toString());
             // message from http server
             if (header.getSrc() == 0){
                 pool.execute(new BackEndRequest(header.frontEndIp, header.frontEndPort, header.peerIp, header.peerPort, header.fileName, header.start, header.length));
@@ -78,6 +79,7 @@ class BackEndRequest extends Thread{
         dsock = new DatagramSocket();
         dsock.setSoTimeout(5000);
         // say hello to Peer listener thread
+        System.out.println("say hello to Peer listener thread");
         String message = JSONObject.toJSONString(new ListenerHeader(1));
         byte[] sendArr = message.getBytes();
         dpack = new DatagramPacket(sendArr, sendArr.length, peerListenAddress, peerListenPort);
@@ -89,7 +91,7 @@ class BackEndRequest extends Thread{
         dsock.receive(dpack);
         InetAddress peerResAddress = dpack.getAddress();
         int peerResPort = dpack.getPort();
-
+        System.out.println(new String(dpack.getData()));
         getFileInfo(peerResAddress, peerResPort);
 
         //initialization

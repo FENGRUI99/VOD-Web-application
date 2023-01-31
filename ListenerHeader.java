@@ -63,4 +63,9 @@ public class ListenerHeader {
     public long getLength() {
         return length;
     }
+
+    @Override
+    public String toString() {
+        return "src: " + src + ", frontEndIp: " + frontEndIp + ", frontEndPort: " + frontEndPort + ", PeerIp: " + peerIp + ", PeerPort: " + peerPort + ", fileName: " + fileName + ", start: " + start+ ", length: " + length;
+    }
 }
