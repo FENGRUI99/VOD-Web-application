@@ -9,6 +9,7 @@ public class ListenerHeader {
     String fileName;
     long start;
     long length;
+    int rate;
 
     public ListenerHeader(int src){
         this.src = src;
@@ -19,9 +20,10 @@ public class ListenerHeader {
         this.fileName = null;
         this.start = 0;
         this.length = 0;
+        this.rate = 0;
     }
 
-    public ListenerHeader(int src, InetAddress frontEndIp, int frontEndPort, InetAddress peerIp, int peerPort, String fileName, long start, long length){
+    public ListenerHeader(int src, InetAddress frontEndIp, int frontEndPort, InetAddress peerIp, int peerPort, String fileName, long start, long length, int rate){
         this.src = src;
         this.frontEndIp = frontEndIp;
         this.frontEndPort = frontEndPort;
@@ -30,6 +32,7 @@ public class ListenerHeader {
         this.fileName = fileName;
         this.start = start;
         this.length = length;
+        this.rate = rate;
     }
 
     public int getSrc() {
@@ -62,6 +65,9 @@ public class ListenerHeader {
 
     public long getLength() {
         return length;
+    }
+    public int getRate() {
+        return rate;
     }
 
     @Override
