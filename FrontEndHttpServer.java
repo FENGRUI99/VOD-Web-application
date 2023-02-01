@@ -1,4 +1,3 @@
-
 import java.awt.*;
 import java.io.*;
 import java.net.*;
@@ -8,16 +7,24 @@ import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+//Todo: if I use brower enter: localhost:8000/peer/add?path=content/video.ogg&host=172.16.7.12&port=8002&rate=1600
+//             httpServer get: GET /peer/add?path=content/video.ogg&host=172.16.7.12&port=8002&rate=1600 HTTP/1.1
+//
+//Todo: if I use brower enter: http://localhost:8000/peer/view/content/video.ogg
+//             httpServer get: GET /peer/view/content/video.ogg HTTP/1.1
 
 public class FrontEndHttpServer {
-    String port;
-    public FrontEndHttpServer(String port){
-        this.port = port;
+    String frontEndPort;
+    String backEndPort;
+    public FrontEndHttpServer(String frontEndPort, String backEndPort){
+        this.frontEndPort = frontEndPort;
+        this.backEndPort = backEndPort;
     }
     public void startServer(){
-        ServerSocket serverSocket = null;
+        ServerSocket frontEndSocket = null;
+
         try {
-            serverSocket = new ServerSocket(Integer.valueOf(this.port));
+            frontEndSocket = new ServerSocket(Integer.valueOf(this.frontEndPort));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -26,10 +33,11 @@ public class FrontEndHttpServer {
         while (true){
             Socket clientSocket = null;
             try {
-                clientSocket = serverSocket.accept();
+                clientSocket = frontEndSocket.accept();
             } catch (IOException e){
                 e.printStackTrace();
             }
+
             // System.out.println("Client IP: " + clientSocket.getInetAddress() + ": " + clientSocket.getPort());
             pool.execute(new Sender(clientSocket));
         }
@@ -38,9 +46,9 @@ public class FrontEndHttpServer {
     public static void main(String[] args) throws IOException{
 //        File htmlFile = new File("Search/frontPage.html");
 //        Desktop.getDesktop().browse(htmlFile.toURI());
-
         System.out.println(args[0]);
-        FrontEndHttpServer frontEndHttpServer = new FrontEndHttpServer(args[0]);
+        System.out.println(args[1]);
+        FrontEndHttpServer frontEndHttpServer = new FrontEndHttpServer(args[0], args[1]);
         frontEndHttpServer.startServer();
     }
 }
@@ -64,6 +72,7 @@ class Sender extends Thread{
             String inputLine;
             String[] info;
             while ((inputLine = sIn.readLine()) != null){
+                System.out.println(inputLine);
                 info = inputLine.split(" ");    
                 while (!(inputLine = sIn.readLine()).equals("")) {
                     String[] tmp = inputLine.split(": ");
@@ -95,6 +104,9 @@ class Sender extends Thread{
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+    private void requestFromBackEnd(InetAddress frontEndIp, int frontEndPort, InetAddress peerIp, int peerPort, String fileName, long start, long length) throws IOException {
+
     }
     private File findFile(String path) {
         File file = new File("./content" + path);
