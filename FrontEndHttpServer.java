@@ -79,36 +79,6 @@ class Sender extends Thread{
             String inputLine;
             String[] info;
 
-//            // receive peer info from browser and store it in frontEnd, contact backEnd to send the file.
-//            while ((inputLine = sIn.readLine()) != null) {
-//                //first info from browser
-//                if (inputLine.split("view").length != 2) {
-//                    //GET /peer/add?path=content/video.ogg&host=172.16.7.12&port=8002&rate=1600 HTTP/1.1
-//                    String[] tmp = inputLine.split("=");
-//                    fileName = tmp[1].split("&")[0];
-//                    rate = Integer.valueOf(tmp[4].split(" ")[0]);
-//                    peerIp = InetAddress.getByName(tmp[2].split("&")[0]);
-//                    peerPort = Integer.valueOf(tmp[3].split("&")[0]);
-//                }
-//                //second info from browser
-//                else {
-//                    DatagramSocket dsock = new DatagramSocket(8080);
-//                    int src = 0; // 0 for http server, 1 for peer back-end server
-//                    InetAddress frontEndIp = InetAddress.getByName("127.0.0.1");
-//                    int frontEndPort = 8080;
-//                    long start = 0;
-//                    long length = 7202;
-//                    String message = JSONObject.toJSONString(new ListenerHeader(src, frontEndIp, frontEndPort, peerIp, peerPort, fileName, start, length, rate));
-//                    byte[] sendArr = message.getBytes();
-//                    DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, frontEndIp, 8081);
-//                    dsock.send(dpack);
-//
-//                    //byte[] recArr = new byte[7202];
-//                    //dpack = new DatagramPacket(recArr, recArr.length);
-//                }
-//            }
-
-
             //Todo: receive file from backend and store it locally
             //Todo: send the file to browser and delete the file when close
 
