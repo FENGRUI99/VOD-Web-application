@@ -4,6 +4,7 @@ import java.awt.*;
 import java.io.*;
 import java.net.*;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
@@ -19,6 +20,7 @@ import java.util.concurrent.Executors;
 
 
 public class FrontEndHttpServer extends Thread{
+    public static HashMap<String, ArrayList<String>> threadShare = new HashMap<>();
     int frontEndPort;
     int backEndPort;
     public FrontEndHttpServer(int frontEndPort, int backEndPort){
@@ -62,10 +64,10 @@ class Sender extends Thread{
     private BufferedReader sIn = null;
     private File f = null;
     final String CRLF = "\r\n";
-    private int rate;
-    InetAddress peerIp;
+    //private int rate;
+    //InetAddress peerIp;
     private String peerFilePath;
-    int peerPort;
+    //int peerPort;
     public Sender(Socket clientSocket, int backEndPort) {
         this.clientSocket = clientSocket;
         this.backEndPort = backEndPort;
@@ -116,29 +118,54 @@ class Sender extends Thread{
                     }
                     in.close();
                 }
+
                 else {
                     //Associate peer node with content
                     if (info[1].startsWith("/peer/add?path")){
                         //remove"/peer/add?path="
                         String[] tmp = info[1].substring(15).split("&");
                         peerFilePath = tmp[0];
-                        peerIp = InetAddress.getByName(tmp[1].substring(5));
-                        peerPort = Integer.valueOf(tmp[2].substring(5));
-                        if (tmp.length > 3){
-                            rate = Integer.valueOf(tmp[3].substring(5));
+//                        peerIp = InetAddress.getByName(tmp[1].substring(5));
+//                        peerPort = Integer.valueOf(tmp[2].substring(5));
+//                        if (tmp.length > 3){
+//                            rate = Integer.valueOf(tmp[3].substring(5));
+//                        }
+                        if(!FrontEndHttpServer.threadShare.containsKey(peerFilePath)) {
+                            FrontEndHttpServer.threadShare.put(peerFilePath, new ArrayList<>());
                         }
+                        FrontEndHttpServer.threadShare.get(peerFilePath).add(info[1].substring(15));
+
                     }
                     //View content
+                    /*
+                        Get info example:
+                        GET /video.ogg undefined
+                        GET /peer/add?path=content/video.ogg&host=pi.ece.cmu.edu&port=8346 undefined
+                        GET /peer/view/content/video.ogg undefined
+                     */
                     else {
                         //send info to backend listener
-                        DatagramSocket dsock = new DatagramSocket();
                         //TODO start和length要怎么得到
-                        int start = 0;
-                        int length = 0;
-                        String message = JSONObject.toJSONString(new ListenerHeader(0, dsock.getInetAddress(), dsock.getPort(), peerIp, peerPort, peerFilePath, start, length, rate));
-                        byte[] sendArr = message.getBytes();
-                        DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, dsock.getInetAddress(), backEndPort);
-                        dsock.send(dpack);
+                        peerFilePath = info[1].substring(11);
+                        ArrayList<String> peerInfo = FrontEndHttpServer.threadShare.get(peerFilePath);
+
+                        //向几个peers要文件就发送几次报文
+                        for(int i = 0; i < peerInfo.size(); i++){
+                            DatagramSocket dsock = new DatagramSocket();
+                            int start = -1;
+                            int length = -1;
+                            int rate = 0;
+                            String[] tmp = peerInfo.get(i).split("&");
+                            InetAddress peerIp = InetAddress.getByName(tmp[1].substring(5));
+                            int peerPort = Integer.valueOf(tmp[2].substring(5));
+                            if (tmp.length > 3){
+                               rate = Integer.valueOf(tmp[3].substring(5));
+                            }
+                            String message = JSONObject.toJSONString(new ListenerHeader(0, dsock.getInetAddress(), dsock.getPort(), peerIp, peerPort, peerFilePath, start, length, rate));
+                            byte[] sendArr = message.getBytes();
+                            DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, dsock.getInetAddress(), backEndPort);
+                            dsock.send(dpack);
+                        }
 
                         //wait for response
 
