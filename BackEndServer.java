@@ -6,6 +6,8 @@ import java.math.BigInteger;
 import java.net.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -36,7 +38,7 @@ public class BackEndServer extends Thread{
             System.out.println(header.toString());
             // message from http server
             if (header.getSrc() == 0){
-                pool.execute(new BackEndRequest(header.frontEndIp, header.frontEndPort, header.peerIp, header.peerPort, header.fileName, header.start, header.length));
+                pool.execute(new BackEndRequest(header.frontEndIp, header.frontEndPort, header.peerIp, header.peerPort, header.fileName, header.start, header.length, header.rate));
             }
             // message from peer back-end server
             else {
@@ -48,7 +50,7 @@ public class BackEndServer extends Thread{
 
 class BackEndRequest extends Thread{
     //server initialization
-    final int chunkSize = 1024;
+    int chunkSize = 1024;
     int windowSize = 2;
     DatagramSocket dsock;
     DatagramPacket dpack;
@@ -60,8 +62,9 @@ class BackEndRequest extends Thread{
     InetAddress peerListenAddress;
     int peerListenPort;
     String fileName;
+    int rate;
 
-    public BackEndRequest(InetAddress frontEndAddress, int frontEndPort, InetAddress peerListenAddress, int peerListenPort, String fileName, long start, long length){
+    public BackEndRequest(InetAddress frontEndAddress, int frontEndPort, InetAddress peerListenAddress, int peerListenPort, String fileName, long start, long length, int rate){
         this.frontEndAddress = frontEndAddress;
         this.frontEndPort = frontEndPort;
         this.peerListenAddress = peerListenAddress;
@@ -70,6 +73,7 @@ class BackEndRequest extends Thread{
         this.start = start;
         this.length = length;
         this.fileLen = length;
+        this.rate = rate;
     }
     @Override
     public void run(){
@@ -93,11 +97,14 @@ class BackEndRequest extends Thread{
         int peerResPort = dpack.getPort();
         System.out.println(new String(dpack.getData()));
         getFileInfo(peerResAddress, peerResPort);
+        //计时
+        long startTime = Calendar.getInstance().getTimeInMillis();
 
         //initialization
         int fileSize = 0;
         int recePointer = 0;
         int receSize = 0;
+        int RTT = 0;
         String fileName = null;
         HashMap<Integer, byte[]> fileMap = new HashMap<>();
 
@@ -111,7 +118,7 @@ class BackEndRequest extends Thread{
             }catch (SocketTimeoutException e){
                 System.out.println("cut window");
                 windowSize = Math.max(windowSize/2, 1);
-                requestRange(fileName, start, length);
+                requestRange(fileName, start, length, chunkSize);
                 receSize = 0;
                 //TODO CFR觉得这里有问题
             }
@@ -125,10 +132,16 @@ class BackEndRequest extends Thread{
 
             //judge header
             if (header.statusCode == 0) {
+                //读取rtt, RTO = 2*RTT
+                long endTime = Calendar.getInstance().getTimeInMillis();
+                RTT = (int) (endTime-startTime);
+                chunkSize = RTT * rate;
+                dsock.setSoTimeout(2*RTT);
+
                 fileSize = (int) header.length;
                 length = fileSize - start;
                 fileName = header.fileName;
-                requestRange(header.fileName, start, length);
+                requestRange(header.fileName, start, length, chunkSize);
             }
             else if (header.statusCode == 1) {
                 byte[] content = new byte[contentLen];
@@ -145,9 +158,9 @@ class BackEndRequest extends Thread{
                     receSize++;
                 }
                 if (receSize == windowSize) {
-                    requestRange(fileName, start, length);
+                    requestRange(fileName, start, length, chunkSize);
                     receSize = 0;
-                    windowSize++;
+                    windowSize ++;
                 }
             }
             else{ //Not found
@@ -180,15 +193,15 @@ class BackEndRequest extends Thread{
     }
     //发送相应报文
     public void getFileInfo(InetAddress peerResAddress, int peerResPort) throws Exception{
-        byte[] header = getReqHeader(0, fileName, 0, 0).getBytes();
+        byte[] header = getReqHeader(0, fileName, 0, 0,0).getBytes();
         byte[] preHeader = getPreHeader(header.length, 0);
         byte[] sendArr = addTwoBytes(preHeader, header);
         dpack = new DatagramPacket(sendArr, sendArr.length, peerResAddress, peerResPort);
         dsock.send(dpack);
         System.out.println("Status_0 send success");
     }
-    public void requestRange(String fileName, long start, long length) throws Exception{
-        byte[] header = getReqHeader(1, fileName, start, length).getBytes();
+    public void requestRange(String fileName, long start, long length, int chunkSize) throws Exception{
+        byte[] header = getReqHeader(1, fileName, start, length, chunkSize).getBytes();
         byte[] preHeader = getPreHeader(header.length, 0);
         byte[] sendArr = addTwoBytes(preHeader, header);
 
@@ -197,7 +210,7 @@ class BackEndRequest extends Thread{
         System.out.println("Status_1 send success");
     }
     public void close () throws Exception{
-        byte[] header = getReqHeader(2, fileName, 0, 0).getBytes();
+        byte[] header = getReqHeader(2, fileName, 0, 0, 0).getBytes();
         byte[] preHeader = getPreHeader(header.length, 0);
         byte[] sendArr = addTwoBytes(preHeader, header);
 
@@ -232,8 +245,8 @@ class BackEndRequest extends Thread{
                 (byte)(value >> 8),
                 (byte)value };
     }
-    public String getReqHeader (int statusCode, String fileName, long start, long length){
-        return JSONObject.toJSONString(new RequestHeader(statusCode, fileName, start, length));
+    public String getReqHeader (int statusCode, String fileName, long start, long length, int rtt){
+        return JSONObject.toJSONString(new RequestHeader(statusCode, fileName, start, length, rtt));
     }
     public static String getMD5Str(byte[] digest) {
         try {
@@ -254,7 +267,7 @@ class BackEndResponse extends Thread{
     int peerPort;
     DatagramSocket dsock = null;
     DatagramPacket dpack = null;
-    final int chunkSize = 1024;
+    int chunkSize = 1024;
     int windowSize = 4;
     private DataInputStream in = null;
     int minIndex = 0;     //多client可能会有问题
@@ -275,7 +288,7 @@ class BackEndResponse extends Thread{
         byte[] message = "hello".getBytes();
         dpack = new DatagramPacket(message, message.length, peerIp, peerPort);
         dsock.send(dpack);
-//        dsock.setSoTimeout(5 * 1000);
+        //dsock.setSoTimeout(60 * 1000);
         while (true){
             // receive request
             RequestHeader header = waitRequest();
@@ -289,6 +302,7 @@ class BackEndResponse extends Thread{
             }
             // get range of file
             else if (header.statusCode == 1){
+                chunkSize = header.getChunkSize();
                 sendRange(header);
             }
             // close

@@ -4,14 +4,14 @@ public class RequestHeader{
     long start;
     long length;
 
-    int RTT;
+    int chunkSize;
 
-    public RequestHeader(int statusCode, String fileName, long start, long length, int RTT){
+    public RequestHeader(int statusCode, String fileName, long start, long length, int chunkSize){
         this.statusCode = statusCode;
         this.fileName = fileName;
         this.start = start;
         this.length = length;
-        this.RTT = RTT;
+        this.chunkSize = chunkSize;
     }
 
     public int getStatusCode(){
@@ -30,8 +30,8 @@ public class RequestHeader{
         return length;
     }
 
-    public int getRTT() {
-        return RTT;
+    public int getChunkSize() {
+        return chunkSize;
     }
 
     @Override
