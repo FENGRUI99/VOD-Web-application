@@ -26,6 +26,12 @@ public class BackEndServer extends Thread{
             throw new RuntimeException(e);
         }
     }
+
+    public static void main(String[] args) throws Exception{
+        BackEndServer backend = new BackEndServer(8081);
+        backend.startServer();
+    }
+
     public void startServer() throws Exception{
         ExecutorService pool = Executors.newCachedThreadPool();
         DatagramSocket dsock = new DatagramSocket(port);
@@ -135,7 +141,7 @@ class BackEndRequest extends Thread{
                 //读取rtt, RTO = 2*RTT
                 long endTime = Calendar.getInstance().getTimeInMillis();
                 RTT = (int) (endTime-startTime);
-                chunkSize = RTT * rate;
+                chunkSize = RTT * rate/8000;
                 dsock.setSoTimeout(2*RTT);
 
                 fileSize = (int) header.length;
@@ -245,8 +251,8 @@ class BackEndRequest extends Thread{
                 (byte)(value >> 8),
                 (byte)value };
     }
-    public String getReqHeader (int statusCode, String fileName, long start, long length, int rtt){
-        return JSONObject.toJSONString(new RequestHeader(statusCode, fileName, start, length, rtt));
+    public String getReqHeader (int statusCode, String fileName, long start, long length, int chunkSize){
+        return JSONObject.toJSONString(new RequestHeader(statusCode, fileName, start, length, chunkSize));
     }
     public static String getMD5Str(byte[] digest) {
         try {
