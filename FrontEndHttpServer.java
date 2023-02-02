@@ -18,23 +18,26 @@ import java.util.concurrent.Executors;
 //
 
 
-public class FrontEndHttpServer {
-    String frontEndPort;
-    String backEndPort;
-    //Todo : changed
-    public FrontEndHttpServer(String frontEndPort, String backEndPort){
+public class FrontEndHttpServer extends Thread{
+    int frontEndPort;
+    int backEndPort;
+    public FrontEndHttpServer(int frontEndPort, int backEndPort){
         this.frontEndPort = frontEndPort;
         this.backEndPort = backEndPort;
     }
+
+    @Override
+    public void run() {
+        startServer();
+    }
+
     public void startServer(){
         ServerSocket frontEndSocket = null;
-
         try {
             frontEndSocket = new ServerSocket(Integer.valueOf(this.frontEndPort));
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         ExecutorService pool = Executors.newCachedThreadPool();
         while (true){
             Socket clientSocket = null;
@@ -49,20 +52,6 @@ public class FrontEndHttpServer {
         }
     }
 
-    public static void main(String[] args) throws IOException{
-//        File htmlFile = new File("Search/frontPage.html");
-//        Desktop.getDesktop().browse(htmlFile.toURI());
-        System.out.println(args[0]);
-        System.out.println(args[1]);
-        FrontEndHttpServer frontEndHttpServer = new FrontEndHttpServer(args[0], args[1]);
-        frontEndHttpServer.startServer();
-
-//        String s = "/peer/add?path=content/video.ogg&host=pi.ece.cmu.edu&port=8346";
-//        String[] tmp = s.substring(15).split("&");
-//        System.out.println(tmp[0]);
-//        System.out.println(tmp[1].substring(5));
-//        System.out.println(Integer.valueOf(tmp[2].substring(5)));
-    }
 }
 
 class Sender extends Thread{

@@ -10,10 +10,19 @@ import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class BackEndServer {
+public class BackEndServer extends Thread{
     int port;
     public BackEndServer(int port){
         this.port = port;
+    }
+
+    @Override
+    public void run() {
+        try {
+            startServer();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
     public void startServer() throws Exception{
         ExecutorService pool = Executors.newCachedThreadPool();
@@ -34,10 +43,6 @@ public class BackEndServer {
                 pool.execute(new BackEndResponse(dpack.getAddress(), dpack.getPort()));
             }
         }
-    }
-    public static void main(String[] args) throws Exception{
-        BackEndServer server = new BackEndServer(8081);
-        server.startServer();
     }
 }
 
