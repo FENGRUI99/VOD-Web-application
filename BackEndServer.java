@@ -141,23 +141,24 @@ class BackEndRequest extends Thread{
                 //读取rtt, RTO = 2*RTT
                 long endTime = Calendar.getInstance().getTimeInMillis();
                 RTT = (int) (endTime-startTime);
-                chunkSize = RTT * rate/8000;
-                dsock.setSoTimeout(2*RTT);
+                //chunkSize = RTT * rate/8000;
+                dsock.setSoTimeout(10*RTT);
 
                 fileSize = (int) header.length;
-                length = fileSize - start;
+                //length = fileSize - start;
                 fileName = header.fileName;
                 requestRange(header.fileName, start, length, chunkSize);
             }
             else if (header.statusCode == 1) {
                 byte[] content = new byte[contentLen];
                 System.arraycopy(info, 8 + headerLen, content, 0, contentLen);
+                System.out.println(contentLen);
                 fileMap.put(header.sequence, content);
                 while (fileMap.containsKey(recePointer)) {
                     recePointer++;
                     start += chunkSize;
-                    length -= chunkSize;
-                    if (length < 0) { //到达接受长度
+                    //length -= chunkSize;
+                    if (length<=start) { //到达接受长度
                         close();
                         break L1;
                     }
@@ -176,7 +177,9 @@ class BackEndRequest extends Thread{
         System.out.println("end this transmission.");
 
         //测试用：将接收文件的map转存为byte数组求md5，将文件保存到本地。
+        System.out.println("length: "+length+" fileSize: "+fileSize);
         byte[] fi = map2File(fileMap, fileSize);
+
         System.out.println("md5: " + getMD5Str(fi));
         DataOutputStream sOut = new DataOutputStream(new FileOutputStream(new File("./content/"+"test1.png")));
         sOut.write(fi, 0, fi.length);
