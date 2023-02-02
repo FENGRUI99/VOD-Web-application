@@ -15,9 +15,9 @@ public class BackEndTest {
         int frontEndPort = 8080;
         InetAddress peerIp = InetAddress.getByName("172.16.7.10");
         int peerPort = 8081;
-        String fileName = "test.png";
+        String fileName = "test.ogg";
         long start = 0;
-        long length = 7202;
+        long length = 4360399;
         int rate = 1600*1000;
         String message = JSONObject.toJSONString(new ListenerHeader(src, frontEndIp, frontEndPort, peerIp, peerPort, fileName, start, length, rate));
         byte[] sendArr = message.getBytes();

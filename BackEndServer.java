@@ -116,7 +116,7 @@ class BackEndRequest extends Thread{
 
         L1:
         while (true) {
-            recArr = new byte[9000];
+            recArr = new byte[2*chunkSize];
             dpack.setData(recArr, 0, recArr.length);
             //AIMD过程
             try {
@@ -126,7 +126,7 @@ class BackEndRequest extends Thread{
                 windowSize = Math.max(windowSize/2, 1);
                 requestRange(fileName, start, length, chunkSize);
                 receSize = 0;
-                //TODO CFR觉得这里有问题
+                continue;
             }
 
             //从dpack中获取header和content信息，分别存在header和content[]中
@@ -134,31 +134,32 @@ class BackEndRequest extends Thread{
             int headerLen = convertByteToInt(info, 0);
             int contentLen = convertByteToInt(info, 4);
             ResponseHeader header = JSONObject.parseObject(new String(info, 8, headerLen), ResponseHeader.class);
-            System.out.println(header.toString());
+            //System.out.println(header.toString());
 
             //judge header
             if (header.statusCode == 0) {
                 //读取rtt, RTO = 2*RTT
                 long endTime = Calendar.getInstance().getTimeInMillis();
                 RTT = (int) (endTime-startTime);
-                //chunkSize = RTT * rate/8000;
+                chunkSize = RTT * rate/8000;
                 dsock.setSoTimeout(10*RTT);
 
                 fileSize = (int) header.length;
-                //length = fileSize - start;
+                length = fileSize - start;
                 fileName = header.fileName;
                 requestRange(header.fileName, start, length, chunkSize);
             }
             else if (header.statusCode == 1) {
                 byte[] content = new byte[contentLen];
+                //System.out.println(contentLen);
                 System.arraycopy(info, 8 + headerLen, content, 0, contentLen);
-                System.out.println(contentLen);
+
                 fileMap.put(header.sequence, content);
                 while (fileMap.containsKey(recePointer)) {
                     recePointer++;
                     start += chunkSize;
-                    //length -= chunkSize;
-                    if (length<=start) { //到达接受长度
+                    length -= chunkSize;
+                    if (length<=0) { //到达接受长度
                         close();
                         break L1;
                     }
@@ -207,7 +208,7 @@ class BackEndRequest extends Thread{
         byte[] sendArr = addTwoBytes(preHeader, header);
         dpack = new DatagramPacket(sendArr, sendArr.length, peerResAddress, peerResPort);
         dsock.send(dpack);
-        System.out.println("Status_0 send success");
+        //System.out.println("Status_0 send success");
     }
     public void requestRange(String fileName, long start, long length, int chunkSize) throws Exception{
         byte[] header = getReqHeader(1, fileName, start, length, chunkSize).getBytes();
@@ -216,7 +217,7 @@ class BackEndRequest extends Thread{
 
         dpack.setData(sendArr, 0, sendArr.length);
         dsock.send(dpack);
-        System.out.println("Status_1 send success");
+       // System.out.println("Status_1 send success");
     }
     public void close () throws Exception{
         byte[] header = getReqHeader(2, fileName, 0, 0, 0).getBytes();
@@ -226,7 +227,7 @@ class BackEndRequest extends Thread{
         dpack.setData(sendArr, 0, sendArr.length);
         dsock.send(dpack);
         dsock.close();
-        System.out.println("Status_2 send success");
+        //System.out.println("Status_2 send success");
     }
 
     public byte[] getPreHeader(int headerLen, int contentLen){
