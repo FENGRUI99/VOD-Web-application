@@ -11,6 +11,8 @@ public class ListenerHeader {
     long length;
     int rate;
 
+    int RTT;
+
     public ListenerHeader(int src){
         this.src = src;
         this.frontEndIp = null;
@@ -21,9 +23,10 @@ public class ListenerHeader {
         this.start = 0;
         this.length = 0;
         this.rate = 0;
+        this.RTT = 0;
     }
 
-    public ListenerHeader(int src, InetAddress frontEndIp, int frontEndPort, InetAddress peerIp, int peerPort, String fileName, long start, long length, int rate){
+    public ListenerHeader(int src, InetAddress frontEndIp, int frontEndPort, InetAddress peerIp, int peerPort, String fileName, long start, long length, int rate, int RTT){
         this.src = src;
         this.frontEndIp = frontEndIp;
         this.frontEndPort = frontEndPort;
@@ -33,6 +36,7 @@ public class ListenerHeader {
         this.start = start;
         this.length = length;
         this.rate = rate;
+        this.RTT = RTT;
     }
 
     public int getSrc() {
