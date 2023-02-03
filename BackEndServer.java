@@ -331,7 +331,7 @@ class BackEndResponse extends Thread{
             File f = new File("./" + header.fileName);
             // get info
             if (header.statusCode == 0 && f.exists()){
-                sendInfo(f);
+                sendInfo(f, header.fileName);
             }
             else if (!f.exists()){
                 // 404
@@ -361,8 +361,8 @@ class BackEndResponse extends Thread{
         System.out.println(header.toString());
         return header;
     }
-    public void sendInfo(File f) throws Exception{
-        String resHeader = getResHeader(0, f.getName(), 0, f.length(), -1, f.lastModified(), "");
+    public void sendInfo(File f, String filePath) throws Exception{
+        String resHeader = getResHeader(0, filePath, 0, f.length(), -1, f.lastModified(), "");
         byte[] preheader = getPreHeader(resHeader.length(), 0);
         byte[] sendArr = addTwoBytes(preheader, resHeader.getBytes());
         dpack.setData(sendArr);

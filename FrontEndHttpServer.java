@@ -106,7 +106,9 @@ class Sender extends Thread{
                         // System.out.println("response code: 404");
                         response404();
                     }
-                    in.close();
+                    if (in != null) {
+                        in.close();
+                    }
                 }
 
                 //向peers请求文件
@@ -119,7 +121,7 @@ class Sender extends Thread{
                             FrontEndHttpServer.threadShare.put(peerFilePath, new ArrayList<>());
                         }
                         FrontEndHttpServer.threadShare.get(peerFilePath).add(info[1].substring(15));
-                        System.out.println("threadShareMap size: " + FrontEndHttpServer.threadShare.size() + " ");
+//                        System.out.println("threadShareMap size: " + FrontEndHttpServer.threadShare.size() + " ");
 //                        for(int i =0; i < FrontEndHttpServer.threadShare.get("content/video.ogg").size(); i++){
 //                            System.out.println(FrontEndHttpServer.threadShare.get("content/video.ogg").get(i));
 //                        }
@@ -168,7 +170,6 @@ class Sender extends Thread{
                 pointer++;
             }
         }
-        System.out.println(pointer);
         return file;
     }
     public int convertByteToInt(byte[] bytes, int start){
@@ -321,7 +322,6 @@ class Sender extends Thread{
             int headerLen = convertByteToInt(bendPackage, 0);
             int contentLen = convertByteToInt(bendPackage, 4);
             ResponseHeader header = JSONObject.parseObject(new String(bendPackage, 8, headerLen), ResponseHeader.class);
-            System.out.println("##########Frontend############");
             System.out.println(header.toString());
             //judge header
             if (header.statusCode == 0) {

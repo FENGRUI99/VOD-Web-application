@@ -13,11 +13,11 @@ public class BackEndTest {
         int src = 0; // 0 for http server, 1 for peer back-end server
         InetAddress frontEndIp = InetAddress.getByName("127.0.0.1");
         int frontEndPort = 8080;
-        InetAddress peerIp = InetAddress.getByName("172.16.7.12");
+        InetAddress peerIp = InetAddress.getByName("172.16.7.16");
         int peerPort = 8081;
-        String fileName = "content/test.txt";
+        String fileName = "content/test.ogg";
         long start = 0;
-        long length = 5849;
+        long length = 4360399;
         int rate = 1600;
         String message = JSONObject.toJSONString(new ListenerHeader(src, frontEndIp, frontEndPort, peerIp, peerPort, fileName, start, length, rate));
         byte[] sendArr = message.getBytes();
