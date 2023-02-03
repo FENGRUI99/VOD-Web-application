@@ -386,7 +386,7 @@ class BackEndResponse extends Thread{
             windowSize = Math.max(windowSize / 2, 1);
             minIndex = startSeq;
         }
-        File f = new File("./content/" + header.fileName);
+        File f = new File("./" + header.fileName);
         FileInputStream fis = new FileInputStream(f);
         in = new DataInputStream(fis);
         in.skip(start);
