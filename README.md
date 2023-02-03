@@ -35,6 +35,6 @@ Ray's code here
 
 ## Configuration
 
-1. Open our front page(./html/views/frontPage.html)
+1. Open our [front page](/html/views/frontPage.html)(path: ./html/views/frontPage.html)
 2. Write the path in text area then click the search button
 3. Get what you want in a new page
