@@ -41,7 +41,8 @@ public class BackEndServer extends Thread{
             DatagramPacket dpack = new DatagramPacket(recArr, recArr.length);
             dsock.receive(dpack);
             ListenerHeader header = JSONObject.parseObject(new String(recArr), ListenerHeader.class);
-            System.out.println(header.toString());
+//            System.out.println(header.toString());
+//            System.out.println("####################");
             // message from http server
             if (header.getSrc() == 0){
                 pool.execute(new BackEndRequest(dpack.getAddress(), dpack.getPort(), header.peerIp, header.peerPort, header.fileName, header.start, header.length, header.rate));
@@ -112,7 +113,7 @@ class BackEndRequest extends Thread{
         int recePointer = (int) (start / chunkSize);
         int receSize = 0;
         int RTT = 0;
-        String fileName = null;
+//        String fileName = null;
         HashMap<Integer, byte[]> fileMap = new HashMap<>();
         frontSock = new DatagramSocket();
 
@@ -147,11 +148,11 @@ class BackEndRequest extends Thread{
                 //读取rtt, RTO = 2*RTT
                 long endTime = Calendar.getInstance().getTimeInMillis();
                 RTT = (int) (endTime-startTime);
-                chunkSize = RTT * rate/8000;
+                chunkSize = RTT * rate/8;
                 dsock.setSoTimeout(10*RTT);
                 fileSize = (int) header.length;
                 //length = fileSize - start;
-                fileName = header.fileName;
+//                fileName = header.fileName;
 
                 //peerToPeer
                 if(start<0){
@@ -210,7 +211,6 @@ class BackEndRequest extends Thread{
         sOut.write(fi, 0, fi.length);
         sOut.flush();
         sOut.close();
-
        */
 
     }

@@ -215,7 +215,6 @@ class Sender extends Thread{
         else{
             endByte = Long.parseLong(tail);
         }
-
         String fType = URLConnection.guessContentTypeFromName(this.f.getName());
         Date date = new Date();
         Date lastModified = new Date(f.lastModified());
@@ -293,7 +292,7 @@ class Sender extends Thread{
         HashMap<Long, byte[]> fileMap = new HashMap<>();
         PriorityQueue<Long> pq = new PriorityQueue<Long>();
 
-        byte[] recArr = new byte[1024];
+        byte[] recArr = new byte[204800];
         int fileLen = 0;
         String fileName = null;
         long lastModified = 0;
@@ -315,6 +314,7 @@ class Sender extends Thread{
             int headerLen = convertByteToInt(bendPackage, 0);
             int contentLen = convertByteToInt(bendPackage, 4);
             ResponseHeader header = JSONObject.parseObject(new String(bendPackage, 8, headerLen), ResponseHeader.class);
+            System.out.println("##########Frontend############");
             System.out.println(header.toString());
             //judge header
             if (header.statusCode == 0) {
@@ -333,17 +333,20 @@ class Sender extends Thread{
                     "Accept-Ranges: " + "bytes" + CRLF +
                     "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
                     "Last-Modified: " + dateFormat1.format(lastModified) + " GMT" + CRLF +CRLF; //todo:可能有问题
+                sOut.writeUTF(httpHeader);
             }
             //接受文件存在map中
             else if (header.statusCode == 1) {
                 byte[] content = new byte[contentLen];
+                System.out.println(bendPackage.length);
                 System.arraycopy(bendPackage, 8 + headerLen, content, 0, contentLen);
                 fileMap.put(header.start, content);
                 pq.add(header.start);
+                System.out.println(header.start);
                 System.out.println("fileMap size: " + fileMap.size() + " ");
 
                 //发送200给browser
-                while(mapPointer == pq.peek()){
+                while(pq.size() != 0 && mapPointer == pq.peek()){
                     try {
                         byte[] bytes = fileMap.get(mapPointer);    //bytes为空
                         sOut.write(bytes, 0, bytes.length);
@@ -442,8 +445,8 @@ class Sender extends Thread{
             //发送200给browser
             if(mapPointer == header.getStart()){
                 try {
-                    byte[] Byte = fileMap.get(mapPointer);
-                    sOut.write(Byte, 0, Byte.length);
+                    byte[] bytes = fileMap.get(mapPointer);
+                    sOut.write(bytes, 0, bytes.length);
                     sOut.flush();
                 } catch (Exception e) {
                     e.printStackTrace();
