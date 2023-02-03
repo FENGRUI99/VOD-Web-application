@@ -2,11 +2,12 @@ import com.alibaba.fastjson.JSONObject;
 
 import java.awt.*;
 import java.io.*;
+import java.math.BigInteger;
 import java.net.*;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -16,7 +17,6 @@ import java.util.concurrent.Executors;
 //
 //Todo: if I use brower enter: http://localhost:8000/peer/view/content/video.ogg
 //             httpServer get: GET /peer/view/content/video.ogg HTTP/1.1
-//
 
 
 public class FrontEndHttpServer extends Thread{
@@ -27,11 +27,14 @@ public class FrontEndHttpServer extends Thread{
         this.frontEndPort = frontEndPort;
         this.backEndPort = backEndPort;
     }
-
-    @Override
-    public void run() {
-        startServer();
+    public static void main(String[] args) throws Exception{
+        FrontEndHttpServer server = new FrontEndHttpServer(8000, 8081);
+        server.startServer();
     }
+    //@Override
+    //public void run() {
+    //    startServer();
+    //}
 
     public void startServer(){
         ServerSocket frontEndSocket = null;
@@ -53,6 +56,7 @@ public class FrontEndHttpServer extends Thread{
             pool.execute(new Sender(clientSocket, Integer.valueOf(backEndPort)));
         }
     }
+
 
 }
 
@@ -81,23 +85,16 @@ class Sender extends Thread{
             String inputLine;
             String[] info;
 
-            //Todo: receive file from backend and store it locally
-            //Todo: send the file to browser and delete the file when close
-
-            /*
-            Get info example:
-            GET /video.ogg undefined
-            GET /peer/add?path=content/video.ogg&host=pi.ece.cmu.edu&port=8346 undefined
-            GET /peer/view/content/video.ogg undefined
-            */
             while ((inputLine = sIn.readLine()) != null){
                 System.out.println(inputLine);
-                info = inputLine.split(" ");    
+                info = inputLine.split(" ");
                 while (!(inputLine = sIn.readLine()).equals("")) {
                     String[] tmp = inputLine.split(": ");
                     request.put(tmp[0], tmp[1]);
                 }
                 // System.out.println(info[1]);
+
+                // 请求本地文件
                 if (!info[1].startsWith("/peer")){
                     f = findFile(info[1]);
                     if (f.exists() && !request.containsKey("Range")){
@@ -119,59 +116,32 @@ class Sender extends Thread{
                     in.close();
                 }
 
-                else {
-                    //Associate peer node with content
-                    if (info[1].startsWith("/peer/add?path")){
-                        //remove"/peer/add?path="
+                //向peers请求文件
+                else{
+                    //Store peers info.
+                    if (info[1].startsWith("/peer/add?path")) {
                         String[] tmp = info[1].substring(15).split("&");
                         peerFilePath = tmp[0];
-//                        peerIp = InetAddress.getByName(tmp[1].substring(5));
-//                        peerPort = Integer.valueOf(tmp[2].substring(5));
-//                        if (tmp.length > 3){
-//                            rate = Integer.valueOf(tmp[3].substring(5));
-//                        }
-                        if(!FrontEndHttpServer.threadShare.containsKey(peerFilePath)) {
+                        if (!FrontEndHttpServer.threadShare.containsKey(peerFilePath)) {
                             FrontEndHttpServer.threadShare.put(peerFilePath, new ArrayList<>());
                         }
                         FrontEndHttpServer.threadShare.get(peerFilePath).add(info[1].substring(15));
-
+                        System.out.println("threadShareMap size: " + FrontEndHttpServer.threadShare.size() + " ");
+//                        for(int i =0; i < FrontEndHttpServer.threadShare.get("content/video.ogg").size(); i++){
+//                            System.out.println(FrontEndHttpServer.threadShare.get("content/video.ogg").get(i));
+//                        }
                     }
-                    //View content
-                    /*
-                        Get info example:
-                        GET /video.ogg undefined
-                        GET /peer/add?path=content/video.ogg&host=pi.ece.cmu.edu&port=8346 undefined
-                        GET /peer/view/content/video.ogg undefined
-                     */
-                    else {
+
+                    //p t0 p 200
+                    else if(!request.containsKey("Range")){
+                        httpRetransfer200(info[1]);
+                    }
+                    //p t0 p 206
+                    else{
                         //send info to backend listener
-                        //TODO start和length要怎么得到
-                        peerFilePath = info[1].substring(11);
-                        ArrayList<String> peerInfo = FrontEndHttpServer.threadShare.get(peerFilePath);
-
-                        //向几个peers要文件就发送几次报文
-                        for(int i = 0; i < peerInfo.size(); i++){
-                            DatagramSocket dsock = new DatagramSocket();
-                            int start = -1;
-                            int length = -1;
-                            int rate = 0;
-                            String[] tmp = peerInfo.get(i).split("&");
-                            InetAddress peerIp = InetAddress.getByName(tmp[1].substring(5));
-                            int peerPort = Integer.valueOf(tmp[2].substring(5));
-                            if (tmp.length > 3){
-                               rate = Integer.valueOf(tmp[3].substring(5));
-                            }
-                            String message = JSONObject.toJSONString(new ListenerHeader(0, dsock.getInetAddress(), dsock.getPort(), peerIp, peerPort, peerFilePath, start, length, rate));
-                            byte[] sendArr = message.getBytes();
-                            DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, dsock.getInetAddress(), backEndPort);
-                            dsock.send(dpack);
-                        }
-
-                        //wait for response
 
                     }
                 }
-
             }
             sOut.close();
             sIn.close();
@@ -181,6 +151,36 @@ class Sender extends Thread{
         }
     }
 
+    public static String getMD5Str(byte[] digest) {
+        try {
+            MessageDigest md5 = MessageDigest.getInstance("md5");
+            digest  = md5.digest(digest);
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        //16是表示转换为16进制数
+        String md5Str = new BigInteger(1, digest).toString(16);
+        return md5Str;
+    }
+    public byte[] map2File(HashMap<Integer, byte[]> map, int fileSize){
+        byte[] file = new byte[fileSize];
+        int pointer = 0;
+        int mapSize = map.size();
+        for(int i = 0; i < mapSize; i++){
+            for(int j = 0; j < map.get(i).length; j++){
+                file[pointer] = map.get(i)[j];
+                pointer++;
+            }
+        }
+        System.out.println(pointer);
+        return file;
+    }
+    public int convertByteToInt(byte[] bytes, int start){
+        return ((bytes[start + 0] & 0xFF) << 24) |
+                ((bytes[start + 1] & 0xFF) << 16) |
+                ((bytes[start + 2] & 0xFF) << 8 ) |
+                ((bytes[start + 3] & 0xFF) << 0 );
+    }
     private File findFile(String path) {
         File file = new File("./content" + path);
         if (!file.exists()) file = new File("./content/video" + path);
@@ -201,7 +201,7 @@ class Sender extends Thread{
                 "Accept-Ranges: " + "bytes" + CRLF +
                 "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
                 "Last-Modified: " + dateFormat1.format(lastModified) + " GMT" + CRLF +CRLF;
-       try {
+        try {
 //            System.out.println(header);
             FileInputStream fis = new FileInputStream(f);
             in = new DataInputStream(fis);
@@ -213,9 +213,9 @@ class Sender extends Thread{
                 sOut.flush();
             }
             // System.out.println("successful");
-       } catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
-       }
+        }
     }
     private void response206(String head, String tail) throws IOException{
         long startByte = Long.parseLong(head);
@@ -255,7 +255,7 @@ class Sender extends Thread{
             while ((length = in.read(bytes, 0, bytes.length)) != -1) {
                 if (max <= length){
                     sOut.write(bytes, 0, (int)max);
-                    sOut.flush();   
+                    sOut.flush();
                     break;
                 }
                 else {
@@ -274,6 +274,99 @@ class Sender extends Thread{
         String header = "HTTP/1.1 404 Not Found"  + CRLF + CRLF;
         sOut.writeUTF(header);
         sOut.flush();
+    }
+    private void httpRetransfer200(String info) throws IOException {
+//        send info to backend listener
+        peerFilePath = info.substring(11);
+        ArrayList<String> peerInfo = FrontEndHttpServer.threadShare.get(peerFilePath);
+
+        //向几个peers要文件就发送几次报文
+        DatagramSocket dsock = new DatagramSocket();
+        dsock.setSoTimeout(10000);
+        for(int i = 0; i < peerInfo.size(); i++){
+            //length 表示总共开了多少个peers
+            //start：向后端传递你是第几个peer
+            int start = -(i+1);
+            int length = -peerInfo.size();
+            int rate = 0;
+            String[] tmp = peerInfo.get(i).split("&");
+            InetAddress peerIp = InetAddress.getByName(tmp[1].substring(5));
+            int peerPort = Integer.valueOf(tmp[2].substring(5));
+            if (tmp.length > 3){
+                rate = Integer.valueOf(tmp[3].substring(5));
+            }
+            String message = JSONObject.toJSONString(new ListenerHeader(0, dsock.getInetAddress(), dsock.getPort(), peerIp, peerPort, peerFilePath, start, length, rate));
+            byte[] sendArr = message.getBytes();
+            DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, dsock.getInetAddress(), backEndPort);
+            dsock.send(dpack);
+        }
+
+        //wait for response
+        HashMap<Long, byte[]> fileMap = new HashMap<>();
+
+        byte[] recArr = new byte[1024];
+        int fileLen = 0;
+        String fileName = null;
+        long lastModified = 0;
+        String httpHeader = null;
+        long mapPointer = 0;
+        int chunkSize = 0;
+
+        //一直向所有后端接收
+        while(true) {
+            DatagramPacket dpack = new DatagramPacket(recArr, recArr.length);
+            try{
+                dsock.receive(dpack);
+            }
+            catch (SocketTimeoutException e){
+                break;
+            }
+            //从dpack中获取header和content信息，分别存在header和content[]中
+            byte[] bendPackage = dpack.getData();
+            int headerLen = convertByteToInt(bendPackage, 0);
+            int contentLen = convertByteToInt(bendPackage, 4);
+            ResponseHeader header = JSONObject.parseObject(new String(bendPackage, 8, headerLen), ResponseHeader.class);
+            System.out.println(header.toString());
+            //judge header
+            if (header.statusCode == 0) {
+                fileLen = (int) header.getLength();
+                fileName = header.getFileName();
+                lastModified = header.getLastModified();
+                //form header
+                String fType = URLConnection.guessContentTypeFromName(fileName);
+                Date date = new Date();
+                SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
+                httpHeader = "HTTP/1.1 200 OK" + CRLF +
+                    "Content-Length: " + fileLen + CRLF +
+                    "Content-Type: " + fType + CRLF +
+                    "Cache-Control: " + "public" + CRLF +
+                    "Connection: " + "keep-alive" + CRLF +
+                    "Accept-Ranges: " + "bytes" + CRLF +
+                    "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
+                    "Last-Modified: " + dateFormat1.format(lastModified) + " GMT" + CRLF +CRLF; //todo:可能有问题
+            }
+            //接受文件存在map中
+            else if (header.statusCode == 1) {
+                byte[] content = new byte[contentLen];
+                System.arraycopy(bendPackage, 8 + headerLen, content, 0, contentLen);
+                fileMap.put(header.start, content);
+                System.out.println("fileMap size: " + fileMap.size() + " ");
+            }
+            else { //Not found// todo: deal with not found
+                break;
+            }
+            //发送200给browser
+            if(mapPointer == header.getStart()){
+                try {
+                    byte[] Byte = fileMap.get(mapPointer);
+                    sOut.write(Byte, 0, Byte.length);
+                    sOut.flush();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                mapPointer += fileMap.get(header.getStart()).length;
+            }
+        }
     }
 }
 
