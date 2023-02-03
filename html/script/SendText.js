@@ -1,15 +1,9 @@
 var oInp = document.getElementById('inp');
 var oBtn = document.getElementById('btn');
-// var oStaBtn = document.getElementById('status-btn');
-// var data = oInp.value;
 
 oBtn.onclick = function () {
     SendToServer();
 }
-
-// oStaBtn.onclick = function () {
-//     LinkToStatusWeb();
-// }
 
 document.onkeydown = function () {
     if (event.keyCode == 13) {
@@ -17,9 +11,6 @@ document.onkeydown = function () {
     }
 }
 
-// function LinkToStatusWeb() {
-//     location.href ='test.html';
-// }
 
 function SendToServer() {
     // var url = 'https://www.google.com/search?q=' + oInp.value;
