@@ -155,15 +155,18 @@ class BackEndRequest extends Thread{
                 requestRange(header.fileName, start, length, chunkSize);
             }
             else if (header.statusCode == 1) {
-                byte[] content = new byte[contentLen];
+//                byte[] content = new byte[contentLen];
                 //System.out.println(contentLen);
-                System.arraycopy(info, 8 + headerLen, content, 0, contentLen);
+//                System.arraycopy(info, 8 + headerLen, content, 0, contentLen);
 
-                fileMap.put(header.sequence, content);
+                fileMap.put(header.sequence, info);
                 while (fileMap.containsKey(recePointer)) {
                     //TODO 可能有问题 mark一下
-                    long returnStart = start + (recePointer - start / chunkSize) * chunkSize;
+//                    long returnStart = start + (recePointer - start / chunkSize) * chunkSize;
 //                    frontPack = new DatagramPacket();
+                    byte[] tmp = fileMap.get(recePointer);
+                    frontPack = new DatagramPacket(tmp, tmp.length, frontEndAddress, frontEndPort);
+                    frontSock.send(frontPack);
 
                     recePointer++;
                     start += chunkSize;
