@@ -1,7 +1,7 @@
-const receivedData = document.getElementById("receivedData");
-receivedData.innerHTML = sessionStorage.getItem("data");
+const receivedTextData = document.getElementById("receivedTextData");
+receivedTextData.innerHTML = sessionStorage.getItem("textdata");
 
-fetch('http://172.16.7.10:10007/' + receivedData)
+fetch('http://172.16.7.10:10007/' + receivedTextData)
     .then(response => response.arrayBuffer())
     .then(arrayBuffer => {
         const base64 = btoa(
