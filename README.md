@@ -4,8 +4,8 @@
 
 Here is the basic project requirement files:
 
-- Click [here](/requirements) or cd this path: ./requirements to open EE 565 Project 1.pdf
-- Click [here](/requirements) or cd this path: ./requirements to open EE 565 Project 2.pdf
+- Click [here](/requirements/EE565-Project1.pdf) or cd this path: ./requirements to open EE565-Project1.pdf
+- Click [here](/requirements/EE565-Project2.pdf) or cd this path: ./requirements to open EE565-Project2.pdf
 
 Project introduction:
 
