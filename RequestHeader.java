@@ -3,7 +3,6 @@ public class RequestHeader{
     String fileName;
     long start;
     long length;
-
     int chunkSize;
 
     public RequestHeader(int statusCode, String fileName, long start, long length, int chunkSize){
@@ -36,6 +35,6 @@ public class RequestHeader{
 
     @Override
     public String toString() {
-        return "status code: " + statusCode + ", file name: " + fileName + ", start: " + start + ", length: " + length + ", RTT: ";
+        return "status code: " + statusCode + ", file name: " + fileName + ", start: " + start + ", length: " + length + ", chunkSize: " +chunkSize;
     }
 }
