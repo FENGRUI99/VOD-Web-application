@@ -127,8 +127,7 @@ class Sender extends Thread{
                     }
                     //p t0 p 206
                     else{
-                        //send info to backend listener
-
+                        httpRetransfer206(info[1]);
                     }
                 }
             }
@@ -284,6 +283,102 @@ class Sender extends Thread{
             if (tmp.length > 3){
                 rate = Integer.valueOf(tmp[3].substring(5));
             }
+            String message = JSONObject.toJSONString(new ListenerHeader(0, InetAddress.getByName("127.0.0.1"), dsock.getPort(), peerIp, peerPort, peerFilePath, start, length, rate));
+            byte[] sendArr = message.getBytes();
+            DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
+            dsock.send(dpack);
+        }
+
+        //wait for response
+        HashMap<Long, byte[]> fileMap = new HashMap<>();
+        PriorityQueue<Long> pq = new PriorityQueue<Long>();
+
+        byte[] recArr = new byte[1024];
+        int fileLen = 0;
+        String fileName = null;
+        long lastModified = 0;
+        String httpHeader = null;
+        long mapPointer = 0;
+        int chunkSize = 0;
+
+        //一直向所有后端接收
+        while(true) {
+            DatagramPacket dpack = new DatagramPacket(recArr, recArr.length);
+            try{
+                dsock.receive(dpack);
+            }
+            catch (SocketTimeoutException e){
+                break;
+            }
+            //从dpack中获取header和content信息，分别存在header和content[]中
+            byte[] bendPackage = dpack.getData();
+            int headerLen = convertByteToInt(bendPackage, 0);
+            int contentLen = convertByteToInt(bendPackage, 4);
+            ResponseHeader header = JSONObject.parseObject(new String(bendPackage, 8, headerLen), ResponseHeader.class);
+            System.out.println(header.toString());
+            //judge header
+            if (header.statusCode == 0) {
+                fileLen = (int) header.getLength();
+                fileName = header.getFileName();
+                lastModified = header.getLastModified();
+                //form header
+                String fType = URLConnection.guessContentTypeFromName(fileName);
+                Date date = new Date();
+                SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
+                httpHeader = "HTTP/1.1 200 OK" + CRLF +
+                    "Content-Length: " + fileLen + CRLF +
+                    "Content-Type: " + fType + CRLF +
+                    "Cache-Control: " + "public" + CRLF +
+                    "Connection: " + "keep-alive" + CRLF +
+                    "Accept-Ranges: " + "bytes" + CRLF +
+                    "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
+                    "Last-Modified: " + dateFormat1.format(lastModified) + " GMT" + CRLF +CRLF; //todo:可能有问题
+            }
+            //接受文件存在map中
+            else if (header.statusCode == 1) {
+                byte[] content = new byte[contentLen];
+                System.arraycopy(bendPackage, 8 + headerLen, content, 0, contentLen);
+                fileMap.put(header.start, content);
+                pq.add(header.start);
+                System.out.println("fileMap size: " + fileMap.size() + " ");
+
+                //发送200给browser
+                while(mapPointer == pq.peek()){
+                    try {
+                        byte[] bytes = fileMap.get(mapPointer);    //bytes为空
+                        sOut.write(bytes, 0, bytes.length);
+                        sOut.flush();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    mapPointer += fileMap.get(pq.poll()).length;  //get 为空
+                }
+            }
+            else { //Not found// todo: deal with not found
+                break;
+            }
+        }
+    }
+    private void httpRetransfer206(String info) throws IOException {
+//        send info to backend listener
+        peerFilePath = info.substring(11);
+        ArrayList<String> peerInfo = FrontEndHttpServer.threadShare.get(peerFilePath);
+
+        //向几个peers要文件就发送几次报文
+        DatagramSocket dsock = new DatagramSocket();
+        dsock.setSoTimeout(10000);
+        for(int i = 0; i < peerInfo.size(); i++){
+            //length 表示总共开了多少个peers
+            //start：向后端传递你是第几个peer
+            int start = -(i+1);
+            int length = -peerInfo.size();
+            int rate = 0;
+            String[] tmp = peerInfo.get(i).split("&");
+            InetAddress peerIp = InetAddress.getByName(tmp[1].substring(5));
+            int peerPort = Integer.valueOf(tmp[2].substring(5));
+            if (tmp.length > 3){
+                rate = Integer.valueOf(tmp[3].substring(5));
+            }
             String message = JSONObject.toJSONString(new ListenerHeader(0, InetAddress.getByName("127.0.0.1"), 1, peerIp, peerPort, peerFilePath, start, length, rate));
             byte[] sendArr = message.getBytes();
             DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
@@ -326,13 +421,13 @@ class Sender extends Thread{
                 Date date = new Date();
                 SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
                 httpHeader = "HTTP/1.1 200 OK" + CRLF +
-                    "Content-Length: " + fileLen + CRLF +
-                    "Content-Type: " + fType + CRLF +
-                    "Cache-Control: " + "public" + CRLF +
-                    "Connection: " + "keep-alive" + CRLF +
-                    "Accept-Ranges: " + "bytes" + CRLF +
-                    "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
-                    "Last-Modified: " + dateFormat1.format(lastModified) + " GMT" + CRLF +CRLF; //todo:可能有问题
+                        "Content-Length: " + fileLen + CRLF +
+                        "Content-Type: " + fType + CRLF +
+                        "Cache-Control: " + "public" + CRLF +
+                        "Connection: " + "keep-alive" + CRLF +
+                        "Accept-Ranges: " + "bytes" + CRLF +
+                        "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
+                        "Last-Modified: " + dateFormat1.format(lastModified) + " GMT" + CRLF +CRLF; //todo:可能有问题
             }
             //接受文件存在map中
             else if (header.statusCode == 1) {
