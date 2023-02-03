@@ -127,7 +127,11 @@ class Sender extends Thread{
                     }
                     //p t0 p 206
                     else{
-                        httpRetransfer206(info[1]);
+                        String[] headTail = request.get("Range").split("bytes=")[1].split("-");
+                        String tail = "";
+                        if (headTail.length > 1) tail = headTail[1];
+                        response206(headTail[0], tail);
+                        httpRetransfer206(info[1], headTail[0], tail);
                     }
                 }
             }
@@ -362,10 +366,11 @@ class Sender extends Thread{
             }
         }
     }
-    private void httpRetransfer206(String info) throws IOException {
+    private void httpRetransfer206(String info, String head, String tail) throws IOException {
 //        send info to backend listener
         peerFilePath = info.substring(11);
         ArrayList<String> peerInfo = FrontEndHttpServer.threadShare.get(peerFilePath);
+        int splitSize = (int)(Long.parseLong(tail) - Long.parseLong(head)) / peerInfo.size();
 
         //向几个peers要文件就发送几次报文
         DatagramSocket dsock = new DatagramSocket();
@@ -382,7 +387,7 @@ class Sender extends Thread{
             if (tmp.length > 3){
                 rate = Integer.valueOf(tmp[3].substring(5));
             }
-            String message = JSONObject.toJSONString(new ListenerHeader(0, InetAddress.getByName("127.0.0.1"), 1, peerIp, peerPort, peerFilePath, start, length, rate));
+            String message = JSONObject.toJSONString(new ListenerHeader(0, InetAddress.getByName("127.0.0.1"), dsock.getPort(), peerIp, peerPort, peerFilePath, start, length, rate));
             byte[] sendArr = message.getBytes();
             DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
             dsock.send(dpack);
@@ -390,6 +395,7 @@ class Sender extends Thread{
 
         //wait for response
         HashMap<Long, byte[]> fileMap = new HashMap<>();
+        PriorityQueue<Long> pq = new PriorityQueue<Long>();
 
         byte[] recArr = new byte[1024];
         int fileLen = 0;
@@ -437,23 +443,26 @@ class Sender extends Thread{
                 byte[] content = new byte[contentLen];
                 System.arraycopy(bendPackage, 8 + headerLen, content, 0, contentLen);
                 fileMap.put(header.start, content);
+                pq.add(header.start);
                 System.out.println("fileMap size: " + fileMap.size() + " ");
+
+                //发送200给browser
+                while(pq.size() != 0 && mapPointer == pq.peek()){
+                    try {
+                        byte[] bytes = fileMap.get(mapPointer);    //bytes为空
+                        sOut.write(bytes, 0, bytes.length);
+                        sOut.flush();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    mapPointer += fileMap.get(pq.poll()).length;  //get 为空
+                }
             }
             else { //Not found// todo: deal with not found
                 break;
             }
-            //发送200给browser
-            if(mapPointer == header.getStart()){
-                try {
-                    byte[] bytes = fileMap.get(mapPointer);
-                    sOut.write(bytes, 0, bytes.length);
-                    sOut.flush();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                mapPointer += fileMap.get(header.getStart()).length;
-            }
         }
     }
+
 }
 
