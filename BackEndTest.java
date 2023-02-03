@@ -13,12 +13,12 @@ public class BackEndTest {
         int src = 0; // 0 for http server, 1 for peer back-end server
         InetAddress frontEndIp = InetAddress.getByName("127.0.0.1");
         int frontEndPort = 8080;
-        InetAddress peerIp = InetAddress.getByName("172.16.7.10");
+        InetAddress peerIp = InetAddress.getByName("172.16.7.12");
         int peerPort = 8081;
-        String fileName = "test.ogg";
+        String fileName = "content/test.txt";
         long start = 0;
-        long length = 4360399;
-        int rate = 1600*1000;
+        long length = 5849;
+        int rate = 1600;
         String message = JSONObject.toJSONString(new ListenerHeader(src, frontEndIp, frontEndPort, peerIp, peerPort, fileName, start, length, rate));
         byte[] sendArr = message.getBytes();
         DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, frontEndIp, 8081);

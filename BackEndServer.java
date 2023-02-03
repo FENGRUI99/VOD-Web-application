@@ -103,14 +103,14 @@ class BackEndRequest extends Thread{
         dsock.receive(dpack);
         InetAddress peerResAddress = dpack.getAddress();
         int peerResPort = dpack.getPort();
-        System.out.println(new String(dpack.getData()));
+//        System.out.println(new String(dpack.getData()));
         getFileInfo(peerResAddress, peerResPort);
         //计时
         long startTime = Calendar.getInstance().getTimeInMillis();
 
         //initialization
         int fileSize = 0;
-        int recePointer = (int) (start / chunkSize);
+        int recePointer = 0;
         int receSize = 0;
         int RTT = 0;
 //        String fileName = null;
@@ -137,7 +137,7 @@ class BackEndRequest extends Thread{
             int headerLen = convertByteToInt(info, 0);
             int contentLen = convertByteToInt(info, 4);
             ResponseHeader header = JSONObject.parseObject(new String(info, 8, headerLen), ResponseHeader.class);
-            //System.out.println(header.toString());
+            System.out.println(header.toString());
 
             //judge header
             if (header.statusCode == 0) {
@@ -151,6 +151,7 @@ class BackEndRequest extends Thread{
                 chunkSize = RTT * rate/8;
                 dsock.setSoTimeout(10*RTT);
                 fileSize = (int) header.length;
+                recePointer = (int) (start / chunkSize);
                 //length = fileSize - start;
 //                fileName = header.fileName;
 
@@ -166,8 +167,7 @@ class BackEndRequest extends Thread{
                 }else{
                     length = fileSize - start;
                 }
-
-                requestRange(header.fileName, start, length, chunkSize);
+                requestRange(fileName, start, length, chunkSize);
             }
             else if (header.statusCode == 1) {
 //                byte[] content = new byte[contentLen];
@@ -200,7 +200,7 @@ class BackEndRequest extends Thread{
                 break;
             }
         }
-        System.out.println("end this transmission.");
+//        System.out.println("end this transmission.");
 
       /*  //测试用：将接收文件的map转存为byte数组求md5，将文件保存到本地。
         System.out.println("length: "+length+" fileSize: "+fileSize);

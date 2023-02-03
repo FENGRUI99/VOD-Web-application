@@ -46,6 +46,10 @@ public class FrontEndHttpServer extends Thread{
         }
     }
 
+    public static void main(String[] args) {
+        FrontEndHttpServer server = new FrontEndHttpServer(8080, 8081);
+        server.startServer();
+    }
 
 }
 
