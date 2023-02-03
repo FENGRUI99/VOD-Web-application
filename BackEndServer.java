@@ -140,6 +140,10 @@ class BackEndRequest extends Thread{
 
             //judge header
             if (header.statusCode == 0) {
+                //send file info to frontend
+                frontPack = new DatagramPacket(info, info.length, frontEndAddress, frontEndPort);
+                frontSock.send(frontPack);
+
                 //读取rtt, RTO = 2*RTT
                 long endTime = Calendar.getInstance().getTimeInMillis();
                 RTT = (int) (endTime-startTime);
@@ -157,7 +161,10 @@ class BackEndRequest extends Thread{
 
                 fileMap.put(header.sequence, content);
                 while (fileMap.containsKey(recePointer)) {
-                    frontPack = new DatagramPacket();
+                    //TODO 可能有问题 mark一下
+                    long returnStart = start + (recePointer - start / chunkSize) * chunkSize;
+//                    frontPack = new DatagramPacket();
+
                     recePointer++;
                     start += chunkSize;
                     length -= chunkSize;
