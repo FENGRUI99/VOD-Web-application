@@ -200,32 +200,5 @@
 
 </body>
 
-<script>
-    var oInp = document.getElementById('inp');
-    var oBtn = document.getElementById('btn');
-    var oStaBtn = document.getElementById('status-btn');
-
-    oBtn.onclick = function () {
-        Search();
-    }
-
-    oStaBtn.onclick = function () {
-        LinkToStatusWeb();
-    }
-
-    document.onkeydown = function () {
-        if (event.keyCode == 13) {
-            Search();
-        }
-    }
-
-    function LinkToStatusWeb() {
-        location.href ='test.html';
-    }
-
-    function Search() {
-        var url = 'https://www.google.com/search?q=' + oInp.value;
-        window.open(url);
-    }
-
-</script>
+<script src="../script/SendText.js"></script>
+<script src="../script/ShowStatus.js"></script>
