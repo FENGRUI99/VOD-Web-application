@@ -150,8 +150,22 @@ class BackEndRequest extends Thread{
                 chunkSize = RTT * rate/8000;
                 dsock.setSoTimeout(10*RTT);
                 fileSize = (int) header.length;
-                length = fileSize - start;
+                //length = fileSize - start;
                 fileName = header.fileName;
+
+                //peerToPeer
+                if(start<0){
+                    start = Math.abs(start);
+                    length = Math.abs(length);
+                    int tmp = (int) (fileSize/length);
+                    if(start == length){
+                        length = tmp + fileSize % tmp;
+                        start = tmp * (start-1);
+                    }
+                }else{
+                    length = fileSize - start;
+                }
+
                 requestRange(header.fileName, start, length, chunkSize);
             }
             else if (header.statusCode == 1) {
