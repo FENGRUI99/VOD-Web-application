@@ -277,8 +277,8 @@ class Sender extends Thread{
         for(int i = 0; i < peerInfo.size(); i++){
             //length 表示总共开了多少个peers
             //start：向后端传递你是第几个peer
-            int start = -(i+1);
-            int length = -peerInfo.size();
+            long start = -(i+1);
+            long length = -peerInfo.size();
             int rate = 0;
             String[] tmp = peerInfo.get(i).split("&");
             InetAddress peerIp = InetAddress.getByName(tmp[1].substring(5));
@@ -302,7 +302,6 @@ class Sender extends Thread{
         long lastModified = 0;
         String httpHeader = null;
         long mapPointer = 0;
-        int chunkSize = 0;
 
         //一直向所有后端接收
         while(true) {
@@ -370,17 +369,20 @@ class Sender extends Thread{
 //        send info to backend listener
         peerFilePath = info.substring(11);
         ArrayList<String> peerInfo = FrontEndHttpServer.threadShare.get(peerFilePath);
-        int splitSize = (int)(Long.parseLong(tail) - Long.parseLong(head)) / peerInfo.size();
+        long splitSize = (Long.parseLong(tail) - Long.parseLong(head)) / peerInfo.size();
 
         //向几个peers要文件就发送几次报文
         DatagramSocket dsock = new DatagramSocket();
         dsock.setSoTimeout(10000);
+
         for(int i = 0; i < peerInfo.size(); i++){
             //length 表示总共开了多少个peers
             //start：向后端传递你是第几个peer
-            int start = -(i+1);
-            int length = -peerInfo.size();
+            long start = i * splitSize;
+            long length = start + splitSize;
+            if(i == peerInfo.size()-1) length = Long.parseLong(tail);
             int rate = 0;
+
             String[] tmp = peerInfo.get(i).split("&");
             InetAddress peerIp = InetAddress.getByName(tmp[1].substring(5));
             int peerPort = Integer.valueOf(tmp[2].substring(5));
@@ -402,8 +404,7 @@ class Sender extends Thread{
         String fileName = null;
         long lastModified = 0;
         String httpHeader = null;
-        long mapPointer = 0;
-        int chunkSize = 0;
+        long mapPointer = Long.parseLong(head);
 
         //一直向所有后端接收
         while(true) {
@@ -429,7 +430,7 @@ class Sender extends Thread{
                 String fType = URLConnection.guessContentTypeFromName(fileName);
                 Date date = new Date();
                 SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
-                httpHeader = "HTTP/1.1 200 OK" + CRLF +
+                httpHeader = "HTTP/1.1 206 OK" + CRLF +
                         "Content-Length: " + fileLen + CRLF +
                         "Content-Type: " + fType + CRLF +
                         "Cache-Control: " + "public" + CRLF +
@@ -437,6 +438,7 @@ class Sender extends Thread{
                         "Accept-Ranges: " + "bytes" + CRLF +
                         "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
                         "Last-Modified: " + dateFormat1.format(lastModified) + " GMT" + CRLF +CRLF; //todo:可能有问题
+                sOut.writeUTF(httpHeader);
             }
             //接受文件存在map中
             else if (header.statusCode == 1) {
@@ -446,7 +448,7 @@ class Sender extends Thread{
                 pq.add(header.start);
                 System.out.println("fileMap size: " + fileMap.size() + " ");
 
-                //发送200给browser
+                //发送206给browser
                 while(pq.size() != 0 && mapPointer == pq.peek()){
                     try {
                         byte[] bytes = fileMap.get(mapPointer);    //bytes为空
