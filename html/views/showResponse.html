@@ -5,6 +5,7 @@
     <title>Show Response</title>
     <style>
         body{
+            background: url("../resource/ShowResponseBackground.png");
             background-repeat: no-repeat;
             background-size: cover;
             background-attachment: fixed;
@@ -17,8 +18,6 @@
             font-weight: 300;
             line-height: 58px;
             margin: 0 0 58px;
-            margin-top: 0;
-            /* text-shadow: 1px 1px 2px rgb(117, 10, 231), 0 0 1em rgb(222, 6, 222), 0 0 0.2em rgb(222, 6, 222); */
             display:inline-block;
         }
 
@@ -28,16 +27,15 @@
             font-size: 54px;
             font-weight: 300;
             line-height: 30px;
-            margin: 0 0 20px;
-            margin-top: 1%;
+            margin: 1% 0 20px;
             text-shadow: 1px 1px 2px rgb(117, 10, 231), 0 0 1em rgb(222, 6, 222), 0 0 0.2em rgb(222, 6, 222);
             display:inline-block;
         }
 
     </style>
 </head>
-<body background="../resource/ShowResponseBackground.png">
-    <center>
+<body>
+    <div style="text-align: center;">
         <div>
             <showPageTitle>You are searching for:</showPageTitle>
         </div>
@@ -45,8 +43,7 @@
             <div id="receivedTextData" ></div>
         </inputText>
         <div id="receivedData" ></div>
-        <!--  <img id="receivedImage" />-->
         <script src="../script/ShowResponse.js"></script>
-    </center>
+    </div>
 </body>
 </html>
