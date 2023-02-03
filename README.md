@@ -1,23 +1,23 @@
 # EE 565 Network Project
 
-## Introduction
+
 
 Here is the basic project requirement files:
 
-- Click [here](/requirements/EE 565 Project 1.pdf) or open ./requirements/EE 565 Project 1.pdf
-- Click [here](/requirements/EE 565 Project 2.pdf) or open ./requirements/EE 565 Project 2.pdf
-
-
+- Click [here](/requirements) or cd this path: ./requirements to open EE 565 Project 1.pdf
+- Click [here](/requirements) or cd this path: ./requirements to open EE 565 Project 2.pdf
 
 Project introduction:
 
+```
+Ray's introduction here
+```
 
 
 ## Requirements
 
 - Idea or similar environments for Java
 - Web browser(project based on firefox)
-- 
 
 ## Installation
 
