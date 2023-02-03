@@ -11,14 +11,6 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-//Todo: if I use brower enter: localhost:8000/peer/add?path=content/video.ogg&host=172.16.7.12&port=8002&rate=1600
-//             httpServer get: GET /peer/add?path=content/video.ogg&host=172.16.7.12&port=8002&rate=1600 HTTP/1.1
-//             从=分割
-//
-//Todo: if I use brower enter: http://localhost:8000/peer/view/content/video.ogg
-//             httpServer get: GET /peer/view/content/video.ogg HTTP/1.1
-
-
 public class FrontEndHttpServer extends Thread{
     public static HashMap<String, ArrayList<String>> threadShare = new HashMap<>();
     int frontEndPort;
@@ -27,14 +19,11 @@ public class FrontEndHttpServer extends Thread{
         this.frontEndPort = frontEndPort;
         this.backEndPort = backEndPort;
     }
-    public static void main(String[] args) throws Exception{
-        FrontEndHttpServer server = new FrontEndHttpServer(8000, 8081);
-        server.startServer();
+
+    @Override
+    public void run() {
+        startServer();
     }
-    //@Override
-    //public void run() {
-    //    startServer();
-    //}
 
     public void startServer(){
         ServerSocket frontEndSocket = null;
@@ -295,9 +284,9 @@ class Sender extends Thread{
             if (tmp.length > 3){
                 rate = Integer.valueOf(tmp[3].substring(5));
             }
-            String message = JSONObject.toJSONString(new ListenerHeader(0, dsock.getInetAddress(), dsock.getPort(), peerIp, peerPort, peerFilePath, start, length, rate));
+            String message = JSONObject.toJSONString(new ListenerHeader(0, InetAddress.getByName("127.0.0.1"), dsock.getPort(), peerIp, peerPort, peerFilePath, start, length, rate));
             byte[] sendArr = message.getBytes();
-            DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, dsock.getInetAddress(), backEndPort);
+            DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
             dsock.send(dpack);
         }
 
