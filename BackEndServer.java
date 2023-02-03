@@ -203,7 +203,7 @@ class BackEndRequest extends Thread{
         }
         System.out.println("end this transmission.");
 
-        //测试用：将接收文件的map转存为byte数组求md5，将文件保存到本地。
+      /*  //测试用：将接收文件的map转存为byte数组求md5，将文件保存到本地。
         System.out.println("length: "+length+" fileSize: "+fileSize);
         byte[] fi = map2File(fileMap, fileSize);
 
@@ -212,6 +212,8 @@ class BackEndRequest extends Thread{
         sOut.write(fi, 0, fi.length);
         sOut.flush();
         sOut.close();
+
+       */
 
     }
     public byte[] map2File(HashMap<Integer, byte[]> map, int fileSize){
@@ -328,7 +330,7 @@ class BackEndResponse extends Thread{
         while (true){
             // receive request
             RequestHeader header = waitRequest();
-            File f = new File("./content/" + header.fileName);
+            File f = new File("./" + header.fileName);
             // get info
             if (header.statusCode == 0 && f.exists()){
                 sendInfo(f);
