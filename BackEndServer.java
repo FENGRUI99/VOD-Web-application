@@ -44,7 +44,7 @@ public class BackEndServer extends Thread{
             System.out.println(header.toString());
             // message from http server
             if (header.getSrc() == 0){
-                pool.execute(new BackEndRequest(header.frontEndIp, header.frontEndPort, header.peerIp, header.peerPort, header.fileName, header.start, header.length, header.rate));
+                pool.execute(new BackEndRequest(dpack.getAddress(), dpack.getPort(), header.peerIp, header.peerPort, header.fileName, header.start, header.length, header.rate));
             }
             // message from peer back-end server
             else {
@@ -176,8 +176,6 @@ class BackEndRequest extends Thread{
                 fileMap.put(header.sequence, info);
                 while (fileMap.containsKey(recePointer)) {
                     //TODO 可能有问题 mark一下
-//                    long returnStart = start + (recePointer - start / chunkSize) * chunkSize;
-//                    frontPack = new DatagramPacket();
                     byte[] tmp = fileMap.get(recePointer);
                     frontPack = new DatagramPacket(tmp, tmp.length, frontEndAddress, frontEndPort);
                     frontSock.send(frontPack);

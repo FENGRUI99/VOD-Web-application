@@ -284,7 +284,7 @@ class Sender extends Thread{
             if (tmp.length > 3){
                 rate = Integer.valueOf(tmp[3].substring(5));
             }
-            String message = JSONObject.toJSONString(new ListenerHeader(0, InetAddress.getByName("127.0.0.1"), dsock.getPort(), peerIp, peerPort, peerFilePath, start, length, rate));
+            String message = JSONObject.toJSONString(new ListenerHeader(0, InetAddress.getByName("127.0.0.1"), 1, peerIp, peerPort, peerFilePath, start, length, rate));
             byte[] sendArr = message.getBytes();
             DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
             dsock.send(dpack);
