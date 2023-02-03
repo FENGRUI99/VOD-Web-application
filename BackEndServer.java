@@ -60,6 +60,8 @@ class BackEndRequest extends Thread{
     int windowSize = 2;
     DatagramSocket dsock;
     DatagramPacket dpack;
+    DatagramSocket frontSock;
+    DatagramPacket frontPack;
     long start;
     long length;
     long fileLen;
@@ -94,7 +96,6 @@ class BackEndRequest extends Thread{
         byte[] sendArr = message.getBytes();
         dpack = new DatagramPacket(sendArr, sendArr.length, peerListenAddress, peerListenPort);
         dsock.send(dpack);
-
         // wait for hello from Peer response thread
         byte[] recArr = new byte[1024];
         dpack = new DatagramPacket(recArr, recArr.length);
@@ -108,11 +109,12 @@ class BackEndRequest extends Thread{
 
         //initialization
         int fileSize = 0;
-        int recePointer = 0;
+        int recePointer = (int) (start / chunkSize);
         int receSize = 0;
         int RTT = 0;
         String fileName = null;
         HashMap<Integer, byte[]> fileMap = new HashMap<>();
+        frontSock = new DatagramSocket();
 
         L1:
         while (true) {
@@ -143,7 +145,6 @@ class BackEndRequest extends Thread{
                 RTT = (int) (endTime-startTime);
                 chunkSize = RTT * rate/8000;
                 dsock.setSoTimeout(10*RTT);
-
                 fileSize = (int) header.length;
                 length = fileSize - start;
                 fileName = header.fileName;
@@ -156,6 +157,7 @@ class BackEndRequest extends Thread{
 
                 fileMap.put(header.sequence, content);
                 while (fileMap.containsKey(recePointer)) {
+                    frontPack = new DatagramPacket();
                     recePointer++;
                     start += chunkSize;
                     length -= chunkSize;
