@@ -121,10 +121,7 @@ class Sender extends Thread{
                             FrontEndHttpServer.threadShare.put(peerFilePath, new ArrayList<>());
                         }
                         FrontEndHttpServer.threadShare.get(peerFilePath).add(info[1].substring(15));
-//                        System.out.println("threadShareMap size: " + FrontEndHttpServer.threadShare.size() + " ");
-//                        for(int i =0; i < FrontEndHttpServer.threadShare.get("content/video.ogg").size(); i++){
-//                            System.out.println(FrontEndHttpServer.threadShare.get("content/video.ogg").get(i));
-//                        }
+
                     }
                     else if (info[1].startsWith("/peer/view")){
                         if (!request.containsKey("Range")){
@@ -139,17 +136,12 @@ class Sender extends Thread{
                         }
 
                     }
-                    //p t0 p 200
-//                    else if(!request.containsKey("Range")){
-//                        httpRetransfer200(info[1]);
-//                    }
-//                    //p t0 p 206
-//                    else{
-//                        String[] headTail = request.get("Range").split("bytes=")[1].split("-");
-//                        String tail = "";
-//                        if (headTail.length > 1) tail = headTail[1];
-//                        httpRetransfer206(info[1], headTail[0], tail);
-//                    }
+                    else if (info[1].startsWith("/peer/status")){
+                        //TODO ben's responsibility
+                    }
+                    else if (info[1].startsWith("/peer/config")){
+                        //TODO CFR's responsibility
+                    }
                 }
             }
             System.out.println("########close###########");
