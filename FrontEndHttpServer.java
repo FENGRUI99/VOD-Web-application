@@ -22,7 +22,6 @@ public class FrontEndHttpServer extends Thread{
         this.backEndPort = backEndPort;
     }
 
-
     @Override
     public void run() {
         startServer();
@@ -67,7 +66,6 @@ class Sender extends Thread{
     //private int rate;
     //InetAddress peerIp;
     private String peerFilePath;
-    long fileLen;
     //int peerPort;
     public Sender(Socket clientSocket, int backEndPort) {
         this.clientSocket = clientSocket;
@@ -83,13 +81,19 @@ class Sender extends Thread{
             String[] info;
 
             while ((inputLine = sIn.readLine()) != null){
-                System.out.println(inputLine);
+                System.out.println("Front: Get input from browser: " + inputLine);
+                if(inputLine == "GET /favicon.ico HTTP/1.1"){
+                    System.out.println("Front: #####Front Sender thread end#####");
+                    break;
+                }
                 info = inputLine.split(" ");
+
                 while (!(inputLine = sIn.readLine()).equals("")) {
                     String[] tmp = inputLine.split(": ");
                     request.put(tmp[0], tmp[1]);
                 }
                 // System.out.println(info[1]);
+
 
                 // 请求本地文件
                 if (!info[1].startsWith("/peer")){
@@ -328,6 +332,7 @@ class Sender extends Thread{
         long lastModified = 0;
         String httpHeader = null;
         long mapPointer = 0;
+        boolean headerFlag = false;
 
         //一直向所有后端接收
         while(true) {
@@ -346,7 +351,7 @@ class Sender extends Thread{
 //            System.out.println(header.toString());
             //judge header
             if (header.statusCode == 0) {
-                fileLen = header.getLength();
+                long fileLen = header.getLength();
                 filePath = header.getFileName();
                 lastModified = header.getLastModified();
                 //System.out.println("namekey in map:" + filePath);
@@ -359,15 +364,18 @@ class Sender extends Thread{
                     fType = "video/ogg";
                 }
                 httpHeader = "HTTP/1.1 200 OK" + CRLF +
-                    "Content-Length: " + fileLen + CRLF +
-                    "Content-Type: " + fType + CRLF +
-                    "Cache-Control: " + "public" + CRLF +
-                    "Connection: " + "keep-alive" + CRLF +
-                    "Access-Control-Allow-Origin: *" + CRLF +
-                    "Accept-Ranges: " + "bytes" + CRLF +
-                    "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
-                    "Last-Modified: " + dateFormat1.format(lastModified) + " GMT" + CRLF +CRLF; //todo:可能有问题
-                sOut.writeUTF(httpHeader);
+                        "Content-Length: " + fileLen + CRLF +
+                        "Content-Type: " + fType + CRLF +
+                        "Cache-Control: " + "public" + CRLF +
+                        "Connection: " + "keep-alive" + CRLF +
+                        "Access-Control-Allow-Origin: *" + CRLF +
+                        "Accept-Ranges: " + "bytes" + CRLF +
+                        "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
+                        "Last-Modified: " + dateFormat1.format(lastModified) + " GMT" + CRLF +CRLF; //todo:可能有问题
+                if(headerFlag == false){
+                    sOut.writeUTF(httpHeader);
+                    headerFlag = true;
+                }
             }
             //接受文件存在map中
             else if (header.statusCode == 1) {
@@ -377,16 +385,19 @@ class Sender extends Thread{
                 pq.add(header.start);
 
                 //发送200给browser
-                while(pq.size() != 0 && mapPointer == pq.peek()){
-                    try {
-                        byte[] bytes = fileMap.get(mapPointer);    //bytes为空
-                        sOut.write(bytes, 0, bytes.length);
-                        sOut.flush();
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                if(headerFlag == true){
+                    while(pq.size() != 0 && mapPointer == pq.peek()){
+                        try {
+                            byte[] bytes = fileMap.get(mapPointer);    //bytes为空
+                            sOut.write(bytes, 0, bytes.length);
+                            sOut.flush();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        mapPointer += fileMap.get(pq.poll()).length;  //get 为空
                     }
-                    mapPointer += fileMap.get(pq.poll()).length;  //get 为空
                 }
+
             }
             else { //Not found// todo: deal with not found
                 break;
@@ -432,6 +443,7 @@ class Sender extends Thread{
         long lastModified = 0;
         String httpHeader = null;
         long mapPointer = Long.parseLong(head);
+        boolean headerFlag = false;
 
         //一直向所有后端接收
         while(true) {
@@ -450,7 +462,6 @@ class Sender extends Thread{
             System.out.println(header.toString());
             //judge header
             if (header.statusCode == 0) {
-                //fileLen = header.getLength();
                 fileName = header.getFileName();
                 lastModified = header.getLastModified();
                 //form header
@@ -461,15 +472,19 @@ class Sender extends Thread{
                     fType = "video/ogg";
                 }
                 httpHeader = "HTTP/1.1 206 OK" + CRLF +
-                        "Content-Length: " + fileLen + CRLF +
+                        "Content-Length: " + (Long.parseLong(tail)-Long.parseLong(head)) + CRLF +
                         "Content-Type: " + fType + CRLF +
                         "Cache-Control: " + "public" + CRLF +
                         "Connection: " + "keep-alive" + CRLF +
                         "Access-Control-Allow-Origin: *" + CRLF +
                         "Accept-Ranges: " + "bytes" + CRLF +
                         "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
-                        "Last-Modified: " + dateFormat1.format(lastModified) + " GMT" + CRLF +CRLF; //todo:可能有问题
-                sOut.writeUTF(httpHeader);
+                        "Last-Modified: " + dateFormat1.format(lastModified) + " GMT" + CRLF +CRLF;
+                if(headerFlag == false){
+                    sOut.writeUTF(httpHeader);
+                    headerFlag = true;
+                }
+
             }
             //接受文件存在map中
             else if (header.statusCode == 1) {
@@ -480,16 +495,19 @@ class Sender extends Thread{
                 System.out.println("fileMap size: " + fileMap.size() + " ");
 
                 //发送206给browser
-                while(pq.size() != 0 && mapPointer == pq.peek()){
-                    try {
-                        byte[] bytes = fileMap.get(mapPointer);    //bytes为空
-                        sOut.write(bytes, 0, bytes.length);
-                        sOut.flush();
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                if(headerFlag == true){
+                    while(pq.size() != 0 && mapPointer == pq.peek()){
+                        try {
+                            byte[] bytes = fileMap.get(mapPointer);    //bytes为空
+                            sOut.write(bytes, 0, bytes.length);
+                            sOut.flush();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        mapPointer += fileMap.get(pq.poll()).length;  //get 为空
                     }
-                    mapPointer += fileMap.get(pq.poll()).length;  //get 为空
                 }
+
             }
             else { //Not found// todo: deal with not found
                 break;
