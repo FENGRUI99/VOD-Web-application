@@ -126,21 +126,33 @@ class Sender extends Thread{
 //                            System.out.println(FrontEndHttpServer.threadShare.get("content/video.ogg").get(i));
 //                        }
                     }
+                    else if (info[1].startsWith("/peer/view")){
+                        if (!request.containsKey("Range")){
+                            httpRetransfer200(info[1]);
+                        }
+                        else {
+//                            String[] headTail = request.get("Range").split("bytes=")[1].split("-");
+//                            String tail = "";
+//                            if (headTail.length > 1) tail = headTail[1];
+//                            httpRetransfer206(info[1], headTail[0], tail);
+                            httpRetransfer200(info[1]);
+                        }
 
+                    }
                     //p t0 p 200
-                    else if(!request.containsKey("Range")){
-                        httpRetransfer200(info[1]);
-                    }
-                    //p t0 p 206
-                    else{
-                        String[] headTail = request.get("Range").split("bytes=")[1].split("-");
-                        String tail = "";
-                        if (headTail.length > 1) tail = headTail[1];
-                        response206(headTail[0], tail);
-                        httpRetransfer206(info[1], headTail[0], tail);
-                    }
+//                    else if(!request.containsKey("Range")){
+//                        httpRetransfer200(info[1]);
+//                    }
+//                    //p t0 p 206
+//                    else{
+//                        String[] headTail = request.get("Range").split("bytes=")[1].split("-");
+//                        String tail = "";
+//                        if (headTail.length > 1) tail = headTail[1];
+//                        httpRetransfer206(info[1], headTail[0], tail);
+//                    }
                 }
             }
+            System.out.println("########close###########");
             sOut.close();
             sIn.close();
             clientSocket.close();
@@ -299,7 +311,7 @@ class Sender extends Thread{
 
         //wait for response
         HashMap<Long, byte[]> fileMap = new HashMap<>();
-        PriorityQueue<Long> pq = new PriorityQueue<Long>();
+        PriorityQueue<Long> pq = new PriorityQueue<>();
 
         byte[] recArr = new byte[204800];
         int fileLen = 0;
@@ -322,7 +334,7 @@ class Sender extends Thread{
             int headerLen = convertByteToInt(bendPackage, 0);
             int contentLen = convertByteToInt(bendPackage, 4);
             ResponseHeader header = JSONObject.parseObject(new String(bendPackage, 8, headerLen), ResponseHeader.class);
-            System.out.println(header.toString());
+//            System.out.println(header.toString());
             //judge header
             if (header.statusCode == 0) {
                 fileLen = (int) header.getLength();
@@ -345,12 +357,9 @@ class Sender extends Thread{
             //接受文件存在map中
             else if (header.statusCode == 1) {
                 byte[] content = new byte[contentLen];
-                System.out.println(bendPackage.length);
                 System.arraycopy(bendPackage, 8 + headerLen, content, 0, contentLen);
                 fileMap.put(header.start, content);
                 pq.add(header.start);
-                System.out.println(header.start);
-                System.out.println("fileMap size: " + fileMap.size() + " ");
 
                 //发送200给browser
                 while(pq.size() != 0 && mapPointer == pq.peek()){
@@ -362,6 +371,7 @@ class Sender extends Thread{
                         e.printStackTrace();
                     }
                     mapPointer += fileMap.get(pq.poll()).length;  //get 为空
+
                 }
             }
             else { //Not found// todo: deal with not found
