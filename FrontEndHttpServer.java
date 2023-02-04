@@ -395,17 +395,13 @@ class Sender extends Thread{
                 //发送200给browser
                 if(headerFlag == true){
                     while(pq.size() != 0 && mapPointer == pq.peek()){
-                        try {
-                            byte[] bytes = fileMap.get(mapPointer);    //bytes为空
-                            sOut.write(bytes, 0, bytes.length);
-                            sOut.flush();
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+                        byte[] bytes = fileMap.get(mapPointer);    //bytes为空
+                        sOut.write(bytes, 0, bytes.length);
+                        sOut.flush();
                         mapPointer += fileMap.get(pq.poll()).length;  //get 为空
                     }
                 }
-                //System.out.println("@Frontend/httpRetransfer200: 200 content发送...");
+                System.out.println("@Frontend/httpRetransfer200: 200 content发送...");
 
             }
             else { //Not found// todo: deal with not found
@@ -446,7 +442,7 @@ class Sender extends Thread{
         HashMap<Long, byte[]> fileMap = new HashMap<>();
         PriorityQueue<Long> pq = new PriorityQueue<Long>();
 
-        byte[] recArr = new byte[1024];
+        byte[] recArr = new byte[204800];
         String fileName = null;
         long lastModified = 0;
         String httpHeader = null;
@@ -505,13 +501,9 @@ class Sender extends Thread{
                 //发送206给browser
                 if(headerFlag == true){
                     while(pq.size() != 0 && mapPointer == pq.peek()){
-                        try {
-                            byte[] bytes = fileMap.get(mapPointer);    //bytes为空
-                            sOut.write(bytes, 0, bytes.length);
-                            sOut.flush();
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+                        byte[] bytes = fileMap.get(mapPointer);    //bytes为空
+                        sOut.write(bytes, 0, bytes.length);
+                        sOut.flush();
                         mapPointer += fileMap.get(pq.poll()).length;  //get 为空
                     }
                 }
