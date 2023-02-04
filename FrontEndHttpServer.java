@@ -128,6 +128,7 @@ class Sender extends Thread{
                             httpRetransfer200(info[1]);
                         }
                         else {
+                            //TODO LZJ's responsibility
 //                            String[] headTail = request.get("Range").split("bytes=")[1].split("-");
 //                            String tail = "";
 //                            if (headTail.length > 1) tail = headTail[1];
