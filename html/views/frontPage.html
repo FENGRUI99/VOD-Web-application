@@ -22,7 +22,6 @@
             font-family: FontAwesome;
             position: absolute;
             margin-top: 15%;
-            /* top: 30%; */
             left: 50%;
             transform: translate(-50%, -50%);
             background: #ffffff;
@@ -34,16 +33,6 @@
             transition-delay: 99999999s;
             transition-duration: 1s;
         }
-
-        /*.search-box:hover>.search-txt {*/
-        /*    width: 500px;*/
-        /*    padding: 0 6px;*/
-        /*}*/
-
-        /*.search-box:hover>.search-btn {*/
-        /*    color: white;*/
-        /*    background: black;*/
-        /*}*/
 
         .search-btn {
             transition: 0.5s;
@@ -92,48 +81,13 @@
             100% {
                 transform: rotate(30deg);
             }
-            
-            
         }
 
         .img {
-            /* width: 500px;
-            height: 500px;
-            margin-top: 15px;
-            transition-delay: 9999999s;
-            transition-duration: 3s; */
             width: 100px;
             height: 100px;
             margin-top: 5%;
-            
         }
-
-        /* html:hover .img {
-            width: 80px;
-            height: 80px;
-            margin-top: 0px;
-            transition-delay: 1s;
-            transition-duration: 2s;
-        }
-
-        .p {
-            margin-top: -20px;
-            color: white;
-            font-family: "Gill Sans", sans-serif;
-            font-size: 50px;
-            opacity: 1;
-            transition-delay: 999999s;
-            transition-duration: 3s;
-        }
-
-        html:hover .p {
-            margin-top: 10px;
-            
-            font-size: 50px;
-            opacity: 0;
-            transition-delay: 1s;
-            transition-duration: 2s;
-        } */
 
         html:hover .search-box {
             opacity: 1;
@@ -142,6 +96,7 @@
         }
 
         body{
+            background: url('../resource/frontpage.jpg');
             background-repeat: no-repeat;
             background-size: cover;
             background-attachment: fixed;
@@ -198,8 +153,8 @@
     </style>
 </head>
 
-<body background="../resource/frontpage.jpg">
-    <center>
+<body>
+    <div style="text-align: center;">
         <img src="../resource/head.JPG" class="img" />
         <p class="p"></p>
         <div class="search-box">
@@ -213,7 +168,7 @@
         <div>
             <h2 id="peers"></h2>
         </div>
-    </center>
+    </div>
 
 </body>
 

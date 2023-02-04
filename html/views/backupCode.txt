@@ -1,0 +1,51 @@
+<style>
+      /* html:hover .img {
+            width: 80px;
+            height: 80px;
+            margin-top: 0px;
+            transition-delay: 1s;
+            transition-duration: 2s;
+        }
+
+        .p {
+            margin-top: -20px;
+            color: white;
+            font-family: "Gill Sans", sans-serif;
+            font-size: 50px;
+            opacity: 1;
+            transition-delay: 999999s;
+            transition-duration: 3s;
+        }
+
+        html:hover .p {
+            margin-top: 10px;
+
+            font-size: 50px;
+            opacity: 0;
+            transition-delay: 1s;
+            transition-duration: 2s;
+        } */
+
+      /*.img {*/
+      /*  width: 500px;*/
+      /*  height: 500px;*/
+      /*  margin-top: 15px;*/
+      /*  transition-delay: 9999999s;*/
+      /*  transition-duration: 3s;*/
+      /*  width: 100px;*/
+      /*  height: 100px;*/
+      /*  margin-top: 5%;*/
+      /*}*/
+
+      /*.search-box:hover>.search-txt {*/
+      /*    width: 500px;*/
+      /*    padding: 0 6px;*/
+      /*}*/
+
+      /*.search-box:hover>.search-btn {*/
+      /*    color: white;*/
+      /*    background: black;*/
+      /*}*/
+
+
+</style>
