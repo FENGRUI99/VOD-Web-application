@@ -12,13 +12,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class FrontEndHttpServer extends Thread{
-    public static HashMap<String, ArrayList<String>> threadShare = new HashMap<>();
+    public static HashMap<String, ArrayList<String>> sharedPeersInfo = new HashMap<>();
+    public static HashMap<String, Long> sharedFileSize = new HashMap<>();
+
     int frontEndPort;
     int backEndPort;
     public FrontEndHttpServer(int frontEndPort, int backEndPort){
         this.frontEndPort = frontEndPort;
         this.backEndPort = backEndPort;
     }
+
 
     @Override
     public void run() {
@@ -90,6 +93,7 @@ class Sender extends Thread{
 
                 // 请求本地文件
                 if (!info[1].startsWith("/peer")){
+                    System.out.println("文件在本地");
                     f = findFile(info[1]);
                     if (f.exists() && !request.containsKey("Range")){
                         // System.out.println("response code: 200");
@@ -115,26 +119,33 @@ class Sender extends Thread{
                 //向peers请求文件
                 else{
                     //Store peers info.
+                    System.out.println("文件在peers");
                     if (info[1].startsWith("/peer/add?path")) {
                         String[] tmp = info[1].substring(15).split("&");
                         peerFilePath = tmp[0];
-                        if (!FrontEndHttpServer.threadShare.containsKey(peerFilePath)) {
-                            FrontEndHttpServer.threadShare.put(peerFilePath, new ArrayList<>());
+                        if (!FrontEndHttpServer.sharedPeersInfo.containsKey(peerFilePath)) {
+                            FrontEndHttpServer.sharedPeersInfo.put(peerFilePath, new ArrayList<>());
                         }
-                        FrontEndHttpServer.threadShare.get(peerFilePath).add(info[1].substring(15));
-
+                        FrontEndHttpServer.sharedPeersInfo.get(peerFilePath).add(info[1].substring(15));
+                        System.out.println("peers信息储存成功");
+                        continue;
                     }
                     else if (info[1].startsWith("/peer/view")){
+                        //info[1]: peer/view/content/test.png
+                        String nameKey = info[1].substring(11);
+                        //System.out.println("namekey: "+nameKey);
                         if (!request.containsKey("Range")){
                             httpRetransfer200(info[1]);
+                            System.out.println("向client发送200成功");
                         }
                         else {
                             //TODO LZJ's responsibility
                             String[] headTail = request.get("Range").split("bytes=")[1].split("-");
-                            String tail = ""+fileLen;
+                            String tail = ""+FrontEndHttpServer.sharedFileSize.get(nameKey);
                             if (headTail.length > 1) tail = headTail[1];
-                            System.out.println("head: " + headTail[0] +" tail: "+tail +" fileLen: " +fileLen);
+                            System.out.println("head: " + headTail[0] +" tail: "+tail);
                             httpRetransfer206(info[1], headTail[0], tail);
+                            System.out.println("向客户发送206成功");
                         }
                     }
                     else if (info[1].startsWith("/peer/status")){
@@ -285,7 +296,7 @@ class Sender extends Thread{
     private void httpRetransfer200(String info) throws IOException {
 //        send info to backend listener
         peerFilePath = info.substring(11);
-        ArrayList<String> peerInfo = FrontEndHttpServer.threadShare.get(peerFilePath);
+        ArrayList<String> peerInfo = FrontEndHttpServer.sharedPeersInfo.get(peerFilePath);
 
         //向几个peers要文件就发送几次报文
         DatagramSocket dsock = new DatagramSocket();
@@ -313,7 +324,7 @@ class Sender extends Thread{
         PriorityQueue<Long> pq = new PriorityQueue<>();
 
         byte[] recArr = new byte[204800];
-        String fileName = null;
+        String filePath = null;
         long lastModified = 0;
         String httpHeader = null;
         long mapPointer = 0;
@@ -335,11 +346,13 @@ class Sender extends Thread{
 //            System.out.println(header.toString());
             //judge header
             if (header.statusCode == 0) {
-                fileLen = (int) header.getLength();
-                fileName = header.getFileName();
+                fileLen = header.getLength();
+                filePath = header.getFileName();
                 lastModified = header.getLastModified();
+                //System.out.println("namekey in map:" + filePath);
+                FrontEndHttpServer.sharedFileSize.put(filePath,fileLen);
                 //form header
-                String fType = URLConnection.guessContentTypeFromName(fileName);
+                String fType = URLConnection.guessContentTypeFromName(filePath);
                 Date date = new Date();
                 SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
                 if (fType.equals("audio/ogg")){
@@ -383,7 +396,7 @@ class Sender extends Thread{
     private void httpRetransfer206(String info, String head, String tail) throws IOException {
 //        send info to backend listener
         peerFilePath = info.substring(11);
-        ArrayList<String> peerInfo = FrontEndHttpServer.threadShare.get(peerFilePath);
+        ArrayList<String> peerInfo = FrontEndHttpServer.sharedPeersInfo.get(peerFilePath);
         long splitSize = (Long.parseLong(tail) - Long.parseLong(head)) / peerInfo.size();
 
         //向几个peers要文件就发送几次报文
@@ -437,7 +450,7 @@ class Sender extends Thread{
             System.out.println(header.toString());
             //judge header
             if (header.statusCode == 0) {
-                fileLen = (int) header.getLength();
+                //fileLen = header.getLength();
                 fileName = header.getFileName();
                 lastModified = header.getLastModified();
                 //form header
