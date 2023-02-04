@@ -422,13 +422,11 @@ class Sender extends Thread{
         //向几个peers要文件就发送几次报文
         DatagramSocket dsock = new DatagramSocket();
         dsock.setSoTimeout(10000);
+        long start = Long.parseLong(head);
+        long length = splitSize;
 
         for(int i = 0; i < peerInfo.size(); i++){
-            //length 表示总共开了多少个peers
-            //start：向后端传递你是第几个peer
-            long start = i * splitSize;
-            long length = start + splitSize;
-            if(i == peerInfo.size()-1) length = Long.parseLong(tail);
+            if(i == peerInfo.size()-1) length = (Long.parseLong(tail)-start);
             int rate = 0;
 
             String[] tmp = peerInfo.get(i).split("&");
@@ -441,6 +439,7 @@ class Sender extends Thread{
             byte[] sendArr = message.getBytes();
             DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
             dsock.send(dpack);
+            start += splitSize;
         }
 
         //wait for response
