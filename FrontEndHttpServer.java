@@ -76,37 +76,37 @@ class Sender extends Thread{
         try {
             sOut = new DataOutputStream(clientSocket.getOutputStream());
             sIn = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            HashMap<String, String> request = new HashMap<>();
+            HashMap<String, String> clientRequest = new HashMap<>();
             String inputLine;
             String[] info;
 
             while ((inputLine = sIn.readLine()) != null){
-                System.out.println("Front: Get input from browser: " + inputLine);
+                System.out.println("@Frontend: Get input from browser: " + inputLine);
                 if(inputLine == "GET /favicon.ico HTTP/1.1"){
-                    System.out.println("Front: #####Front Sender thread end#####");
+                    System.out.println("@Frontend: Meeting favicon.ico...");
                     break;
                 }
                 info = inputLine.split(" ");
 
                 while (!(inputLine = sIn.readLine()).equals("")) {
                     String[] tmp = inputLine.split(": ");
-                    request.put(tmp[0], tmp[1]);
+                    clientRequest.put(tmp[0], tmp[1]);
                 }
                 // System.out.println(info[1]);
 
 
                 // 请求本地文件
                 if (!info[1].startsWith("/peer")){
-                    System.out.println("文件在本地");
+                    System.out.println("@Frontend: 分析client header得出文件在本地");
                     f = findFile(info[1]);
-                    if (f.exists() && !request.containsKey("Range")){
+                    if (f.exists() && !clientRequest.containsKey("Range")){
                         // System.out.println("response code: 200");
                         response200();
                     }
                     else if (f.exists()){
                         // System.out.println("response code: 206");
                         // System.out.println(request.get("Range"));
-                        String[] headTail = request.get("Range").split("bytes=")[1].split("-");
+                        String[] headTail = clientRequest.get("Range").split("bytes=")[1].split("-");
                         String tail = "";
                         if (headTail.length > 1) tail = headTail[1];
                         response206(headTail[0], tail);
@@ -123,33 +123,37 @@ class Sender extends Thread{
                 //向peers请求文件
                 else{
                     //Store peers info.
-                    System.out.println("文件在peers");
+                    System.out.println("@Frontend: 分析client header得出文件在peers");
                     if (info[1].startsWith("/peer/add?path")) {
+                        System.out.println("@Frontend: 开始储存peers信息");
                         String[] tmp = info[1].substring(15).split("&");
                         peerFilePath = tmp[0];
                         if (!FrontEndHttpServer.sharedPeersInfo.containsKey(peerFilePath)) {
                             FrontEndHttpServer.sharedPeersInfo.put(peerFilePath, new ArrayList<>());
                         }
                         FrontEndHttpServer.sharedPeersInfo.get(peerFilePath).add(info[1].substring(15));
-                        System.out.println("peers信息储存成功");
+                        System.out.println("@Frontend: peers信息储存成功");
                         continue;
                     }
                     else if (info[1].startsWith("/peer/view")){
+                        System.out.println("@Frontend: client请求文件（200/206）");
                         //info[1]: peer/view/content/test.png
                         String nameKey = info[1].substring(11);
                         //System.out.println("namekey: "+nameKey);
-                        if (!request.containsKey("Range")){
+                        if (!clientRequest.containsKey("Range")){
+                            System.out.println("@Frontend: 向client发送200...");
                             httpRetransfer200(info[1]);
-                            System.out.println("向client发送200成功");
+                            System.out.println("@Frontend: 向client发送200成功");
                         }
                         else {
                             //TODO LZJ's responsibility
-                            String[] headTail = request.get("Range").split("bytes=")[1].split("-");
+                            System.out.println("@Frontend: 向client发送206...");
+                            String[] headTail = clientRequest.get("Range").split("bytes=")[1].split("-");
                             String tail = ""+FrontEndHttpServer.sharedFileSize.get(nameKey);
                             if (headTail.length > 1) tail = headTail[1];
-                            System.out.println("head: " + headTail[0] +" tail: "+tail);
+                            //System.out.println("@Frontend: head: " + headTail[0] +" tail: "+tail);
                             httpRetransfer206(info[1], headTail[0], tail);
-                            System.out.println("向客户发送206成功");
+                            System.out.println("@Frontend: 向client发送206成功");
                         }
                     }
                     else if (info[1].startsWith("/peer/status")){
@@ -160,7 +164,7 @@ class Sender extends Thread{
                     }
                 }
             }
-            System.out.println("########close###########");
+            System.out.println("@Frontend: ########close###########");
             sOut.close();
             sIn.close();
             clientSocket.close();
@@ -303,6 +307,7 @@ class Sender extends Thread{
         ArrayList<String> peerInfo = FrontEndHttpServer.sharedPeersInfo.get(peerFilePath);
 
         //向几个peers要文件就发送几次报文
+        System.out.println("@Frontend/httpRetransfer200: 向peers发送请求报文");
         DatagramSocket dsock = new DatagramSocket();
         dsock.setSoTimeout(10000);
         for(int i = 0; i < peerInfo.size(); i++){
@@ -321,8 +326,9 @@ class Sender extends Thread{
             byte[] sendArr = message.getBytes();
             DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
             dsock.send(dpack);
+            System.out.println("@Frontend/httpRetransfer200: peers_" + i + " 发送成功");
         }
-
+        System.out.println("@Frontend/httpRetransfer200: peers全发送成功");
         //wait for response
         HashMap<Long, byte[]> fileMap = new HashMap<>();
         PriorityQueue<Long> pq = new PriorityQueue<>();
@@ -335,6 +341,7 @@ class Sender extends Thread{
         boolean headerFlag = false;
 
         //一直向所有后端接收
+        System.out.println("@Frontend/httpRetransfer200: 开始从peers接受并转发");
         while(true) {
             DatagramPacket dpack = new DatagramPacket(recArr, recArr.length);
             try{
@@ -375,6 +382,7 @@ class Sender extends Thread{
                 if(headerFlag == false){
                     sOut.writeUTF(httpHeader);
                     headerFlag = true;
+                    System.out.println("@Frontend/httpRetransfer200: 200 header发送成功");
                 }
             }
             //接受文件存在map中
@@ -397,6 +405,7 @@ class Sender extends Thread{
                         mapPointer += fileMap.get(pq.poll()).length;  //get 为空
                     }
                 }
+                //System.out.println("@Frontend/httpRetransfer200: 200 content发送...");
 
             }
             else { //Not found// todo: deal with not found
@@ -459,7 +468,7 @@ class Sender extends Thread{
             int headerLen = convertByteToInt(bendPackage, 0);
             int contentLen = convertByteToInt(bendPackage, 4);
             ResponseHeader header = JSONObject.parseObject(new String(bendPackage, 8, headerLen), ResponseHeader.class);
-            System.out.println(header.toString());
+            //System.out.println(header.toString());
             //judge header
             if (header.statusCode == 0) {
                 fileName = header.getFileName();
@@ -492,7 +501,7 @@ class Sender extends Thread{
                 System.arraycopy(bendPackage, 8 + headerLen, content, 0, contentLen);
                 fileMap.put(header.start, content);
                 pq.add(header.start);
-                System.out.println("fileMap size: " + fileMap.size() + " ");
+                System.out.println("@Frontend: fileMap size: " + fileMap.size() + " ");
 
                 //发送206给browser
                 if(headerFlag == true){
