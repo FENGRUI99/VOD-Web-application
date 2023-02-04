@@ -35,15 +35,15 @@
             transition-duration: 1s;
         }
 
-        .search-box:hover>.search-txt {
-            width: 500px;
-            padding: 0 6px;
-        }
+        /*.search-box:hover>.search-txt {*/
+        /*    width: 500px;*/
+        /*    padding: 0 6px;*/
+        /*}*/
 
-        .search-box:hover>.search-btn {
-            color: white;
-            background: black;
-        }
+        /*.search-box:hover>.search-btn {*/
+        /*    color: white;*/
+        /*    background: black;*/
+        /*}*/
 
         .search-btn {
             transition: 0.5s;
@@ -61,6 +61,8 @@
             align-items: center;
             text-decoration: none;
             cursor: pointer;
+            color: white;
+            background: black;
         }
 
         .search-txt {
@@ -74,6 +76,8 @@
             transition: 0.6s;
             line-height: 60px;
             width: 0px;
+            width: 500px;
+            padding: 0 6px;
         }
 
         @keyframes flash {
@@ -155,6 +159,17 @@
             display:inline-block; 
         }
 
+        h2{
+            color: #ffffff;
+            font-family: Georgia;
+            font-size: 27px;
+            font-weight: 300;
+            line-height: 30px;
+            margin: 10% 0 20px;
+            text-shadow: 1px 1px 2px rgb(117, 10, 231), 0 0 1em rgb(222, 6, 222), 0 0 0.2em rgb(222, 6, 222);
+            display:inline-block;
+        }
+
         .status-box{
             font-family: FontAwesome;
             position: absolute;
@@ -194,8 +209,10 @@
         <h1>Pinke Search</h1>
         
         <input class="status-box" type='button' id='status-btn' value='&#xf0ae'></i>
-        
-        
+
+        <div>
+            <h2 id="peers"></h2>
+        </div>
     </center>
 
 </body>
