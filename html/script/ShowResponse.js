@@ -4,9 +4,9 @@ receivedTextData.innerHTML = sessionStorage.getItem("textdata");
 fetch('http://172.16.7.10:10007/' + receivedTextData)
     .then(response => {
         const contentType = response.headers.get("Content-Type");
-        if (contentType.includes("text/plain")) {
+        if (contentType.includes("text/plain") || contentType.includes("text/html") || contentType.includes("text/htm")) {
             return response.text();
-        } else if (contentType.includes("image/jpeg") || contentType.includes("image/png")) {
+        } else if (contentType.includes("image/jpeg") || contentType.includes("image/png") || contentType.includes("image/jpg") || contentType.includes("image/gif")) {
             return response.blob();
         } else if (contentType.includes("audio/ogg")) {
             return response.blob().then(blob => {
@@ -15,7 +15,7 @@ fetch('http://172.16.7.10:10007/' + receivedTextData)
                 audio.controls = true;
                 return audio;
             });
-        } else if (contentType.includes("video/ogg")) {
+        } else if (contentType.includes("video/ogg") || contentType.includes("video/mp4") || contentType.includes("video/webm")) {
             return response.blob().then(blob => {
                 const video = document.createElement("video");
                 video.src = URL.createObjectURL(blob);
