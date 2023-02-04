@@ -64,6 +64,7 @@ class Sender extends Thread{
     //private int rate;
     //InetAddress peerIp;
     private String peerFilePath;
+    long fileLen;
     //int peerPort;
     public Sender(Socket clientSocket, int backEndPort) {
         this.clientSocket = clientSocket;
@@ -129,11 +130,11 @@ class Sender extends Thread{
                         }
                         else {
                             //TODO LZJ's responsibility
-//                            String[] headTail = request.get("Range").split("bytes=")[1].split("-");
-//                            String tail = "";
-//                            if (headTail.length > 1) tail = headTail[1];
-//                            httpRetransfer206(info[1], headTail[0], tail);
-                            httpRetransfer200(info[1]);
+                            String[] headTail = request.get("Range").split("bytes=")[1].split("-");
+                            String tail = ""+fileLen;
+                            if (headTail.length > 1) tail = headTail[1];
+                            System.out.println("head: " + headTail[0] +" tail: "+tail +" fileLen: " +fileLen);
+                            httpRetransfer206(info[1], headTail[0], tail);
                         }
                     }
                     else if (info[1].startsWith("/peer/status")){
@@ -312,7 +313,6 @@ class Sender extends Thread{
         PriorityQueue<Long> pq = new PriorityQueue<>();
 
         byte[] recArr = new byte[204800];
-        int fileLen = 0;
         String fileName = null;
         long lastModified = 0;
         String httpHeader = null;
@@ -415,7 +415,6 @@ class Sender extends Thread{
         PriorityQueue<Long> pq = new PriorityQueue<Long>();
 
         byte[] recArr = new byte[1024];
-        int fileLen = 0;
         String fileName = null;
         long lastModified = 0;
         String httpHeader = null;

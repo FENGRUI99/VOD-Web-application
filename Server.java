@@ -1,7 +1,7 @@
-//f I use brower enter: localhost:8080/peer/add?path=content/test.png&host=172.16.7.18&port=8081&rate=1600
-//      httpServer get: GET /peer/add?path=content/test.png&host=172.16.7.18&port=8081&rate=1600 HTTP/1.1
+//f I use brower enter: localhost:8080/peer/add?path=content/test.ogg&host=172.16.7.16&port=8081&rate=1600
+//      httpServer get: GET /peer/add?path=content/test.png&host=172.16.7.16&port=8081&rate=1600 HTTP/1.1
 
-//if I use brower enter: http://localhost:8080/peer/view/content/test.png
+//if I use brower enter: http://localhost:8080/peer/view/content/test.ogg
 //       httpServer get: GET /peer/view/content/test.png HTTP/1.1
 
 public class Server {

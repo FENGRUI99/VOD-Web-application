@@ -137,7 +137,7 @@ class BackEndRequest extends Thread{
             int headerLen = convertByteToInt(info, 0);
             int contentLen = convertByteToInt(info, 4);
             ResponseHeader header = JSONObject.parseObject(new String(info, 8, headerLen), ResponseHeader.class);
-            System.out.println(header.toString());
+            //System.out.println(header.toString());
 
             //judge header
             if (header.statusCode == 0) {
