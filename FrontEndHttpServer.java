@@ -135,7 +135,6 @@ class Sender extends Thread{
 //                            httpRetransfer206(info[1], headTail[0], tail);
                             httpRetransfer200(info[1]);
                         }
-
                     }
                     else if (info[1].startsWith("/peer/status")){
                         //TODO ben's responsibility
@@ -194,12 +193,15 @@ class Sender extends Thread{
         Date date = new Date();
         Date lastModified = new Date(f.lastModified());
         SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
-
+        if (fType.equals("audio/ogg")){
+            fType = "video/ogg";
+        }
         String header = "HTTP/1.1 200 OK" + CRLF +
                 "Content-Length: " + f.length() + CRLF +
                 "Content-Type: " + fType + CRLF +
                 "Cache-Control: " + "public" + CRLF +
                 "Connection: " + "keep-alive" + CRLF +
+                "Access-Control-Allow-Origin: *" + CRLF +
                 "Accept-Ranges: " + "bytes" + CRLF +
                 "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
                 "Last-Modified: " + dateFormat1.format(lastModified) + " GMT" + CRLF +CRLF;
@@ -233,13 +235,16 @@ class Sender extends Thread{
         Date date = new Date();
         Date lastModified = new Date(f.lastModified());
         SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
-
+        if (fType.equals("audio/ogg")){
+            fType = "video/ogg";
+        }
         //form and send header
         String header = "HTTP/1.1 206 Partial Content" + CRLF +
                 "Content-Length: " + (endByte - startByte) + CRLF +
                 "Content-Type: " + fType + CRLF +
                 "Cache-Control: " + "public" + CRLF +
                 "Connection: " + "keep-alive" + CRLF +
+                "Access-Control-Allow-Origin: *" + CRLF +
                 "Accept-Ranges: " + "bytes" + CRLF +
                 "Content-Range: " + "bytes " + startByte + "-" + endByte + "/" + this.f.length() +  CRLF +
                 "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
@@ -337,11 +342,15 @@ class Sender extends Thread{
                 String fType = URLConnection.guessContentTypeFromName(fileName);
                 Date date = new Date();
                 SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
+                if (fType.equals("audio/ogg")){
+                    fType = "video/ogg";
+                }
                 httpHeader = "HTTP/1.1 200 OK" + CRLF +
                     "Content-Length: " + fileLen + CRLF +
                     "Content-Type: " + fType + CRLF +
                     "Cache-Control: " + "public" + CRLF +
                     "Connection: " + "keep-alive" + CRLF +
+                    "Access-Control-Allow-Origin: *" + CRLF +
                     "Accept-Ranges: " + "bytes" + CRLF +
                     "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
                     "Last-Modified: " + dateFormat1.format(lastModified) + " GMT" + CRLF +CRLF; //todo:可能有问题
@@ -364,7 +373,6 @@ class Sender extends Thread{
                         e.printStackTrace();
                     }
                     mapPointer += fileMap.get(pq.poll()).length;  //get 为空
-
                 }
             }
             else { //Not found// todo: deal with not found
@@ -437,11 +445,15 @@ class Sender extends Thread{
                 String fType = URLConnection.guessContentTypeFromName(fileName);
                 Date date = new Date();
                 SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
+                if (fType.equals("audio/ogg")){
+                    fType = "video/ogg";
+                }
                 httpHeader = "HTTP/1.1 206 OK" + CRLF +
                         "Content-Length: " + fileLen + CRLF +
                         "Content-Type: " + fType + CRLF +
                         "Cache-Control: " + "public" + CRLF +
                         "Connection: " + "keep-alive" + CRLF +
+                        "Access-Control-Allow-Origin: *" + CRLF +
                         "Accept-Ranges: " + "bytes" + CRLF +
                         "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
                         "Last-Modified: " + dateFormat1.format(lastModified) + " GMT" + CRLF +CRLF; //todo:可能有问题
