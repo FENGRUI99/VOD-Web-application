@@ -1,5 +1,5 @@
 const receivedTextData = document.getElementById("receivedTextData");
-receivedTextData.innerHTML = sessionStorage.getItem("textdata");
+receivedTextData.innerHTML = sessionStorage.getItem("textData");
 
 fetch('http://172.16.7.10:8080/' + receivedTextData.textContent)
     .then(response => {
