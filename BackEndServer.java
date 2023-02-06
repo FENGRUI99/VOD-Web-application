@@ -45,6 +45,7 @@ public class BackEndServer extends Thread{
 //            System.out.println("####################");
             // message from http server
             if (header.getSrc() == 0){
+
                 pool.execute(new BackEndRequest(dpack.getAddress(), dpack.getPort(), header.peerIp, header.peerPort, header.fileName, header.start, header.length, header.rate));
             }
             // message from peer back-end server
@@ -149,7 +150,7 @@ class BackEndRequest extends Thread{
                 long endTime = Calendar.getInstance().getTimeInMillis();
                 RTT = (int) (endTime-startTime);
                 chunkSize = RTT * rate/8;
-                dsock.setSoTimeout(10*RTT);
+                dsock.setSoTimeout(100*RTT);
                 fileSize = (int) header.length;
                 recePointer = (int) (start / chunkSize);
                 //length = fileSize - start;
@@ -162,6 +163,9 @@ class BackEndRequest extends Thread{
                     int tmp = (int) (fileSize/length);
                     if(start == length){
                         length = tmp + fileSize % tmp;
+                        start = tmp * (start-1);
+                    }else{
+                        length = tmp;
                         start = tmp * (start-1);
                     }
                 }else{
