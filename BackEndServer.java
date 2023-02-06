@@ -159,7 +159,7 @@ class BackEndRequest extends Thread{
                 //读取rtt, RTO = 2*RTT
                 long endTime = Calendar.getInstance().getTimeInMillis();
                 RTT = (int) (endTime-startTime);
-                chunkSize = Math.min(60000, RTT * rate/8);
+                chunkSize = Math.min(30000, RTT * rate/8);
                 dsock.setSoTimeout(100*RTT);
                 fileSize = header.length;
 
