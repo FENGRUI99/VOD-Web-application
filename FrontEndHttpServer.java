@@ -401,6 +401,9 @@ class Sender extends Thread{
                         mapPointer += fileMap.get(pq.poll()).length;  //get 为空
                     }
                 }
+                if(mapPointer == FrontEndHttpServer.sharedFileSize.get(peerFilePath)){
+                    break;
+                }
                 System.out.println("@Frontend/httpRetransfer200: 200 content发送...");
 
             }
@@ -507,7 +510,9 @@ class Sender extends Thread{
                         mapPointer += fileMap.get(pq.poll()).length;  //get 为空
                     }
                 }
-
+                if(mapPointer == FrontEndHttpServer.sharedFileSize.get(peerFilePath)){
+                    break;
+                }
             }
             else { //Not found// todo: deal with not found
                 break;
@@ -516,4 +521,3 @@ class Sender extends Thread{
     }
 
 }
-
