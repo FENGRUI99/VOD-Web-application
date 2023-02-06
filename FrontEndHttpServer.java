@@ -152,7 +152,12 @@ class Sender extends Thread{
                             System.out.println("@Frontend: 向client发送206...");
                             String[] headTail = clientRequest.get("Range").split("bytes=")[1].split("-");
                             String tail = ""+FrontEndHttpServer.sharedFileSize.get(nameKey);
+                            long max = 20000000;
                             if (headTail.length > 1) tail = headTail[1];
+                            else if (Long.valueOf(tail) > Long.valueOf(headTail[0]) + max){
+                                tail = String.valueOf((Long.valueOf(headTail[0]) + max));
+                                System.out.println("yes");
+                            }
                             System.out.println("@Frontend: head: " + headTail[0] +" tail: "+tail);
                             httpRetransfer206(info[1], headTail[0], tail);
                             System.out.println("@Frontend: 向client发送206成功");
@@ -478,6 +483,7 @@ class Sender extends Thread{
             //System.out.println(header.toString());
             //judge header
             if (header.statusCode == 0) {
+                System.out.println("fileName: " + fileName);
                 fileName = header.getFileName();
                 lastModified = header.getLastModified();
                 //form header
@@ -494,6 +500,7 @@ class Sender extends Thread{
                         "Connection: " + "keep-alive" + CRLF +
                         "Access-Control-Allow-Origin: *" + CRLF +
                         "Accept-Ranges: " + "bytes" + CRLF +
+                        "Content-Range: " + "bytes " + head + "-" + tail + "/" + FrontEndHttpServer.sharedFileSize.get(fileName) +  CRLF +
                         "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
                         "Last-Modified: " + dateFormat1.format(lastModified) + " GMT" + CRLF +CRLF;
                 if(headerFlag == false){
