@@ -8,6 +8,7 @@ oBtn.onclick = function () {
     } else{
         skipToResponse();
     }
+    oInp.value= "";
 }
 
 document.onkeydown = function () {
@@ -17,6 +18,7 @@ document.onkeydown = function () {
         } else{
             skipToResponse()
         }
+        oInp.value= "";
     }
 }
 
