@@ -312,6 +312,17 @@ class Sender extends Thread{
         System.out.println("@Frontend/httpRetransfer200: 向peers发送请求报文");
         DatagramSocket dsock = new DatagramSocket();
         dsock.setSoTimeout(5000);
+
+        HashMap<Long, byte[]> fileMap = new HashMap<>();
+        PriorityQueue<Long> pq = new PriorityQueue<>();
+
+        byte[] recArr = new byte[204800];
+        String filePath = null;
+        long lastModified = 0;
+        String httpHeader = null;
+        long mapPointer = 0;
+        boolean headerFlag = false;
+
         for(int i = 0; i < peerInfo.size(); i++){
             //length 表示总共开了多少个peers
             //start：向后端传递你是第几个peer
@@ -332,17 +343,8 @@ class Sender extends Thread{
             System.out.println("@Frontend/httpRetransfer200: message" + i + ": " + message.toString());
         }
         System.out.println("@Frontend/httpRetransfer200: peers全发送成功");
+
         //wait for response
-        HashMap<Long, byte[]> fileMap = new HashMap<>();
-        PriorityQueue<Long> pq = new PriorityQueue<>();
-
-        byte[] recArr = new byte[204800];
-        String filePath = null;
-        long lastModified = 0;
-        String httpHeader = null;
-        long mapPointer = 0;
-        boolean headerFlag = false;
-
         //一直向所有后端接收
         System.out.println("@Frontend/httpRetransfer200: 开始从peers接受并转发");
         while(true) {
@@ -361,6 +363,8 @@ class Sender extends Thread{
 //            System.out.println(header.toString());
             //judge header
             if (header.statusCode == 0) {
+                if(headerFlag == true) continue;
+
                 long fileLen = header.getLength();
                 filePath = header.getFileName();
                 lastModified = header.getLastModified();
@@ -407,7 +411,7 @@ class Sender extends Thread{
                 if(mapPointer == FrontEndHttpServer.sharedFileSize.get(peerFilePath)){
                     break;
                 }
-                System.out.println("@Frontend/httpRetransfer200: 200 content发送...");
+                //System.out.println("@Frontend/httpRetransfer200: 200 content发送...");
 
             }
             else { //Not found// todo: deal with not found

@@ -110,7 +110,7 @@ class BackEndRequest extends Thread{
         long startTime = Calendar.getInstance().getTimeInMillis();
 
         //initialization
-        int fileSize = 0;
+        long fileSize = 0;
         int recePointer = 0;
         int receSize = 0;
         int RTT = 0;
@@ -151,7 +151,7 @@ class BackEndRequest extends Thread{
                 RTT = (int) (endTime-startTime);
                 chunkSize = RTT * rate/8;
                 dsock.setSoTimeout(100*RTT);
-                fileSize = (int) header.length;
+                fileSize = header.length;
 
                 //length = fileSize - start;
 //                fileName = header.fileName;
@@ -160,17 +160,18 @@ class BackEndRequest extends Thread{
                 if(start<0){
                     start = Math.abs(start);
                     length = Math.abs(length);
-                    int tmp = (int) (fileSize/length);
+                    long tmp = fileSize/length;
                     if(start == length){
-                        length = tmp + fileSize % tmp;
                         start = tmp * (start-1);
+                        length = fileSize - start;
                     }else{
                         length = tmp;
                         start = tmp * (start-1);
                     }
-                }else{
-                    length = fileSize - start;
                 }
+//                else{
+//                    length = fileSize - start;
+//                }
                 recePointer = (int) (start / chunkSize);
                 requestRange(fileName, start, length, chunkSize);
             }
