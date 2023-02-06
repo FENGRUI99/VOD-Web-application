@@ -101,7 +101,12 @@ class BackEndRequest extends Thread{
         // wait for hello from Peer response thread
         byte[] recArr = new byte[1024];
         dpack = new DatagramPacket(recArr, recArr.length);
-        dsock.receive(dpack);
+        try{
+            dsock.receive(dpack);
+        } catch (SocketTimeoutException e){
+            dsock.send(dpack);
+        }
+
         InetAddress peerResAddress = dpack.getAddress();
         int peerResPort = dpack.getPort();
 //        System.out.println(new String(dpack.getData()));
@@ -190,6 +195,7 @@ class BackEndRequest extends Thread{
                     //TODO 可能有问题 mark一下
                     byte[] tmp = fileMap.get(recePointer);
                     frontPack = new DatagramPacket(tmp, tmp.length, frontEndAddress, frontEndPort);
+//                    System.out.println(frontPack.getLength());
                     frontSock.send(frontPack);
 
                     recePointer++;

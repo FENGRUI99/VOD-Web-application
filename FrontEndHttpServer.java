@@ -82,10 +82,6 @@ class Sender extends Thread{
 
             while ((inputLine = sIn.readLine()) != null){
                 System.out.println("@Frontend: Get input from browser: " + inputLine);
-                if(inputLine.equals("GET /favicon.ico HTTP/1.1")){
-                    System.out.println("@Frontend: Meeting favicon.ico...");
-                    break;
-                }
                 info = inputLine.split(" ");
 
                 while (!(inputLine = sIn.readLine()).equals("")) {
@@ -168,6 +164,9 @@ class Sender extends Thread{
                     }
                     else if (info[1].startsWith("/peer/config")){
                         //TODO CFR's responsibility
+                    }
+                    else {
+                        response404();
                     }
                 }
             }
