@@ -152,7 +152,7 @@ class BackEndRequest extends Thread{
                 chunkSize = RTT * rate/8;
                 dsock.setSoTimeout(100*RTT);
                 fileSize = (int) header.length;
-                recePointer = (int) (start / chunkSize);
+
                 //length = fileSize - start;
 //                fileName = header.fileName;
 
@@ -171,6 +171,7 @@ class BackEndRequest extends Thread{
                 }else{
                     length = fileSize - start;
                 }
+                recePointer = (int) (start / chunkSize);
                 requestRange(fileName, start, length, chunkSize);
             }
             else if (header.statusCode == 1) {

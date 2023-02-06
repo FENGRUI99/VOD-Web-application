@@ -206,7 +206,7 @@ class Sender extends Thread{
     }
     private File findFile(String path) {
         File file = new File("." + path);
-        if (!file.exists()) file = new File("./content/video" + path);
+        if (!file.exists()) file = new File("./content" + path);
         return file;
     }
     private void response200() throws IOException {
