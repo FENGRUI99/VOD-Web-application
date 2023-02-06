@@ -117,7 +117,7 @@ class BackEndRequest extends Thread{
 //        String fileName = null;
         HashMap<Integer, byte[]> fileMap = new HashMap<>();
         frontSock = new DatagramSocket();
-
+        int cutNumber = 5;
         L1:
         while (true) {
             recArr = new byte[2*chunkSize];
@@ -127,12 +127,17 @@ class BackEndRequest extends Thread{
                 dsock.receive(dpack);                           // receive the packet
             }catch (SocketTimeoutException e){
                 System.out.println("cut window, start: " + start + ", length: " + length);
+                cutNumber --;
+                if (cutNumber < 0) {
+                    close();
+                    break;
+                }
                 windowSize = Math.max(windowSize/2, 1);
                 requestRange(fileName, start, length, chunkSize);
                 receSize = 0;
                 continue;
             }
-
+            cutNumber = 5;
             //从dpack中获取header和content信息，分别存在header和content[]中
             byte[] info = dpack.getData();
             int headerLen = convertByteToInt(info, 0);
