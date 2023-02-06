@@ -82,13 +82,14 @@ class Sender extends Thread{
 
             while ((inputLine = sIn.readLine()) != null){
                 System.out.println("@Frontend: Get input from browser: " + inputLine);
-                if(inputLine == "GET /favicon.ico HTTP/1.1"){
+                if(inputLine.equals("GET /favicon.ico HTTP/1.1")){
                     System.out.println("@Frontend: Meeting favicon.ico...");
                     break;
                 }
                 info = inputLine.split(" ");
 
                 while (!(inputLine = sIn.readLine()).equals("")) {
+                    //System.out.println("@Frontend: Get input from browser: " + inputLine);
                     String[] tmp = inputLine.split(": ");
                     clientRequest.put(tmp[0], tmp[1]);
                 }
@@ -132,6 +133,7 @@ class Sender extends Thread{
                             FrontEndHttpServer.sharedPeersInfo.put(peerFilePath, new ArrayList<>());
                         }
                         FrontEndHttpServer.sharedPeersInfo.get(peerFilePath).add(info[1].substring(15));
+                        System.out.println("mapsize: " + FrontEndHttpServer.sharedPeersInfo.size()+" peersNum: " + FrontEndHttpServer.sharedPeersInfo.get(peerFilePath).size());
                         System.out.println("@Frontend: peers信息储存成功");
                         continue;
                     }
@@ -151,7 +153,7 @@ class Sender extends Thread{
                             String[] headTail = clientRequest.get("Range").split("bytes=")[1].split("-");
                             String tail = ""+FrontEndHttpServer.sharedFileSize.get(nameKey);
                             if (headTail.length > 1) tail = headTail[1];
-                            //System.out.println("@Frontend: head: " + headTail[0] +" tail: "+tail);
+                            System.out.println("@Frontend: head: " + headTail[0] +" tail: "+tail);
                             httpRetransfer206(info[1], headTail[0], tail);
                             System.out.println("@Frontend: 向client发送206成功");
                         }
@@ -203,7 +205,7 @@ class Sender extends Thread{
                 ((bytes[start + 3] & 0xFF) << 0 );
     }
     private File findFile(String path) {
-        File file = new File("./content" + path);
+        File file = new File("." + path);
         if (!file.exists()) file = new File("./content/video" + path);
         return file;
     }
@@ -309,7 +311,7 @@ class Sender extends Thread{
         //向几个peers要文件就发送几次报文
         System.out.println("@Frontend/httpRetransfer200: 向peers发送请求报文");
         DatagramSocket dsock = new DatagramSocket();
-        dsock.setSoTimeout(10000);
+        dsock.setSoTimeout(5000);
         for(int i = 0; i < peerInfo.size(); i++){
             //length 表示总共开了多少个peers
             //start：向后端传递你是第几个peer
@@ -327,6 +329,7 @@ class Sender extends Thread{
             DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
             dsock.send(dpack);
             System.out.println("@Frontend/httpRetransfer200: peers_" + i + " 发送成功");
+            System.out.println("@Frontend/httpRetransfer200: message" + i + ": " + message.toString());
         }
         System.out.println("@Frontend/httpRetransfer200: peers全发送成功");
         //wait for response
@@ -420,7 +423,7 @@ class Sender extends Thread{
 
         //向几个peers要文件就发送几次报文
         DatagramSocket dsock = new DatagramSocket();
-        dsock.setSoTimeout(10000);
+        dsock.setSoTimeout(5000);
         long start = Long.parseLong(head);
         long length = splitSize;
 
@@ -439,6 +442,8 @@ class Sender extends Thread{
             DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
             dsock.send(dpack);
             start += splitSize;
+            System.out.println("@Frontend/httpRetransfer206: peers_" + i + " 发送成功");
+            System.out.println("@Frontend/httpRetransfer206: message" + i + ": " + message.toString());
         }
 
         //wait for response
