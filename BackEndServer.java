@@ -138,13 +138,13 @@ class BackEndRequest extends Thread{
                 dsock.receive(dpack);                           // receive the packet
             }catch (SocketTimeoutException e){
                 System.out.println("cut window, start: " + start + ", length: " + length);
-                if (windowSize == 1){
-                    cutNumber--;
-                    if (cutNumber < 0){
-                        close();
-                        break;
-                    }
-                }
+//                if (windowSize == 1){
+//                    cutNumber--;
+//                    if (cutNumber < 0){
+//                        close();
+//                        break;
+//                    }
+//                }
                 windowSize = Math.max(windowSize/2, 1);
                 requestRange(fileName, start, length, chunkSize);
                 receSize = 0;

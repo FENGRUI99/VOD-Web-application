@@ -116,7 +116,6 @@ class Sender extends Thread{
                         in.close();
                     }
                 }
-
                 //向peers请求文件
                 else{
                     //Store peers info.
@@ -169,6 +168,7 @@ class Sender extends Thread{
                         response404();
                     }
                 }
+                break;
             }
             System.out.println("@Frontend: ########close###########");
             sOut.close();
@@ -579,11 +579,6 @@ class Sender extends Thread{
             }
             else { //Not found// todo: deal with not found
                 response404();
-                String closeAck = "close";
-                byte[] closeByte = closeAck.getBytes();
-                DatagramPacket closeACKPack = new DatagramPacket(closeByte, closeByte.length, dpack.getAddress(), dpack.getPort());
-                dsock.send(closeACKPack);
-                System.out.println(closeAck + mapPointer);
                 break;
             }
         }
