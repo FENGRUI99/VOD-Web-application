@@ -320,7 +320,7 @@ class Sender extends Thread{
         HashMap<Long, byte[]> fileMap = new HashMap<>();
         PriorityQueue<Long> pq = new PriorityQueue<>();
 
-        byte[] recArr = new byte[204800];
+//        byte[] recArr = new byte[409600];
         String filePath = null;
         long lastModified = 0;
         String httpHeader = null;
@@ -352,6 +352,7 @@ class Sender extends Thread{
         //一直向所有后端接收
         //System.out.println("@Frontend/httpRetransfer200: 开始从peers接受并转发");
         while(true) {
+            byte[] recArr = new byte[204800];
             DatagramPacket dpack = new DatagramPacket(recArr, recArr.length);
             try{
                 dsock.receive(dpack);
@@ -476,8 +477,8 @@ class Sender extends Thread{
         //wait for response
         HashMap<Long, byte[]> fileMap = new HashMap<>();
         PriorityQueue<Long> pq = new PriorityQueue<Long>();
-
-        byte[] recArr = new byte[204800];
+        HashSet<Long> visited = new HashSet<>();
+//        byte[] recArr = new byte[102400];
         String fileName = null;
         long lastModified = 0;
         String httpHeader = null;
@@ -487,6 +488,7 @@ class Sender extends Thread{
         //一直向所有后端接收
 
         while(true) {
+            byte[] recArr = new byte[204800];
             DatagramPacket dpack = new DatagramPacket(recArr, recArr.length);
             try{
                 dsock.receive(dpack);
@@ -494,7 +496,7 @@ class Sender extends Thread{
             catch (SocketTimeoutException e){
                 System.out.println("waiting for data: " + mapPointer);
                 System.out.println(mapPointer + " 是否存在： " + fileMap.containsKey(mapPointer));
-                System.out.println(pq.peek());
+                System.out.println("pq peek: " + pq.peek() + ", size: " + pq.size());
                 if (!fileMap.containsKey(mapPointer)) continue;
             }
             //从dpack中获取header和content信息，分别存在header和content[]中
@@ -510,7 +512,7 @@ class Sender extends Thread{
                 long ackStart = header.start;
                 long ackLen = header.length;
                 String ack = "start:"+ackStart + "/len:" + ackLen;
-                System.out.println("收到文件start: " + ack);
+//                System.out.println("收到文件start: " + ack);
                 byte[] ackb = ack.getBytes();
                 DatagramPacket ACKPack = new DatagramPacket(ackb, ackb.length, dpack.getAddress(), dpack.getPort());
                 dsock.send(ACKPack);
@@ -549,19 +551,26 @@ class Sender extends Thread{
             else if (header.statusCode == 1) {
                 byte[] content = new byte[contentLen];
                 System.arraycopy(bendPackage, 8 + headerLen, content, 0, contentLen);
-                fileMap.put(header.start, content);
-                pq.add(header.start);
+                if(!visited.contains(header.start)){
+                    fileMap.put(header.start, content);
+                    pq.add(header.start);
+                    visited.add(header.start);
+                }
+                else {
+                    continue;
+                }
 //                System.out.println("@Frontend: fileMap size: " + fileMap.size() + " ");
 
                 //发送206给browser
                 if(headerFlag == true){
                     while(pq.size() != 0 && mapPointer == pq.peek()){
-                        System.out.println("mapPointer: " + mapPointer + " pq.peek(): " + pq.peek());
                         byte[] bytes = fileMap.get(mapPointer);    //bytes为空
                         try{
                             sOut.write(bytes, 0, bytes.length);
                             sOut.flush();
+                            System.out.println("mapPointer: " + mapPointer + " pq.peek(): " + pq.peek() + " pq.size(): " + pq.size());
                         }catch (SocketException e){
+                            System.out.println("浏览器抢断式关闭");
                             String closeAck = "close";
                             byte[] closeByte = closeAck.getBytes();
                             DatagramPacket closeACKPack = new DatagramPacket(closeByte, closeByte.length, dpack.getAddress(), dpack.getPort());
@@ -569,7 +578,9 @@ class Sender extends Thread{
                             System.out.println(closeAck + mapPointer);
                             return;
                         }
-                        mapPointer += fileMap.get(pq.poll()).length;  //get 为空
+                        long top = pq.poll();
+                        System.out.println("top: " + top);
+                        mapPointer += fileMap.get(top).length;  //get 为空
                     }
                 }
 //                if(mapPointer >= FrontEndHttpServer.sharedFileSize.get(peerFilePath)){

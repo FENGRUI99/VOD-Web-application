@@ -45,7 +45,6 @@ public class BackEndServer extends Thread{
 //            System.out.println("####################");
             // message from http server
             if (header.getSrc() == 0){
-
                 pool.execute(new BackEndRequest(dpack.getAddress(), dpack.getPort(), header.peerIp, header.peerPort, header.fileName, header.start, header.length, header.rate));
             }
             // message from peer back-end server
