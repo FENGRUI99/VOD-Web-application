@@ -211,10 +211,10 @@ class BackEndRequest extends Thread{
                     }
 
 
-                    if (new String(frontPack.getData()).equals("close")){
+                    if (new String(frontPack.getData()).trim().equals("close")){
                         System.out.println("close: " + new String(frontPack.getData()));
                         close();
-                        break;
+                        break L1;
                     }
 
                     recePointer++;
