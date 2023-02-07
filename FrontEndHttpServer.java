@@ -569,14 +569,25 @@ class Sender extends Thread{
 //                    break;
 //                }
                 if(mapPointer >= Long.valueOf(tail)){
+                    String closeAck = "close";
+                    byte[] closeByte = closeAck.getBytes();
+                    DatagramPacket closeACKPack = new DatagramPacket(closeByte, closeByte.length, dpack.getAddress(), dpack.getPort());
+                    dsock.send(closeACKPack);
+                    System.out.println(closeAck);
                     break;
                 }
             }
             else { //Not found// todo: deal with not found
                 response404();
+                String closeAck = "close";
+                byte[] closeByte = closeAck.getBytes();
+                DatagramPacket closeACKPack = new DatagramPacket(closeByte, closeByte.length, dpack.getAddress(), dpack.getPort());
+                dsock.send(closeACKPack);
+                System.out.println(closeAck + mapPointer);
                 break;
             }
         }
+
     }
 
 }
