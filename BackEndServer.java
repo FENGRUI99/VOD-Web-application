@@ -200,17 +200,17 @@ class BackEndRequest extends Thread{
 //                    System.out.println(frontPack.getLength());
                     frontSock.send(frontPack);
                     frontSock.setSoTimeout(5000);
-                    tmp = new byte[20];
+                    tmp = new byte[40];
                     frontPack = new DatagramPacket(tmp, 0, tmp.length);
                     try{
                         frontSock.receive(frontPack);
                     }catch (SocketTimeoutException e){
-                        System.out.println("前端失联");
+                        System.out.println("前端失联: ");
                         close();
                         break L1;
                     }
 
-                    System.out.println("前端回复ACK");
+                    System.out.println("前端回复ACK: " + new String(frontPack.getData()));
 
                     recePointer++;
                     start += chunkSize;

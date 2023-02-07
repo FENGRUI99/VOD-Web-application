@@ -364,6 +364,14 @@ class Sender extends Thread{
             int headerLen = convertByteToInt(bendPackage, 0);
             int contentLen = convertByteToInt(bendPackage, 4);
             ResponseHeader header = JSONObject.parseObject(new String(bendPackage, 8, headerLen), ResponseHeader.class);
+
+/////////////////////////////////////////// todo: mark!!!!!!!!!!!!!
+            String ack = "ACK start: "+header.start + " len: " + header.length;
+            byte[] ackb = ack.getBytes();
+            DatagramPacket ACKPack = new DatagramPacket(ackb, ackb.length, dpack.getAddress(), dpack.getPort());
+            dsock.send(ACKPack);
+
+
 //            System.out.println(header.toString());
             //judge header
             if (header.statusCode == 0) {
@@ -481,9 +489,21 @@ class Sender extends Thread{
             ResponseHeader header = JSONObject.parseObject(new String(bendPackage, 8, headerLen), ResponseHeader.class);
             //System.out.println(header.toString());
             //judge header
+
+            /////////////////////////////////////////// todo: mark!!!!!!!!!!!!!
+            long ackStart = header.start;
+            long ackLen = header.length;
+
+            String ack = "ACK start: "+header.start + " len: " + header.length;
+            byte[] ackb = ack.getBytes();
+            DatagramPacket ACKPack = new DatagramPacket(ackb, ackb.length, dpack.getAddress(), dpack.getPort());
+            dsock.send(ACKPack);
+
+
+
             if (header.statusCode == 0) {
-                fileName = header.getFileName();
                 System.out.println("fileName: " + fileName);
+                fileName = header.getFileName();
                 lastModified = header.getLastModified();
                 //form header
                 String fType = URLConnection.guessContentTypeFromName(fileName);
@@ -506,6 +526,7 @@ class Sender extends Thread{
                     sOut.writeUTF(httpHeader);
                     headerFlag = true;
                 }
+
             }
             //接受文件存在map中
             else if (header.statusCode == 1) {
