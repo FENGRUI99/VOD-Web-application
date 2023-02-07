@@ -163,6 +163,7 @@ class BackEndRequest extends Thread{
                 RTT = (int) (endTime-startTime);
                 chunkSize = Math.min(30000, RTT * rate/8);
                 dsock.setSoTimeout(100*RTT);
+                frontSock.setSoTimeout(100*RTT);
                 fileSize = header.length;
 
                 //length = fileSize - start;
@@ -199,15 +200,14 @@ class BackEndRequest extends Thread{
                     frontPack = new DatagramPacket(tmp, tmp.length, frontEndAddress, frontEndPort);
 //                    System.out.println(frontPack.getLength());
                     frontSock.send(frontPack);
-                    frontSock.setSoTimeout(5000);
-                    tmp = new byte[40];
+
+                    tmp = new byte[50];
                     frontPack = new DatagramPacket(tmp, 0, tmp.length);
                     try{
                         frontSock.receive(frontPack);
                     }catch (SocketTimeoutException e){
-                        System.out.println("前端失联: ");
-                        close();
-                        break L1;
+                        System.out.println("##########前端失联, 重发############");
+                        continue;
                     }
 
                     System.out.println("前端回复ACK: " + new String(frontPack.getData()));

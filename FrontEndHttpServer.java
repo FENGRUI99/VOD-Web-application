@@ -152,7 +152,7 @@ class Sender extends Thread{
                             if (headTail.length > 1) tail = headTail[1];
                             else if (Long.valueOf(tail) > Long.valueOf(headTail[0]) + max){
                                 tail = String.valueOf((Long.valueOf(headTail[0]) + max));
-                                System.out.println("yes");
+//                                System.out.println("yes");
                             }
                             System.out.println("@Frontend: head: " + headTail[0] +" tail: "+tail);
                             httpRetransfer206(info[1], headTail[0], tail);
