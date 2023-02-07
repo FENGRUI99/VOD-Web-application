@@ -366,7 +366,9 @@ class Sender extends Thread{
             ResponseHeader header = JSONObject.parseObject(new String(bendPackage, 8, headerLen), ResponseHeader.class);
 
 /////////////////////////////////////////// todo: mark!!!!!!!!!!!!!
-            String ack = "ACK start: "+header.start + " len: " + header.length;
+            long ackStart = header.start;
+            long ackLen = header.length;
+            String ack = "start:"+ackStart + "/len:" + ackLen;
             byte[] ackb = ack.getBytes();
             DatagramPacket ACKPack = new DatagramPacket(ackb, ackb.length, dpack.getAddress(), dpack.getPort());
             dsock.send(ACKPack);
@@ -493,8 +495,7 @@ class Sender extends Thread{
             /////////////////////////////////////////// todo: mark!!!!!!!!!!!!!
             long ackStart = header.start;
             long ackLen = header.length;
-
-            String ack = "ACK start: "+header.start + " len: " + header.length;
+            String ack = "start:"+ackStart + "/len:" + ackLen;
             byte[] ackb = ack.getBytes();
             DatagramPacket ACKPack = new DatagramPacket(ackb, ackb.length, dpack.getAddress(), dpack.getPort());
             dsock.send(ACKPack);
