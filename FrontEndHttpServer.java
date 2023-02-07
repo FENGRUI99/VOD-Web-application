@@ -417,8 +417,15 @@ class Sender extends Thread{
                 if(headerFlag == true){
                     while(pq.size() != 0 && mapPointer == pq.peek()){
                         byte[] bytes = fileMap.get(mapPointer);    //bytes为空
-                        sOut.write(bytes, 0, bytes.length);
-                        sOut.flush();
+                        try{
+                            sOut.write(bytes, 0, bytes.length);
+                            sOut.flush();
+                        }catch (SocketException e){
+                            String closeAck = "close";
+                            byte[] closeByte = closeAck.getBytes();
+                            DatagramPacket closeACKPack = new DatagramPacket(ackb, ackb.length, dpack.getAddress(), dpack.getPort());
+                            dsock.send(closeACKPack);
+                        }
                         mapPointer += fileMap.get(pq.poll()).length;  //get 为空
                     }
                 }
@@ -541,8 +548,15 @@ class Sender extends Thread{
                 if(headerFlag == true){
                     while(pq.size() != 0 && mapPointer == pq.peek()){
                         byte[] bytes = fileMap.get(mapPointer);    //bytes为空
-                        sOut.write(bytes, 0, bytes.length);
-                        sOut.flush();
+                        try{
+                            sOut.write(bytes, 0, bytes.length);
+                            sOut.flush();
+                        }catch (SocketException e){
+                            String closeAck = "close";
+                            byte[] closeByte = closeAck.getBytes();
+                            DatagramPacket closeACKPack = new DatagramPacket(ackb, ackb.length, dpack.getAddress(), dpack.getPort());
+                            dsock.send(closeACKPack);
+                        }
                         mapPointer += fileMap.get(pq.poll()).length;  //get 为空
                     }
                 }
