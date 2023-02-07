@@ -437,6 +437,7 @@ class Sender extends Thread{
                 //System.out.println("@Frontend/httpRetransfer200: 200 content发送...");
             }
             else { //Not found// todo: deal with not found
+                response404();
                 break;
             }
         }
@@ -572,6 +573,7 @@ class Sender extends Thread{
                 }
             }
             else { //Not found// todo: deal with not found
+                response404();
                 break;
             }
         }
