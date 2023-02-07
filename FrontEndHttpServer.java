@@ -120,21 +120,21 @@ class Sender extends Thread{
                 //向peers请求文件
                 else{
                     //Store peers info.
-                    System.out.println("@Frontend: 分析client header得出文件在peers");
+                    //System.out.println("@Frontend: 分析client header得出文件在peers");
                     if (info[1].startsWith("/peer/add?path")) {
-                        System.out.println("@Frontend: 开始储存peers信息");
+                        //System.out.println("@Frontend: 开始储存peers信息");
                         String[] tmp = info[1].substring(15).split("&");
                         peerFilePath = tmp[0];
                         if (!FrontEndHttpServer.sharedPeersInfo.containsKey(peerFilePath)) {
                             FrontEndHttpServer.sharedPeersInfo.put(peerFilePath, new ArrayList<>());
                         }
                         FrontEndHttpServer.sharedPeersInfo.get(peerFilePath).add(info[1].substring(15));
-                        System.out.println("mapsize: " + FrontEndHttpServer.sharedPeersInfo.size()+" peersNum: " + FrontEndHttpServer.sharedPeersInfo.get(peerFilePath).size());
+                        //System.out.println("mapsize: " + FrontEndHttpServer.sharedPeersInfo.size()+" peersNum: " + FrontEndHttpServer.sharedPeersInfo.get(peerFilePath).size());
                         System.out.println("@Frontend: peers信息储存成功");
                         continue;
                     }
                     else if (info[1].startsWith("/peer/view")){
-                        System.out.println("@Frontend: client请求文件（200/206）");
+                        //System.out.println("@Frontend: client请求文件（200/206）");
                         //info[1]: peer/view/content/test.png
                         String nameKey = info[1].substring(11);
                         //System.out.println("namekey: "+nameKey);
@@ -154,7 +154,7 @@ class Sender extends Thread{
                                 tail = String.valueOf((Long.valueOf(headTail[0]) + max));
 //                                System.out.println("yes");
                             }
-                            System.out.println("@Frontend: head: " + headTail[0] +" tail: "+tail);
+                            //System.out.println("@Frontend: head: " + headTail[0] +" tail: "+tail);
                             httpRetransfer206(info[1], headTail[0], tail);
                             System.out.println("@Frontend: 向client发送206成功");
                         }
@@ -313,7 +313,7 @@ class Sender extends Thread{
         ArrayList<String> peerInfo = FrontEndHttpServer.sharedPeersInfo.get(peerFilePath);
 
         //向几个peers要文件就发送几次报文
-        System.out.println("@Frontend/httpRetransfer200: 向peers发送请求报文");
+        //System.out.println("@Frontend/httpRetransfer200: 向peers发送请求报文");
         DatagramSocket dsock = new DatagramSocket();
         dsock.setSoTimeout(1000);
 
@@ -343,14 +343,14 @@ class Sender extends Thread{
             byte[] sendArr = message.getBytes();
             DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
             dsock.send(dpack);
-            System.out.println("@Frontend/httpRetransfer200: peers_" + i + " 发送成功");
-            System.out.println("@Frontend/httpRetransfer200: message" + i + ": " + message.toString());
+            //System.out.println("@Frontend/httpRetransfer200: peers_" + i + " 发送成功");
+            //System.out.println("@Frontend/httpRetransfer200: message" + i + ": " + message.toString());
         }
-        System.out.println("@Frontend/httpRetransfer200: peers全发送成功");
+        //System.out.println("@Frontend/httpRetransfer200: peers全发送成功");
 
         //wait for response
         //一直向所有后端接收
-        System.out.println("@Frontend/httpRetransfer200: 开始从peers接受并转发");
+        //System.out.println("@Frontend/httpRetransfer200: 开始从peers接受并转发");
         while(true) {
             DatagramPacket dpack = new DatagramPacket(recArr, recArr.length);
             try{
@@ -403,7 +403,7 @@ class Sender extends Thread{
                 if(headerFlag == false){
                     sOut.writeUTF(httpHeader);
                     headerFlag = true;
-                    System.out.println("@Frontend/httpRetransfer200: 200 header发送成功");
+                    //System.out.println("@Frontend/httpRetransfer200: 200 header发送成功");
                 }
             }
             //接受文件存在map中
@@ -423,7 +423,7 @@ class Sender extends Thread{
                         }catch (SocketException e){
                             String closeAck = "close";
                             byte[] closeByte = closeAck.getBytes();
-                            DatagramPacket closeACKPack = new DatagramPacket(ackb, ackb.length, dpack.getAddress(), dpack.getPort());
+                            DatagramPacket closeACKPack = new DatagramPacket(closeByte, closeByte.length, dpack.getAddress(), dpack.getPort());
                             dsock.send(closeACKPack);
                             System.out.println(closeAck + mapPointer);
                             return;
@@ -435,7 +435,6 @@ class Sender extends Thread{
                     break;
                 }
                 //System.out.println("@Frontend/httpRetransfer200: 200 content发送...");
-
             }
             else { //Not found// todo: deal with not found
                 break;
@@ -469,8 +468,8 @@ class Sender extends Thread{
             DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
             dsock.send(dpack);
             start += splitSize;
-            System.out.println("@Frontend/httpRetransfer206: peers_" + i + " 发送成功");
-            System.out.println("@Frontend/httpRetransfer206: message" + i + ": " + message.toString());
+            //System.out.println("@Frontend/httpRetransfer206: peers_" + i + " 发送成功");
+            //System.out.println("@Frontend/httpRetransfer206: message" + i + ": " + message.toString());
         }
 
         //wait for response
@@ -513,7 +512,7 @@ class Sender extends Thread{
 
 
             if (header.statusCode == 0) {
-                System.out.println("fileName: " + fileName);
+                //System.out.println("fileName: " + fileName);
                 fileName = header.getFileName();
                 lastModified = header.getLastModified();
                 //form header
@@ -557,7 +556,7 @@ class Sender extends Thread{
                         }catch (SocketException e){
                             String closeAck = "close";
                             byte[] closeByte = closeAck.getBytes();
-                            DatagramPacket closeACKPack = new DatagramPacket(ackb, ackb.length, dpack.getAddress(), dpack.getPort());
+                            DatagramPacket closeACKPack = new DatagramPacket(closeByte, closeByte.length, dpack.getAddress(), dpack.getPort());
                             dsock.send(closeACKPack);
                             System.out.println(closeAck + mapPointer);
                             return;
