@@ -454,6 +454,7 @@ class BackEndResponse extends Thread{
             System.arraycopy(resHeader.getBytes(), 0, sendArr, 8, resHeader.length());
             dpack.setData(sendArr);
             dsock.send(dpack);
+            System.out.println("response header: " + resHeader.toString());
             startNumber++;
             startSeq++;
             if (flag) break;
