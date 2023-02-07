@@ -37,7 +37,8 @@ function displayPeers(){
 
 function skipToResponse(){
     sessionStorage.setItem("textData", oInp.value);
-    window.location.href = "showResponse.html";
+    // window.location.href = "showResponse.html";
+    window.location.href = "http://localhost:8080/" + oInp.value;
 }
 
 function convertToRightType(){
