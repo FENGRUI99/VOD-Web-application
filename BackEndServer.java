@@ -92,7 +92,7 @@ class BackEndRequest extends Thread{
     }
     public void startRequest() throws Exception {
         dsock = new DatagramSocket();
-        dsock.setSoTimeout(5000);
+        dsock.setSoTimeout(1000);
         // say hello to Peer listener thread
         String message = JSONObject.toJSONString(new ListenerHeader(1));
         byte[] sendArr = message.getBytes();
@@ -101,11 +101,17 @@ class BackEndRequest extends Thread{
         // wait for hello from Peer response thread
         byte[] recArr = new byte[1024];
         dpack = new DatagramPacket(recArr, recArr.length);
-        try{
-            dsock.receive(dpack);
-        } catch (SocketTimeoutException e){
-            dsock.send(dpack);
+        while (true){
+            try{
+                dsock.receive(dpack);
+            } catch (SocketTimeoutException e){
+                dpack = new DatagramPacket(sendArr, sendArr.length, peerListenAddress, peerListenPort);
+                dsock.send(dpack);
+                continue;
+            }
+            break;
         }
+
 
         InetAddress peerResAddress = dpack.getAddress();
         int peerResPort = dpack.getPort();
