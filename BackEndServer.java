@@ -105,6 +105,7 @@ class BackEndRequest extends Thread{
             try{
                 dsock.receive(dpack);
             } catch (SocketTimeoutException e){
+                System.out.println("重新像peer say hello");
                 dpack = new DatagramPacket(sendArr, sendArr.length, peerListenAddress, peerListenPort);
                 dsock.send(dpack);
                 continue;
@@ -216,7 +217,7 @@ class BackEndRequest extends Thread{
                         continue;
                     }
 
-
+                    System.out.println(new String(frontPack.getData()).trim());
                     if (new String(frontPack.getData()).trim().equals("close")){
                         System.out.println("close: " + new String(frontPack.getData()).trim());
                         close();

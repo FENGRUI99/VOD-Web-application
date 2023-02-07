@@ -492,7 +492,10 @@ class Sender extends Thread{
                 dsock.receive(dpack);
             }
             catch (SocketTimeoutException e){
-                continue;
+                System.out.println("waiting for data: " + mapPointer);
+                System.out.println(mapPointer + " 是否存在： " + fileMap.containsKey(mapPointer));
+                System.out.println(pq.peek());
+                if (!fileMap.containsKey(mapPointer)) continue;
             }
             //从dpack中获取header和content信息，分别存在header和content[]中
             byte[] bendPackage = dpack.getData();
@@ -503,13 +506,15 @@ class Sender extends Thread{
             //judge header
 
             /////////////////////////////////////////// todo: mark!!!!!!!!!!!!!
-            long ackStart = header.start;
-            long ackLen = header.length;
-            String ack = "start:"+ackStart + "/len:" + ackLen;
-            byte[] ackb = ack.getBytes();
-            DatagramPacket ACKPack = new DatagramPacket(ackb, ackb.length, dpack.getAddress(), dpack.getPort());
-            dsock.send(ACKPack);
+//            if (dpack.getAddress() != null){
+                long ackStart = header.start;
+                long ackLen = header.length;
+                String ack = "start:"+ackStart + "/len:" + ackLen;
+                byte[] ackb = ack.getBytes();
+                DatagramPacket ACKPack = new DatagramPacket(ackb, ackb.length, dpack.getAddress(), dpack.getPort());
+                dsock.send(ACKPack);
 
+//            }
 
 
             if (header.statusCode == 0) {
