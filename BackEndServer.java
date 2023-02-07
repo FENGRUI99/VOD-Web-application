@@ -211,6 +211,10 @@ class BackEndRequest extends Thread{
                     }
 
                     System.out.println("前端回复ACK: " + new String(frontPack.getData()));
+                    if (new String(frontPack.getData()).equals("close")){
+                        close();
+                        break;
+                    }
 
                     recePointer++;
                     start += chunkSize;

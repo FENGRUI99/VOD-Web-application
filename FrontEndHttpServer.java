@@ -357,7 +357,7 @@ class Sender extends Thread{
                 dsock.receive(dpack);
             }
             catch (SocketTimeoutException e){
-                break;
+                continue;
             }
             //从dpack中获取header和content信息，分别存在header和content[]中
             byte[] bendPackage = dpack.getData();
@@ -482,7 +482,7 @@ class Sender extends Thread{
                 dsock.receive(dpack);
             }
             catch (SocketTimeoutException e){
-                break;
+                continue;
             }
             //从dpack中获取header和content信息，分别存在header和content[]中
             byte[] bendPackage = dpack.getData();
