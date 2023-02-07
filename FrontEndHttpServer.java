@@ -425,6 +425,8 @@ class Sender extends Thread{
                             byte[] closeByte = closeAck.getBytes();
                             DatagramPacket closeACKPack = new DatagramPacket(ackb, ackb.length, dpack.getAddress(), dpack.getPort());
                             dsock.send(closeACKPack);
+                            System.out.println(closeAck + mapPointer);
+                            return;
                         }
                         mapPointer += fileMap.get(pq.poll()).length;  //get 为空
                     }
@@ -483,6 +485,7 @@ class Sender extends Thread{
         boolean headerFlag = false;
 
         //一直向所有后端接收
+
         while(true) {
             DatagramPacket dpack = new DatagramPacket(recArr, recArr.length);
             try{
@@ -556,6 +559,8 @@ class Sender extends Thread{
                             byte[] closeByte = closeAck.getBytes();
                             DatagramPacket closeACKPack = new DatagramPacket(ackb, ackb.length, dpack.getAddress(), dpack.getPort());
                             dsock.send(closeACKPack);
+                            System.out.println(closeAck + mapPointer);
+                            return;
                         }
                         mapPointer += fileMap.get(pq.poll()).length;  //get 为空
                     }

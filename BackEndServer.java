@@ -210,7 +210,7 @@ class BackEndRequest extends Thread{
                         continue;
                     }
 
-                    System.out.println("前端回复ACK: " + new String(frontPack.getData()));
+                    //System.out.println("前端回复ACK: " + new String(frontPack.getData()));
                     if (new String(frontPack.getData()).equals("close")){
                         close();
                         break;
