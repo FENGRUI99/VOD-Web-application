@@ -1,7 +1,8 @@
 const receivedTextData = document.getElementById("receivedTextData");
 receivedTextData.innerHTML = sessionStorage.getItem("textData");
+const path = 'http://127.0.0.1:8080/';
 
-fetch('http://172.16.7.10:8080/' + receivedTextData.textContent)
+fetch(path + receivedTextData.textContent)
     .then(response => {
         const contentType = response.headers.get("Content-Type");
         if (contentType.includes("text/plain") || contentType.includes("text/html") || contentType.includes("text/htm")) {
