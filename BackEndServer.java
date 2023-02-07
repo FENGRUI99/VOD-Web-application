@@ -206,7 +206,7 @@ class BackEndRequest extends Thread{
                     try{
                         frontSock.receive(frontPack);
                     }catch (SocketTimeoutException e){
-                        System.out.println("##########前端失联, 重发############");
+                        System.out.println("##########前端失联, 重发: " + recePointer * chunkSize);
                         continue;
                     }
 
