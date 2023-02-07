@@ -148,7 +148,7 @@ class Sender extends Thread{
                             System.out.println("@Frontend: 向client发送206...");
                             String[] headTail = clientRequest.get("Range").split("bytes=")[1].split("-");
                             String tail = ""+FrontEndHttpServer.sharedFileSize.get(nameKey);
-                            long max = 20000000;
+                            long max = 5 * 1000 * 1000;
                             if (headTail.length > 1) tail = headTail[1];
                             else if (Long.valueOf(tail) > Long.valueOf(headTail[0]) + max){
                                 tail = String.valueOf((Long.valueOf(headTail[0]) + max));

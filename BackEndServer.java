@@ -212,7 +212,7 @@ class BackEndRequest extends Thread{
 
 
                     if (new String(frontPack.getData()).trim().equals("close")){
-                        System.out.println("close: " + new String(frontPack.getData()));
+                        System.out.println("close: " + new String(frontPack.getData()).trim());
                         close();
                         break L1;
                     }
@@ -371,6 +371,7 @@ class BackEndResponse extends Thread{
             }
             else if (!f.exists()){
                 // 404
+                break;
             }
             // get range of file
             else if (header.statusCode == 1){
@@ -381,11 +382,12 @@ class BackEndResponse extends Thread{
             else {
                 // status code == 2 -> finish
                 System.out.println("Close");
+                break;
             }
         }
     }
     public RequestHeader waitRequest() throws Exception{
-        byte[] recArr = new byte[20480];
+        byte[] recArr = new byte[2048];
         dpack = new DatagramPacket(recArr, recArr.length);
         dsock.receive(dpack);
         System.out.println("Client ip: " + dpack.getAddress() + ", port: " + dpack.getPort());
