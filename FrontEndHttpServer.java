@@ -148,7 +148,7 @@ class Sender extends Thread{
                             System.out.println("@Frontend: 向client发送206...");
                             String[] headTail = clientRequest.get("Range").split("bytes=")[1].split("-");
                             String tail = ""+FrontEndHttpServer.sharedFileSize.get(nameKey);
-                            long max = 20000000;
+                            long max = 1000000;
                             if (headTail.length > 1) tail = headTail[1];
                             else if (Long.valueOf(tail) > Long.valueOf(headTail[0]) + max){
                                 tail = String.valueOf((Long.valueOf(headTail[0]) + max));
@@ -315,7 +315,7 @@ class Sender extends Thread{
         //向几个peers要文件就发送几次报文
         System.out.println("@Frontend/httpRetransfer200: 向peers发送请求报文");
         DatagramSocket dsock = new DatagramSocket();
-        dsock.setSoTimeout(5000);
+        dsock.setSoTimeout(1000);
 
         HashMap<Long, byte[]> fileMap = new HashMap<>();
         PriorityQueue<Long> pq = new PriorityQueue<>();
@@ -412,7 +412,7 @@ class Sender extends Thread{
                         mapPointer += fileMap.get(pq.poll()).length;  //get 为空
                     }
                 }
-                if(mapPointer == FrontEndHttpServer.sharedFileSize.get(peerFilePath)){
+                if(mapPointer >= FrontEndHttpServer.sharedFileSize.get(peerFilePath)){
                     break;
                 }
                 //System.out.println("@Frontend/httpRetransfer200: 200 content发送...");
@@ -431,7 +431,7 @@ class Sender extends Thread{
 
         //向几个peers要文件就发送几次报文
         DatagramSocket dsock = new DatagramSocket();
-        dsock.setSoTimeout(5000);
+        dsock.setSoTimeout(1000);
         long start = Long.parseLong(head);
         long length = splitSize;
 
@@ -482,8 +482,8 @@ class Sender extends Thread{
             //System.out.println(header.toString());
             //judge header
             if (header.statusCode == 0) {
-                System.out.println("fileName: " + fileName);
                 fileName = header.getFileName();
+                System.out.println("fileName: " + fileName);
                 lastModified = header.getLastModified();
                 //form header
                 String fType = URLConnection.guessContentTypeFromName(fileName);
@@ -506,7 +506,6 @@ class Sender extends Thread{
                     sOut.writeUTF(httpHeader);
                     headerFlag = true;
                 }
-
             }
             //接受文件存在map中
             else if (header.statusCode == 1) {
@@ -514,7 +513,7 @@ class Sender extends Thread{
                 System.arraycopy(bendPackage, 8 + headerLen, content, 0, contentLen);
                 fileMap.put(header.start, content);
                 pq.add(header.start);
-                System.out.println("@Frontend: fileMap size: " + fileMap.size() + " ");
+//                System.out.println("@Frontend: fileMap size: " + fileMap.size() + " ");
 
                 //发送206给browser
                 if(headerFlag == true){
@@ -525,7 +524,10 @@ class Sender extends Thread{
                         mapPointer += fileMap.get(pq.poll()).length;  //get 为空
                     }
                 }
-                if(mapPointer == FrontEndHttpServer.sharedFileSize.get(peerFilePath)){
+//                if(mapPointer >= FrontEndHttpServer.sharedFileSize.get(peerFilePath)){
+//                    break;
+//                }
+                if(mapPointer >= Long.valueOf(tail)){
                     break;
                 }
             }

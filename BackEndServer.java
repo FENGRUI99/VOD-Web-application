@@ -132,10 +132,12 @@ class BackEndRequest extends Thread{
                 dsock.receive(dpack);                           // receive the packet
             }catch (SocketTimeoutException e){
                 System.out.println("cut window, start: " + start + ", length: " + length);
-                cutNumber --;
-                if (cutNumber < 0) {
-                    close();
-                    break;
+                if (windowSize == 1){
+                    cutNumber--;
+                    if (cutNumber < 0){
+                        close();
+                        break;
+                    }
                 }
                 windowSize = Math.max(windowSize/2, 1);
                 requestRange(fileName, start, length, chunkSize);
@@ -197,6 +199,18 @@ class BackEndRequest extends Thread{
                     frontPack = new DatagramPacket(tmp, tmp.length, frontEndAddress, frontEndPort);
 //                    System.out.println(frontPack.getLength());
                     frontSock.send(frontPack);
+                    frontSock.setSoTimeout(5000);
+                    tmp = new byte[20];
+                    frontPack = new DatagramPacket(tmp, 0, tmp.length);
+                    try{
+                        frontSock.receive(frontPack);
+                    }catch (SocketTimeoutException e){
+                        System.out.println("前端失联");
+                        close();
+                        break L1;
+                    }
+
+                    System.out.println("前端回复ACK");
 
                     recePointer++;
                     start += chunkSize;
