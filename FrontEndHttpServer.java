@@ -510,6 +510,7 @@ class Sender extends Thread{
                 long ackStart = header.start;
                 long ackLen = header.length;
                 String ack = "start:"+ackStart + "/len:" + ackLen;
+                System.out.println("收到文件start: " + ack);
                 byte[] ackb = ack.getBytes();
                 DatagramPacket ACKPack = new DatagramPacket(ackb, ackb.length, dpack.getAddress(), dpack.getPort());
                 dsock.send(ACKPack);
@@ -555,6 +556,7 @@ class Sender extends Thread{
                 //发送206给browser
                 if(headerFlag == true){
                     while(pq.size() != 0 && mapPointer == pq.peek()){
+                        System.out.println("mapPointer: " + mapPointer + " pq.peek(): " + pq.peek());
                         byte[] bytes = fileMap.get(mapPointer);    //bytes为空
                         try{
                             sOut.write(bytes, 0, bytes.length);
