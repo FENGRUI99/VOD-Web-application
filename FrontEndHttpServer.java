@@ -16,6 +16,8 @@ public class FrontEndHttpServer extends Thread{
     public static HashMap<String, ArrayList<String>> sharedPeersInfo = new HashMap<>();
     public static HashMap<String, Long> sharedFileSize = new HashMap<>();
 
+    public static long oneFileStart = 0;
+    public static long bitRate = 0;
     int frontEndPort;
     int backEndPort;
     public FrontEndHttpServer(int frontEndPort, int backEndPort){
@@ -90,9 +92,26 @@ class Sender extends Thread{
                     String[] tmp = inputLine.split(": ");
                     clientRequest.put(tmp[0], tmp[1]);
                 }
-                 System.out.println(info[1]);
+
+                if (info[1].equals("status/request")){
+                    OutputStreamWriter out = new OutputStreamWriter(clientSocket.getOutputStream());
+                    JSONObject obj = new JSONObject();
+                    String name = "";
+                    for (String k : FrontEndHttpServer.sharedFileSize.keySet()){
+                        name = k;
+                        break;
+                    }
+                    obj.put("fileName",name);
+                    obj.put("fileSize", FrontEndHttpServer.sharedFileSize.get(name));
+                    obj.put("start", FrontEndHttpServer.oneFileStart);
+                    obj.put("bitRate", FrontEndHttpServer.bitRate);
+                    obj.put("progress", (double)FrontEndHttpServer.oneFileStart / FrontEndHttpServer.sharedFileSize.get(name));
+                    out.write(obj.toString());
+                    out.flush();
+                    out.close();
+                }
                 // 请求本地文件
-                if (!info[1].startsWith("/peer")){
+                else if (!info[1].startsWith("/peer")){
 //                    System.out.println("@Frontend: 分析client header得出文件在本地");
                     f = findFile(info[1]);
                     if (f.exists() && !clientRequest.containsKey("Range")){
@@ -120,15 +139,16 @@ class Sender extends Thread{
                     //System.out.println("@Frontend: 分析client header得出文件在peers");
                     if (info[1].startsWith("/peer/add?path")) {
                         responseFake200();
-                        //System.out.println("@Frontend: 开始储存peers信息");
+                        System.out.println("start to store peer info");
                         String[] tmp = info[1].substring(15).split("&");
                         peerFilePath = tmp[0];
                         if (!FrontEndHttpServer.sharedPeersInfo.containsKey(peerFilePath)) {
                             FrontEndHttpServer.sharedPeersInfo.put(peerFilePath, new ArrayList<>());
                         }
                         FrontEndHttpServer.sharedPeersInfo.get(peerFilePath).add(info[1].substring(15));
-                        //System.out.println("mapsize: " + FrontEndHttpServer.sharedPeersInfo.size()+" peersNum: " + FrontEndHttpServer.sharedPeersInfo.get(peerFilePath).size());
-//                        System.out.println("@Frontend: peers信息储存成功");
+                        System.out.println(info[1]);
+//                        System.out.println("mapsize: " + FrontEndHttpServer.sharedPeersInfo.size()+" peersNum: " + FrontEndHttpServer.sharedPeersInfo.get(peerFilePath).size());
+                        System.out.println("finish store peer info");
                         break;
                     }
                     else if (info[1].startsWith("/peer/view")){
@@ -137,24 +157,23 @@ class Sender extends Thread{
                         String nameKey = info[1].substring(11);
                         //System.out.println("namekey: "+nameKey);
                         if (!clientRequest.containsKey("Range")){
-//                            System.out.println("@Frontend: 向client发送200...");
+                            System.out.println("start to response200 to browser");
                             httpRetransfer200(info[1]);
-//                            System.out.println("@Frontend: 向client发送200成功");
+                            System.out.println("finish response200 to browser");
                         }
                         else {
                             //TODO LZJ's responsibility
-//                            System.out.println("@Frontend: 向client发送206...");
+                            System.out.println("start to response206 to browser");
                             String[] headTail = clientRequest.get("Range").split("bytes=")[1].split("-");
                             String tail = ""+FrontEndHttpServer.sharedFileSize.get(nameKey);
                             long max = 5 * 1000 * 1000;
                             if (headTail.length > 1) tail = headTail[1];
                             else if (Long.valueOf(tail) > Long.valueOf(headTail[0]) + max){
                                 tail = String.valueOf((Long.valueOf(headTail[0]) + max));
-//                                System.out.println("yes");
                             }
                             //System.out.println("@Frontend: head: " + headTail[0] +" tail: "+tail);
                             httpRetransfer206(info[1], headTail[0], tail);
-//                            System.out.println("@Frontend: 向client发送206成功");
+                            System.out.println("finish response206 to browser");
                         }
                     }
                     else if (info[1].startsWith("/peer/status")){
@@ -170,6 +189,7 @@ class Sender extends Thread{
                     else if (info[1].startsWith("/peer/config")){
                         //TODO CFR's responsibility
                         // /peer/config?rate=<bytes/s>
+                        System.out.println("start to config rate");
                         responseFake200();
                         String rate = info[1].split("rate=")[1];
                         for (String fileName : FrontEndHttpServer.sharedPeersInfo.keySet()){
@@ -181,8 +201,10 @@ class Sender extends Thread{
                                 else {
                                     peers.set(i, peers.get(i) + "&rate=" + rate);
                                 }
+                                System.out.println("peer info: " + peers.get(i));
                             }
                         }
+                        System.out.println("finish config rate");
                     }
                     else {
                         response404();
@@ -198,7 +220,6 @@ class Sender extends Thread{
             e.printStackTrace();
         }
     }
-
     public static String getMD5Str(byte[] digest) {
         try {
             MessageDigest md5 = MessageDigest.getInstance("md5");
@@ -370,6 +391,7 @@ class Sender extends Thread{
             if (tmp.length > 3){
                 rate = Integer.valueOf(tmp[3].substring(5));
             }
+            FrontEndHttpServer.bitRate = rate;
             String message = JSONObject.toJSONString(new ListenerHeader(0, InetAddress.getByName("127.0.0.1"), dsock.getPort(), peerIp, peerPort, peerFilePath, start, length, rate));
             byte[] sendArr = message.getBytes();
             DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
@@ -457,9 +479,9 @@ class Sender extends Thread{
                             byte[] closeByte = closeAck.getBytes();
                             DatagramPacket closeACKPack = new DatagramPacket(closeByte, closeByte.length, dpack.getAddress(), dpack.getPort());
                             dsock.send(closeACKPack);
-                            System.out.println(closeAck + mapPointer);
                             return;
                         }
+                        FrontEndHttpServer.oneFileStart = Math.max(FrontEndHttpServer.oneFileStart, mapPointer);
                         mapPointer += fileMap.get(pq.poll()).length;  //get 为空
                     }
                 }
@@ -496,6 +518,7 @@ class Sender extends Thread{
             if (tmp.length > 3){
                 rate = Integer.valueOf(tmp[3].substring(5));
             }
+            FrontEndHttpServer.bitRate = rate;
             String message = JSONObject.toJSONString(new ListenerHeader(0, InetAddress.getByName("127.0.0.1"), dsock.getPort(), peerIp, peerPort, peerFilePath, start, length, rate));
             byte[] sendArr = message.getBytes();
             DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
@@ -604,11 +627,11 @@ class Sender extends Thread{
                             byte[] closeByte = closeAck.getBytes();
                             DatagramPacket closeACKPack = new DatagramPacket(closeByte, closeByte.length, dpack.getAddress(), dpack.getPort());
                             dsock.send(closeACKPack);
-                            System.out.println(closeAck + mapPointer);
                             return;
                         }
                         long top = pq.poll();
 //                        System.out.println("top: " + top);
+                        FrontEndHttpServer.oneFileStart = Math.max(FrontEndHttpServer.oneFileStart, mapPointer);
                         mapPointer += fileMap.get(top).length;  //get 为空
                     }
                 }
@@ -620,7 +643,6 @@ class Sender extends Thread{
                     byte[] closeByte = closeAck.getBytes();
                     DatagramPacket closeACKPack = new DatagramPacket(closeByte, closeByte.length, dpack.getAddress(), dpack.getPort());
                     dsock.send(closeACKPack);
-                    System.out.println(closeAck);
                     break;
                 }
             }
