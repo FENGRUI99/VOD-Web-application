@@ -9,6 +9,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -129,6 +130,7 @@ class BackEndRequest extends Thread{
         HashMap<Integer, byte[]> fileMap = new HashMap<>();
         frontSock = new DatagramSocket();
         int cutNumber = 5;
+
         L1:
         while (true) {
             recArr = new byte[Math.min(2*chunkSize, 60000)];
@@ -136,6 +138,17 @@ class BackEndRequest extends Thread{
             //AIMD过程
             try {
                 dsock.receive(dpack);                           // receive the packet
+
+                //todo:simulate the packet loss
+                if(Packet_Loss_Simulation(0.5)){
+                    System.out.println("###触发丢包###");
+                    windowSize = Math.max(windowSize/2, 1);
+                    requestRange(fileName, start, length, chunkSize);
+                    receSize = 0;
+                    continue;
+                }
+
+
             }catch (SocketTimeoutException e){
                 System.out.println("cut window, start: " + start + ", length: " + length);
 //                if (windowSize == 1){
@@ -150,7 +163,7 @@ class BackEndRequest extends Thread{
                 receSize = 0;
                 continue;
             }
-            cutNumber = 5;
+//            cutNumber = 5;
             //从dpack中获取header和content信息，分别存在header和content[]中
             byte[] info = dpack.getData();
             int headerLen = convertByteToInt(info, 0);
@@ -257,6 +270,15 @@ class BackEndRequest extends Thread{
        */
 
     }
+    public boolean Packet_Loss_Simulation(double lossRate) throws Exception {
+        Random random = new Random();
+        double randomNumber = random.nextDouble();
+        if (randomNumber < lossRate) {
+            return true;
+        } else {
+            return false;
+        }
+    }
     public byte[] map2File(HashMap<Integer, byte[]> map, int fileSize){
         byte[] file = new byte[fileSize];
         int pointer = 0;
@@ -298,7 +320,6 @@ class BackEndRequest extends Thread{
         dsock.close();
         //System.out.println("Status_2 send success");
     }
-
     public byte[] getPreHeader(int headerLen, int contentLen){
         byte[] headerLenBytes = convertIntToByte(headerLen);
         byte[] contentLenBytes = convertIntToByte(contentLen);
