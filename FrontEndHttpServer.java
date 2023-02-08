@@ -157,6 +157,12 @@ class Sender extends Thread{
                     }
                     else if (info[1].startsWith("/peer/status")){
                         //TODO ben's responsibility
+                        File htmlFile = new File("./html/views/status.html");
+                        try {
+                            Desktop.getDesktop().browse(htmlFile.toURI());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                     else if (info[1].startsWith("/peer/config")){
                         //TODO CFR's responsibility

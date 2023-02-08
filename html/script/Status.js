@@ -1,9 +1,4 @@
-var oStaBtn = document.getElementById('status-btn');
+const path = 'http://127.0.0.1:8080/';
 
-oStaBtn.onclick = function () {
-    LinkToStatusWeb();
-}
-
-function LinkToStatusWeb() {
-    location.href ='test.html';
-}
+fetch(path)
+.then()
