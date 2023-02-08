@@ -82,7 +82,7 @@ class Sender extends Thread{
             String[] info;
 
             while ((inputLine = sIn.readLine()) != null){
-                System.out.println("@Frontend: Get input from browser: " + inputLine);
+//                System.out.println("@Frontend: Get input from browser: " + inputLine);
                 info = inputLine.split(" ");
 
                 while (!(inputLine = sIn.readLine()).equals("")) {
@@ -93,7 +93,7 @@ class Sender extends Thread{
                  System.out.println(info[1]);
                 // 请求本地文件
                 if (!info[1].startsWith("/peer")){
-                    System.out.println("@Frontend: 分析client header得出文件在本地");
+//                    System.out.println("@Frontend: 分析client header得出文件在本地");
                     f = findFile(info[1]);
                     if (f.exists() && !clientRequest.containsKey("Range")){
                         // System.out.println("response code: 200");
@@ -128,7 +128,7 @@ class Sender extends Thread{
                         }
                         FrontEndHttpServer.sharedPeersInfo.get(peerFilePath).add(info[1].substring(15));
                         //System.out.println("mapsize: " + FrontEndHttpServer.sharedPeersInfo.size()+" peersNum: " + FrontEndHttpServer.sharedPeersInfo.get(peerFilePath).size());
-                        System.out.println("@Frontend: peers信息储存成功");
+//                        System.out.println("@Frontend: peers信息储存成功");
                         break;
                     }
                     else if (info[1].startsWith("/peer/view")){
@@ -137,13 +137,13 @@ class Sender extends Thread{
                         String nameKey = info[1].substring(11);
                         //System.out.println("namekey: "+nameKey);
                         if (!clientRequest.containsKey("Range")){
-                            System.out.println("@Frontend: 向client发送200...");
+//                            System.out.println("@Frontend: 向client发送200...");
                             httpRetransfer200(info[1]);
-                            System.out.println("@Frontend: 向client发送200成功");
+//                            System.out.println("@Frontend: 向client发送200成功");
                         }
                         else {
                             //TODO LZJ's responsibility
-                            System.out.println("@Frontend: 向client发送206...");
+//                            System.out.println("@Frontend: 向client发送206...");
                             String[] headTail = clientRequest.get("Range").split("bytes=")[1].split("-");
                             String tail = ""+FrontEndHttpServer.sharedFileSize.get(nameKey);
                             long max = 5 * 1000 * 1000;
@@ -154,7 +154,7 @@ class Sender extends Thread{
                             }
                             //System.out.println("@Frontend: head: " + headTail[0] +" tail: "+tail);
                             httpRetransfer206(info[1], headTail[0], tail);
-                            System.out.println("@Frontend: 向client发送206成功");
+//                            System.out.println("@Frontend: 向client发送206成功");
                         }
                     }
                     else if (info[1].startsWith("/peer/status")){
@@ -526,8 +526,6 @@ class Sender extends Thread{
             }
             catch (SocketTimeoutException e){
                 System.out.println("waiting for data: " + mapPointer);
-                System.out.println(mapPointer + " 是否存在： " + fileMap.containsKey(mapPointer));
-                System.out.println("pq peek: " + pq.peek() + ", size: " + pq.size());
                 if (!fileMap.containsKey(mapPointer)) continue;
             }
             //从dpack中获取header和content信息，分别存在header和content[]中
@@ -599,9 +597,9 @@ class Sender extends Thread{
                         try{
                             sOut.write(bytes, 0, bytes.length);
                             sOut.flush();
-                            System.out.println("mapPointer: " + mapPointer + " pq.peek(): " + pq.peek() + " pq.size(): " + pq.size());
+//                            System.out.println("mapPointer: " + mapPointer + " pq.peek(): " + pq.peek() + " pq.size(): " + pq.size());
                         }catch (SocketException e){
-                            System.out.println("浏览器抢断式关闭");
+                            System.out.println("browser close http");
                             String closeAck = "close";
                             byte[] closeByte = closeAck.getBytes();
                             DatagramPacket closeACKPack = new DatagramPacket(closeByte, closeByte.length, dpack.getAddress(), dpack.getPort());
@@ -610,7 +608,7 @@ class Sender extends Thread{
                             return;
                         }
                         long top = pq.poll();
-                        System.out.println("top: " + top);
+//                        System.out.println("top: " + top);
                         mapPointer += fileMap.get(top).length;  //get 为空
                     }
                 }

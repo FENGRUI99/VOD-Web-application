@@ -104,7 +104,7 @@ class BackEndRequest extends Thread{
             try{
                 dsock.receive(dpack);
             } catch (SocketTimeoutException e){
-                System.out.println("重新像peer say hello");
+                System.out.println("restart to peer say hello");
                 dpack = new DatagramPacket(sendArr, sendArr.length, peerListenAddress, peerListenPort);
                 dsock.send(dpack);
                 continue;
@@ -137,7 +137,7 @@ class BackEndRequest extends Thread{
             try {
                 dsock.receive(dpack);                           // receive the packet
             }catch (SocketTimeoutException e){
-                System.out.println("cut window, start: " + start + ", length: " + length);
+//                System.out.println("cut window, start: " + start + ", length: " + length);
 //                if (windowSize == 1){
 //                    cutNumber--;
 //                    if (cutNumber < 0){
