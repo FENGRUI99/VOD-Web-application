@@ -46,7 +46,7 @@ function convertToRightType(){
     if(oInp.value.startsWith("/")){
         oInp.value = oInp.value.substring(1);
         convertToRightType();
-    }else if(oInp.value.startsWith(path)){
+    }else if(oInp.value.startsWith(path) || oInp.value.startsWith('http://localhost:8080/')){
         oInp.value = oInp.value.substring(22);
         convertToRightType();
     }
