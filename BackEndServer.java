@@ -167,6 +167,7 @@ class BackEndRequest extends Thread{
                 //读取rtt, RTO = 2*RTT
                 long endTime = Calendar.getInstance().getTimeInMillis();
                 RTT = (int) (endTime-startTime);
+                if (rate == 0) rate = 8000000;
                 chunkSize = Math.min(50000, RTT * rate/8);
                 dsock.setSoTimeout(100*RTT);
                 frontSock.setSoTimeout(100*RTT);

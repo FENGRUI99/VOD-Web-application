@@ -8,6 +8,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -118,6 +119,7 @@ class Sender extends Thread{
                     //Store peers info.
                     //System.out.println("@Frontend: 分析client header得出文件在peers");
                     if (info[1].startsWith("/peer/add?path")) {
+                        responseFake200();
                         //System.out.println("@Frontend: 开始储存peers信息");
                         String[] tmp = info[1].substring(15).split("&");
                         peerFilePath = tmp[0];
@@ -127,7 +129,7 @@ class Sender extends Thread{
                         FrontEndHttpServer.sharedPeersInfo.get(peerFilePath).add(info[1].substring(15));
                         //System.out.println("mapsize: " + FrontEndHttpServer.sharedPeersInfo.size()+" peersNum: " + FrontEndHttpServer.sharedPeersInfo.get(peerFilePath).size());
                         System.out.println("@Frontend: peers信息储存成功");
-                        continue;
+                        break;
                     }
                     else if (info[1].startsWith("/peer/view")){
                         //System.out.println("@Frontend: client请求文件（200/206）");
@@ -156,8 +158,9 @@ class Sender extends Thread{
                         }
                     }
                     else if (info[1].startsWith("/peer/status")){
+                        responseFake200();
                         //TODO ben's responsibility
-                        File htmlFile = new File("./html/views/status.html");
+                        File htmlFile = new File("html/views/frontPage.html");
                         try {
                             Desktop.getDesktop().browse(htmlFile.toURI());
                         } catch (IOException e) {
@@ -166,6 +169,20 @@ class Sender extends Thread{
                     }
                     else if (info[1].startsWith("/peer/config")){
                         //TODO CFR's responsibility
+                        // /peer/config?rate=<bytes/s>
+                        responseFake200();
+                        String rate = info[1].split("rate=")[1];
+                        for (String fileName : FrontEndHttpServer.sharedPeersInfo.keySet()){
+                            List<String> peers = FrontEndHttpServer.sharedPeersInfo.get(fileName);
+                            for (int i = 0; i < peers.size(); i++){
+                                if(peers.get(i).contains("rate")){
+                                    peers.set(i, peers.get(i).split("rate")[0] + "rate=" + rate);
+                                }
+                                else {
+                                    peers.set(i, peers.get(i) + "&rate=" + rate);
+                                }
+                            }
+                        }
                     }
                     else {
                         response404();
@@ -215,6 +232,14 @@ class Sender extends Thread{
         File file = new File("." + path);
         if (!file.exists()) file = new File("./content" + path);
         return file;
+    }
+
+    private void responseFake200() throws IOException {
+        String header = "HTTP/1.1 200 OK" + CRLF +
+                "Connection: " + "keep-alive" + CRLF +
+                "Access-Control-Allow-Origin: *" + CRLF + CRLF;
+        sOut.writeUTF(header);
+        sOut.flush();
     }
     private void response200() throws IOException {
         //header
