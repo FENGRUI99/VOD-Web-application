@@ -131,7 +131,7 @@ class BackEndRequest extends Thread{
         int cutNumber = 5;
         L1:
         while (true) {
-            recArr = new byte[2*chunkSize];
+            recArr = new byte[Math.min(2*chunkSize, 60000)];
             dpack.setData(recArr, 0, recArr.length);
             //AIMD过程
             try {
@@ -167,7 +167,7 @@ class BackEndRequest extends Thread{
                 //读取rtt, RTO = 2*RTT
                 long endTime = Calendar.getInstance().getTimeInMillis();
                 RTT = (int) (endTime-startTime);
-                chunkSize = Math.min(30000, RTT * rate/8);
+                chunkSize = Math.min(50000, RTT * rate/8);
                 dsock.setSoTimeout(100*RTT);
                 frontSock.setSoTimeout(100*RTT);
                 fileSize = header.length;
