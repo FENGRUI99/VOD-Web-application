@@ -485,7 +485,7 @@ class Sender extends Thread{
                             dsock.send(closeACKPack);
                             return;
                         }
-                        FrontEndHttpServer.oneFileStart = Math.max(FrontEndHttpServer.oneFileStart, mapPointer);
+                        FrontEndHttpServer.oneFileStart += fileMap.get(pq.poll()).length;
                         mapPointer += fileMap.get(pq.poll()).length;  //get 为空
                     }
                 }
@@ -635,7 +635,7 @@ class Sender extends Thread{
                         }
                         long top = pq.poll();
 //                        System.out.println("top: " + top);
-                        FrontEndHttpServer.oneFileStart = Math.max(FrontEndHttpServer.oneFileStart, mapPointer);
+                        FrontEndHttpServer.oneFileStart += fileMap.get(pq.poll()).length;
                         mapPointer += fileMap.get(top).length;  //get 为空
                     }
                 }
