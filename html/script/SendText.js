@@ -46,6 +46,9 @@ function convertToRightType(){
     if(oInp.value.startsWith("/")){
         oInp.value = oInp.value.substring(1);
         convertToRightType();
+    }else if(oInp.value.startsWith(path)){
+        oInp.value = oInp.value.substring(22);
+        convertToRightType();
     }
     // else if(oInp.value.startsWith("http://")){
     //     oInp.value = oInp.value.substring(7);
