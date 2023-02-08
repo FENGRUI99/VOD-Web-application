@@ -89,9 +89,7 @@ class Sender extends Thread{
                     String[] tmp = inputLine.split(": ");
                     clientRequest.put(tmp[0], tmp[1]);
                 }
-                // System.out.println(info[1]);
-
-
+                 System.out.println(info[1]);
                 // 请求本地文件
                 if (!info[1].startsWith("/peer")){
                     System.out.println("@Frontend: 分析client header得出文件在本地");
@@ -99,6 +97,7 @@ class Sender extends Thread{
                     if (f.exists() && !clientRequest.containsKey("Range")){
                         // System.out.println("response code: 200");
                         response200();
+                        in.close();
                     }
                     else if (f.exists()){
                         // System.out.println("response code: 206");
@@ -107,13 +106,11 @@ class Sender extends Thread{
                         String tail = "";
                         if (headTail.length > 1) tail = headTail[1];
                         response206(headTail[0], tail);
+                        in.close();
                     }
                     else {
                         // System.out.println("response code: 404");
                         response404();
-                    }
-                    if (in != null) {
-                        in.close();
                     }
                 }
                 //向peers请求文件
@@ -170,7 +167,7 @@ class Sender extends Thread{
                 }
                 break;
             }
-            System.out.println("@Frontend: ########close###########");
+//            System.out.println("@Frontend: ########close###########");
             sOut.close();
             sIn.close();
             clientSocket.close();
@@ -219,9 +216,9 @@ class Sender extends Thread{
         Date date = new Date();
         Date lastModified = new Date(f.lastModified());
         SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
-        if (fType.equals("audio/ogg")){
-            fType = "video/ogg";
-        }
+//        if (fType.equals("audio/ogg")){
+//            fType = "video/ogg";
+//        }
         String header = "HTTP/1.1 200 OK" + CRLF +
                 "Content-Length: " + f.length() + CRLF +
                 "Content-Type: " + fType + CRLF +
@@ -257,13 +254,15 @@ class Sender extends Thread{
         else{
             endByte = Long.parseLong(tail);
         }
+        endByte = Math.min(endByte, f.length());
+
         String fType = URLConnection.guessContentTypeFromName(this.f.getName());
         Date date = new Date();
         Date lastModified = new Date(f.lastModified());
         SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
-        if (fType.equals("audio/ogg")){
-            fType = "video/ogg";
-        }
+//        if (fType.equals("audio/ogg")){
+//            fType = "video/ogg";
+//        }
         //form and send header
         String header = "HTTP/1.1 206 Partial Content" + CRLF +
                 "Content-Length: " + (endByte - startByte) + CRLF +
@@ -285,6 +284,7 @@ class Sender extends Thread{
             int length;
             in.skip(startByte);  //Skip 'startbytes' bytes tp reach the start point
             while ((length = in.read(bytes, 0, bytes.length)) != -1) {
+                System.out.println("send");
                 if (max <= length){
                     sOut.write(bytes, 0, (int)max);
                     sOut.flush();
