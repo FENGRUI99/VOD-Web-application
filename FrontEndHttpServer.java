@@ -93,8 +93,12 @@ class Sender extends Thread{
                     clientRequest.put(tmp[0], tmp[1]);
                 }
 
-                if (info[1].equals("status/request")){
+                if (info[1].equals("/status/request")){
                     OutputStreamWriter out = new OutputStreamWriter(clientSocket.getOutputStream());
+                    String header = "HTTP/1.1 200 OK" + CRLF +
+                            "Connection: " + "keep-alive" + CRLF +
+                            "Access-Control-Allow-Origin: *" + CRLF + CRLF;
+                    out.write(header);
                     JSONObject obj = new JSONObject();
                     String name = "";
                     for (String k : FrontEndHttpServer.sharedFileSize.keySet()){
@@ -179,7 +183,7 @@ class Sender extends Thread{
                     else if (info[1].startsWith("/peer/status")){
                         responseFake200();
                         //TODO ben's responsibility
-                        File htmlFile = new File("html/views/frontPage.html");
+                        File htmlFile = new File("html/views/status.html");
                         try {
                             Desktop.getDesktop().browse(htmlFile.toURI());
                         } catch (IOException e) {
