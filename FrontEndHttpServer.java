@@ -485,8 +485,9 @@ class Sender extends Thread{
                             dsock.send(closeACKPack);
                             return;
                         }
-                        FrontEndHttpServer.oneFileStart += fileMap.get(pq.poll()).length;
-                        mapPointer += fileMap.get(pq.poll()).length;  //get 为空
+                        long top = pq.poll();
+                        FrontEndHttpServer.oneFileStart += fileMap.get(top).length;
+                        mapPointer += fileMap.get(top).length;  //get 为空
                     }
                 }
                 if(mapPointer >= FrontEndHttpServer.sharedFileSize.get(peerFilePath)){
@@ -635,7 +636,7 @@ class Sender extends Thread{
                         }
                         long top = pq.poll();
 //                        System.out.println("top: " + top);
-                        FrontEndHttpServer.oneFileStart += fileMap.get(pq.poll()).length;
+                        FrontEndHttpServer.oneFileStart += fileMap.get(top).length;
                         mapPointer += fileMap.get(top).length;  //get 为空
                     }
                 }
