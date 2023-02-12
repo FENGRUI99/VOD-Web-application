@@ -1,5 +1,3 @@
-import com.alibaba.fastjson.JSON;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -14,7 +12,7 @@ public class Router {
     static String peerCount;
     static String uuid;
     static String content;
-    static HashMap<String, String> peerInfo; // peerName -> sequence
+    static HashMap<String, String> peerSeq; // peerName -> sequence
     public Router(){
         File configFile = new File("node.config");
         // Create a Properties object
@@ -39,7 +37,7 @@ public class Router {
         if(uuid.length() != 36){
             uuid = UUID.randomUUID().toString();
         }
-        peerInfo = new HashMap<>();
+        peerSeq = new HashMap<>();
     }
     public static void receive(){
 
