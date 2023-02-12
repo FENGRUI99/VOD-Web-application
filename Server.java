@@ -16,6 +16,5 @@ public class Server {
         BackEndServer backEndListener = new BackEndServer(backEndPort);
         frontEndListener.start();
         backEndListener.start();
-
     }
 }

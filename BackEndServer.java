@@ -113,7 +113,6 @@ class BackEndRequest extends Thread{
             break;
         }
 
-
         InetAddress peerResAddress = dpack.getAddress();
         int peerResPort = dpack.getPort();
 //        System.out.println(new String(dpack.getData()));
@@ -140,7 +139,7 @@ class BackEndRequest extends Thread{
                 dsock.receive(dpack);                           // receive the packet
 
                 //todo:simulate the packet loss
-                if(Packet_Loss_Simulation(0.0)){
+                if(Packet_Loss_Simulation(0.5)){
                     System.out.println("#############Packge loss#############");
                     windowSize = Math.max(windowSize/2, 1);
                     requestRange(fileName, start, length, chunkSize);
