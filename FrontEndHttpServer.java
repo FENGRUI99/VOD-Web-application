@@ -138,6 +138,9 @@ class Sender extends Thread{
                     }
                 }
                 //向peers请求文件
+                else if(info[1].startsWith("/peer/kill")){
+                    killThread();
+                }
                 else{
                     //Store peers info.
                     //System.out.println("@Frontend: 分析client header得出文件在peers");
@@ -657,6 +660,13 @@ class Sender extends Thread{
             }
         }
 
+    }
+    private void killThread() throws IOException{
+        DatagramSocket dsock = new DatagramSocket();
+        String message = "killThread";
+        byte[] sendArr = message.getBytes();
+        DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
+        dsock.send(dpack);
     }
 
 }
