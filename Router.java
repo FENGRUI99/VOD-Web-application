@@ -1,3 +1,4 @@
+import com.alibaba.fastjson.JSONObject;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -13,6 +14,7 @@ public class Router {
     static String uuid;
     static String content;
     static HashMap<String, String> peerSeq; // peerName -> sequence
+    JSONObject routerMap;
     public Router(){
         File configFile = new File("node.config");
         // Create a Properties object
@@ -38,6 +40,13 @@ public class Router {
             uuid = UUID.randomUUID().toString();
         }
         peerSeq = new HashMap<>();
+        routerMap = new JSONObject();
+        JSONObject localMap = new JSONObject();
+        for (String peer : peers){
+            String[] peerInfo = peer.split(",");
+            localMap.put(peerInfo[0], peerInfo[3]);  // uuid -> distance
+        }
+        routerMap.put(uuid, localMap);
     }
     public static void receive(){
 
