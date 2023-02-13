@@ -211,7 +211,6 @@ class BackEndRequest extends Thread{
                     frontPack = new DatagramPacket(tmp, tmp.length, frontEndAddress, frontEndPort);
 //                    System.out.println(frontPack.getLength());
                     frontSock.send(frontPack);
-
                     tmp = new byte[50];
                     frontPack = new DatagramPacket(tmp, 0, tmp.length);
                     try{

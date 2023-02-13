@@ -85,7 +85,7 @@ public class Router {
         if(id == uuid){
             byte[] message = new byte[68+sendArr.length];
             id = id+sequence;
-            System.arraycopy(id, 0, message, 0, id.length());
+            System.arraycopy(id.getBytes(), 0, message, 0, id.length());
             System.arraycopy(sendArr, 0, message, 68, sendArr.length);
             sendArr = new byte[message.length];
             System.arraycopy(message, 0, message, 0, message.length);
