@@ -102,8 +102,9 @@ public class Router {
         //dpack.close();
     }
 
-    public static void main(String[] args) {
-
+    public static void main(String[] args) throws Exception {
+        Router router = new Router();
+        router.start();
     }
     // change the information in node.config
     private void setConfig(String fileName, String uuid, String name, int frontEndPort, int backEndPort, String contentDir, int peerCount, List<String> peers){
