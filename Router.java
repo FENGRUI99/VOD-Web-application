@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.util.*;
 
 public class Router {
@@ -67,19 +68,25 @@ public class Router {
     public void send(String id, int sequence) throws Exception{
         DatagramSocket dsock = new DatagramSocket();
         byte[] sendArr = routerMap.toJSONString().getBytes();
+        DatagramPacket dpack;
         if(id == uuid){
             byte[] message = new byte[68+sendArr.length];
             id = id+sequence;
             System.arraycopy(id, 0, message, 0, id.length());
             System.arraycopy(sendArr, 0, message, 68, sendArr.length);
+            sendArr = new byte[message.length];
+            System.arraycopy(message, 0, message, 0, message.length);
+            seq++;
         }
 
-        for(int i = 0; i < peers.size(); i++){
-            //DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, peerip, peerport);
-            //dsock.send(dpack);
+        for(int i = 0; i < peers.size(); i++){//1，3
+            String[] peerInfo = peers.get(i).split(",");
+            dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName(peerInfo[1]), Integer.valueOf(peerInfo[3]));
+            dsock.send(dpack);
         }
 
-        seq++;
+        dsock.close();
+        //dpack.close();
     }
 
     public static void main(String[] args) {
