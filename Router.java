@@ -67,7 +67,7 @@ public class Router {
             // 68:  JSON
             byte[] recArr = dpack.getData();
             String uuid = new String(recArr, 0, 36);
-            int sequence = Integer.valueOf(new String(recArr, 36, 32));
+            int sequence = Integer.valueOf(new String(recArr, 36, 32).trim());
             // TODO 这里接收可能有问题
             JSONObject peerMap = JSONObject.parseObject(new String(recArr, 68, recArr.length - 68).trim());
             if (sequence > peerSeq.getOrDefault(uuid, -1)){
@@ -75,22 +75,34 @@ public class Router {
                 routerMap.put(uuid, peerMap);
                 send(uuid, sequence);
             }
+
+            System.out.println("local router map size: " + routerMap.size());
+//            for(String s : routerMap.keySet()){
+//                System.out.println(routerMap.get(s));
+//            }
+            System.out.println(routerMap.toJSONString());
         }
     }
 
     //发送自身路由表 或 转发peers路由表
     public void send(String id, int sequence) throws Exception{
-        DatagramSocket dsock = new DatagramSocket(Integer.parseInt(backEndPort));
+        DatagramSocket dsock = new DatagramSocket();
         DatagramPacket dpack;
         byte[] sendArr = routerMap.toJSONString().getBytes();
+        //System.out.println("44444444:" + routerMap.toJSONString());
 
         if(id == uuid){
             byte[] message = new byte[68+sendArr.length];
             String header = id+sequence;
+            System.out.println("header string:" + header);
             System.arraycopy(header.getBytes(), 0, message, 0, header.length());
+
             System.arraycopy(sendArr, 0, message, 68, sendArr.length);
+
             sendArr = new byte[message.length];
-            System.arraycopy(message, 0, message, 0, message.length);
+
+            System.arraycopy(message, 0, sendArr, 0, message.length);
+            System.out.println("sendArr string:" + new String(sendArr));
             seq++;
         }
 
@@ -106,11 +118,8 @@ public class Router {
 
     public static void main(String[] args) throws Exception {
         Router router = new Router();
+        System.out.println(router.routerMap.get("bbbee632-56b5-4a15-88ef-7bd3b7081141"));
         router.start();
-        System.out.println("local router map size: " + router.routerMap.size());
-        for(String s : router.routerMap.keySet()){
-            System.out.println(router.routerMap.get(s));
-        }
     }
     // change the information in node.config
     private void setConfig(String fileName, String uuid, String name, int frontEndPort, int backEndPort, String contentDir, int peerCount, List<String> peers){
