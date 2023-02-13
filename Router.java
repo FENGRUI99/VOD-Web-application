@@ -16,6 +16,7 @@ public class Router {
     String peerCount;
     String uuid;
     String content;
+    int seq;
     HashMap<String, String> peerSeq; // peerName -> sequence
     JSONObject routerMap;
     public Router(){
@@ -62,9 +63,23 @@ public class Router {
 
         }
     }
+    //接收的uuid自己or node 和seq
+    public void send(String id, int sequence) throws Exception{
+        DatagramSocket dsock = new DatagramSocket();
+        byte[] sendArr = routerMap.toJSONString().getBytes();
+        if(id == uuid){
+            byte[] message = new byte[68+sendArr.length];
+            id = id+sequence;
+            System.arraycopy(id, 0, message, 0, id.length());
+            System.arraycopy(sendArr, 0, message, 68, sendArr.length);
+        }
 
-    public void send(String uuid, int sequence){
+        for(int i = 0; i < peers.size(); i++){
+            //DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, peerip, peerport);
+            //dsock.send(dpack);
+        }
 
+        seq++;
     }
 
     public static void main(String[] args) {
