@@ -44,6 +44,7 @@ public class Router {
         if(uuid.length() != 36){
             uuid = UUID.randomUUID().toString();
         }
+
         peerSeq = new HashMap<>();
         routerMap = new JSONObject();
         JSONObject localMap = new JSONObject();
@@ -77,15 +78,16 @@ public class Router {
         }
     }
 
-    //接收的uuid自己or node 和seq
+    //发送自身路由表 或 转发peers路由表
     public void send(String id, int sequence) throws Exception{
-        DatagramSocket dsock = new DatagramSocket();
-        byte[] sendArr = routerMap.toJSONString().getBytes();
+        DatagramSocket dsock = new DatagramSocket(Integer.parseInt(backEndPort));
         DatagramPacket dpack;
+        byte[] sendArr = routerMap.toJSONString().getBytes();
+
         if(id == uuid){
             byte[] message = new byte[68+sendArr.length];
-            id = id+sequence;
-            System.arraycopy(id.getBytes(), 0, message, 0, id.length());
+            String header = id+sequence;
+            System.arraycopy(header.getBytes(), 0, message, 0, header.length());
             System.arraycopy(sendArr, 0, message, 68, sendArr.length);
             sendArr = new byte[message.length];
             System.arraycopy(message, 0, message, 0, message.length);
@@ -105,6 +107,10 @@ public class Router {
     public static void main(String[] args) throws Exception {
         Router router = new Router();
         router.start();
+        System.out.println("local router map size: " + router.routerMap.size());
+        for(String s : router.routerMap.keySet()){
+            System.out.println(router.routerMap.get(s));
+        }
     }
     // change the information in node.config
     private void setConfig(String fileName, String uuid, String name, int frontEndPort, int backEndPort, String contentDir, int peerCount, List<String> peers){
