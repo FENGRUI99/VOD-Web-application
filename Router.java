@@ -18,7 +18,7 @@ public class Router {
     String uuid;
     String content;
     int seq;
-    HashMap<String, String> peerSeq; // peerName -> sequence
+    HashMap<String, Integer> peerSeq; // peerName -> sequence
     JSONObject routerMap;
     public Router(){
         File configFile = new File("node.config");
@@ -53,17 +53,30 @@ public class Router {
         }
         routerMap.put(uuid, localMap);
     }
-    public void receive() throws Exception{
+
+    public void start() throws Exception {
         DatagramSocket dsock = new DatagramSocket(Integer.parseInt(backEndPort));
-        byte[] recArr = new byte[2048];
-        DatagramPacket dpack = new DatagramPacket(recArr, recArr.length);
+        byte[] sendArr = new byte[2048];
+        DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length);
+        send(uuid, seq);
         while(true){
             dsock.receive(dpack);
+            // 0:35 uuid
+            // 36: 67 sequence
+            // 68:  JSON
+            byte[] recArr = dpack.getData();
+            String uuid = new String(recArr, 0, 36);
+            int sequence = Integer.valueOf(new String(recArr, 36, 32));
             // TODO 这里接收可能有问题
-            JSON.parse(dpack.getData());
-
+            JSONObject peerMap = JSONObject.parseObject(new String(recArr, 68, recArr.length - 68).trim());
+            if (sequence > peerSeq.getOrDefault(uuid, -1)){
+                peerSeq.put(uuid, sequence);
+                routerMap.put(uuid, peerMap);
+                send(uuid, sequence);
+            }
         }
     }
+
     //接收的uuid自己or node 和seq
     public void send(String id, int sequence) throws Exception{
         DatagramSocket dsock = new DatagramSocket();
@@ -90,17 +103,7 @@ public class Router {
     }
 
     public static void main(String[] args) {
-        Router r = new Router();
-        System.out.println(r.frontEndPort);
-        System.out.println(r.backEndPort);
-        System.out.println(r.name);
-        System.out.println(r.peers.size());
-        for(int i = 0; i < r.peers.size(); i++){
-            System.out.println(r.peers.get(i));
-        }
-        System.out.println(r.peerCount);
-        System.out.println(r.uuid);
-        System.out.println(r.content);
+
     }
     // change the information in node.config
     private void setConfig(String fileName, String uuid, String name, int frontEndPort, int backEndPort, String contentDir, int peerCount, List<String> peers){
