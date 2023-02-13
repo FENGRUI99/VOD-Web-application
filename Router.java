@@ -1,19 +1,22 @@
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.util.*;
 
 public class Router {
-    static String frontEndPort;
-    static String backEndPort;
-    static String name;
-    static List<String> peers;
-    static String peerCount;
-    static String uuid;
-    static String content;
-    static HashMap<String, String> peerSeq; // peerName -> sequence
+    String frontEndPort;
+    String backEndPort;
+    String name;
+    List<String> peers;
+    String peerCount;
+    String uuid;
+    String content;
+    HashMap<String, String> peerSeq; // peerName -> sequence
     JSONObject routerMap;
     public Router(){
         File configFile = new File("node.config");
@@ -44,33 +47,41 @@ public class Router {
         JSONObject localMap = new JSONObject();
         for (String peer : peers){
             String[] peerInfo = peer.split(",");
-            localMap.put(peerInfo[0], peerInfo[3]);  // uuid -> distance
+            localMap.put(peerInfo[0], peerInfo[4]);  // uuid -> distance
         }
         routerMap.put(uuid, localMap);
     }
-    public static void receive(){
+    public void receive() throws Exception{
+        DatagramSocket dsock = new DatagramSocket(Integer.parseInt(backEndPort));
+        byte[] recArr = new byte[2048];
+        DatagramPacket dpack = new DatagramPacket(recArr, recArr.length);
+        while(true){
+            dsock.receive(dpack);
+            // TODO 这里接收可能有问题
+            JSON.parse(dpack.getData());
 
+        }
     }
 
-    public static void send(){
+    public void send(String uuid, int sequence){
 
     }
 
     public static void main(String[] args) {
         Router r = new Router();
-        System.out.println(Router.frontEndPort);
-        System.out.println(Router.backEndPort);
-        System.out.println(Router.name);
-        System.out.println(Router.peers.size());
-        for(int i = 0; i < peers.size(); i++){
-            System.out.println(Router.peers.get(i));
+        System.out.println(r.frontEndPort);
+        System.out.println(r.backEndPort);
+        System.out.println(r.name);
+        System.out.println(r.peers.size());
+        for(int i = 0; i < r.peers.size(); i++){
+            System.out.println(r.peers.get(i));
         }
-        System.out.println(Router.peerCount);
-        System.out.println(Router.uuid);
-        System.out.println(Router.content);
+        System.out.println(r.peerCount);
+        System.out.println(r.uuid);
+        System.out.println(r.content);
     }
     // change the information in node.config
-    private static void setConfig(String fileName, String uuid, String name, int frontEndPort, int backEndPort, String contentDir, int peerCount, List<String> peers){
+    private void setConfig(String fileName, String uuid, String name, int frontEndPort, int backEndPort, String contentDir, int peerCount, List<String> peers){
         File configFile = new File(fileName);
         Properties configProperties = new Properties();
         // Modify the properties
