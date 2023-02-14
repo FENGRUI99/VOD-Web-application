@@ -133,7 +133,7 @@ public class Router {
 
     public static void main(String[] args) throws Exception {
         Router router = new Router("routerConfig/" + args[0]);
-        System.out.println(router.routerMap.get("bbbee632-56b5-4a15-88ef-7bd3b7081141"));
+//        System.out.println(router.routerMap.get("bbbee632-56b5-4a15-88ef-7bd3b7081141"));
         router.start();
     }
     // change the information in node.config
