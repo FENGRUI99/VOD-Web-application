@@ -21,7 +21,7 @@ public class Router {
     HashMap<String, Integer> peerSeq; // peerName -> sequence
     JSONObject routerMap;
     public Router(){
-        File configFile = new File("node.config");
+        File configFile = new File("nodeA.config");
         // Create a Properties object
         Properties configProperties = new Properties();
         //Read the properties file
@@ -66,14 +66,17 @@ public class Router {
             // 36: 67 sequence
             // 68:  JSON
             byte[] recArr = dpack.getData();
-            String uuid = new String(recArr, 0, 36);
+            String id = new String(recArr, 0, 36);
             int sequence = Integer.valueOf(new String(recArr, 36, 32).trim());
+            //-1 keep Alive
             // TODO 这里接收可能有问题
             JSONObject peerMap = JSONObject.parseObject(new String(recArr, 68, recArr.length - 68).trim());
-            if (sequence > peerSeq.getOrDefault(uuid, -1)){
-                peerSeq.put(uuid, sequence);
-                routerMap.put(uuid, peerMap);
-                send(uuid, sequence);
+            if (sequence > peerSeq.getOrDefault(id, -1)){
+                peerSeq.put(id, sequence);
+                routerMap.put(id, peerMap);
+                send(id, sequence);
+            }else if(sequence == -1){
+                replyAlive(id);
             }
 
             System.out.println("local router map size: " + routerMap.size());
@@ -84,6 +87,15 @@ public class Router {
         }
     }
 
+    public void replyAlive(String id) throws Exception{
+        DatagramSocket dsock = new DatagramSocket();
+        DatagramPacket dpack;
+        String header = id + "-1";
+        String reply = "yes";
+        byte[] sendArr = new byte[68+reply.length()];
+        System.arraycopy(header.getBytes(), 0, sendArr, 0, header.length());
+        System.arraycopy(reply.getBytes(), 68, sendArr, 0, reply.length());
+    }
     //发送自身路由表 或 转发peers路由表
     public void send(String id, int sequence) throws Exception{
         DatagramSocket dsock = new DatagramSocket();
