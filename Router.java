@@ -1,3 +1,4 @@
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 
 import java.awt.*;
@@ -51,6 +52,7 @@ public class Router {
         }
         routerMap.put(uuid, localMap);
     }
+
     public void start() throws Exception {
         DatagramSocket dsock = new DatagramSocket(Integer.parseInt(backEndPort));
         byte[] sendArr = new byte[2048];
@@ -62,14 +64,17 @@ public class Router {
             // 36: 67 sequence
             // 68:  JSON
             byte[] recArr = dpack.getData();
-            String uuid = new String(recArr, 0, 36);
+            String id = new String(recArr, 0, 36);
             int sequence = Integer.valueOf(new String(recArr, 36, 32).trim());
+            //-1 keep Alive
             // TODO 这里接收可能有问题
             JSONObject peerMap = JSONObject.parseObject(new String(recArr, 68, recArr.length - 68).trim());
-            if (sequence > peerSeq.getOrDefault(uuid, -1)){
-                peerSeq.put(uuid, sequence);
-                routerMap.put(uuid, peerMap.get(uuid));
-                send(uuid, sequence);
+            if (sequence > peerSeq.getOrDefault(id, -1)){
+                peerSeq.put(id, sequence);
+                routerMap.put(id, peerMap);
+                send(id, sequence);
+            }else if(sequence == -1){
+                replyAlive(id);
             }
 
             System.out.println("local router map size: " + routerMap.size());
@@ -78,6 +83,16 @@ public class Router {
 //            }
             System.out.println(routerMap.toJSONString());
         }
+    }
+
+    public void replyAlive(String id) throws Exception{
+        DatagramSocket dsock = new DatagramSocket();
+        DatagramPacket dpack;
+        String header = id + "-1";
+        String reply = "yes";
+        byte[] sendArr = new byte[68+reply.length()];
+        System.arraycopy(header.getBytes(), 0, sendArr, 0, header.length());
+        System.arraycopy(reply.getBytes(), 68, sendArr, 0, reply.length());
     }
     //发送自身路由表 或 转发peers路由表
     public void send(String id, int sequence) throws Exception{
@@ -107,10 +122,12 @@ public class Router {
         }
 
         dsock.close();
-
+        //dpack.close();
     }
+
     public static void main(String[] args) throws Exception {
         Router router = new Router("routerConfig/" + args[0]);
+        System.out.println(router.routerMap.get("bbbee632-56b5-4a15-88ef-7bd3b7081141"));
         router.start();
     }
     // change the information in node.config
