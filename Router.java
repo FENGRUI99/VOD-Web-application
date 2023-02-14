@@ -58,6 +58,11 @@ public class Router {
         byte[] sendArr = new byte[2048];
         DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length);
         send(this.uuid, seq);
+
+        //Start asker thread periodic inquiring neighbor whether alive or not
+        Asker asker = new Asker(peers, uuid, routerMap);
+        asker.start();
+
         while(true){
             dsock.receive(dpack);
             // 0:35 uuid
@@ -74,7 +79,7 @@ public class Router {
                 routerMap.put(id, peerMap);
                 send(id, sequence);
             }else if(sequence == -1){
-                replyAlive(id);
+                replyAlive(id, dsock, dpack);
             }
 
             System.out.println("local router map size: " + routerMap.size());
@@ -85,20 +90,24 @@ public class Router {
         }
     }
 
-    public void replyAlive(String id) throws Exception{
-        DatagramSocket dsock = new DatagramSocket();
-        DatagramPacket dpack;
+    public void replyAlive(String id, DatagramSocket dsock, DatagramPacket dpack) throws Exception{
         String header = id + "-1";
         String reply = "yes";
         byte[] sendArr = new byte[68+reply.length()];
         System.arraycopy(header.getBytes(), 0, sendArr, 0, header.length());
         System.arraycopy(reply.getBytes(), 68, sendArr, 0, reply.length());
+        dpack.setData(sendArr);
+        dsock.send(dpack);
+    }
+    public synchronized byte[] readRouterMap(){
+        return routerMap.toJSONString().getBytes();
     }
     //发送自身路由表 或 转发peers路由表
     public void send(String id, int sequence) throws Exception{
         DatagramSocket dsock = new DatagramSocket();
         DatagramPacket dpack;
-        byte[] sendArr = routerMap.toJSONString().getBytes();
+
+        byte[] sendArr = readRouterMap();
 
         if(id == uuid){
             byte[] message = new byte[68+sendArr.length];
@@ -120,9 +129,6 @@ public class Router {
             dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName(peerInfo[1]), Integer.valueOf(peerInfo[3]));
             dsock.send(dpack);
         }
-
-        dsock.close();
-        //dpack.close();
     }
 
     public static void main(String[] args) throws Exception {
@@ -156,29 +162,37 @@ public class Router {
 class Asker extends Thread{
     List<String> peers;
     String uuid;
-    int seq;
     JSONObject routerMap;
     HashMap<String, Integer> peerCount;
     HashMap<String, String> peerDistance;
-    public Asker(List<String> peers, String uuid, int seq, JSONObject routerMap){
+    public Asker(List<String> peers, String uuid, JSONObject routerMap){
         this.peers = peers;
         this.uuid = uuid;
-        this.seq = seq;
         this.routerMap = routerMap;
+    }
+    public synchronized void modifyMap(){
+        JSONObject localMap = routerMap.getJSONObject(uuid); //TODO 这句可能有问题
+        for (String id : peerCount.keySet()){
+            if (peerCount.get(id) <= 0 && localMap.containsKey(id)){
+                localMap.remove(id);
+            }
+            else if (peerCount.get(id) > 0 && !localMap.containsKey(id)){
+                localMap.put(id, peerDistance.get(id));
+            }
+        }
+        routerMap.put(uuid, localMap);
+    }
+    public void startThread() throws Exception{
+        DatagramSocket dsock = new DatagramSocket();
+        DatagramPacket dpack;
+        dsock.setSoTimeout(1000);
         for (String peer : peers){
             String[] tmp = peer.split(",");
             peerCount.put(tmp[0], 0);
             peerDistance.put(tmp[0], tmp[4]);
         }
-    }
-
-    public void startThread() throws Exception{
-        DatagramSocket dsock = new DatagramSocket();
-        DatagramPacket dpack;
-        dsock.setSoTimeout(1000);
         while (true){
             long start = System.currentTimeMillis();
-            // do something
             for (String peer : peers){
                 String[] tmp = peer.split(",");
                 byte[] header = (uuid + "-1").getBytes();
@@ -189,7 +203,6 @@ class Asker extends Thread{
                 dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName(tmp[1]), Integer.valueOf(tmp[3]));
                 dsock.send(dpack);
             }
-//            synchronized
             while (true){
                 try{
                     byte[] recArr = new byte[2048];
@@ -197,16 +210,7 @@ class Asker extends Thread{
                     dsock.receive(dpack);
                 } catch (SocketTimeoutException e){
                     //TODO 怎么写，既要考虑node下线，也要考虑node上线
-                    JSONObject localMap = routerMap.getJSONObject(uuid); //TODO 这句可能有问题
-                    for (String id : peerCount.keySet()){
-                        if (peerCount.get(id) <= 0 && localMap.containsKey(id)){
-                            localMap.remove(id);
-                        }
-                        else if (peerCount.get(id) > 0 && !localMap.containsKey(id)){
-                            localMap.put(id, peerDistance.get(id));
-                        }
-                    }
-                    routerMap.put(uuid, localMap);
+                    modifyMap(); //TODO 线程同步
                     break;
                 }
                 byte[] recArr = dpack.getData();
@@ -225,6 +229,11 @@ class Asker extends Thread{
     }
     @Override
     public void run() {
+        try{
+            startThread();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
 
     }
 }
