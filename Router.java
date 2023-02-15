@@ -76,7 +76,7 @@ public class Router {
             JSONObject peerMap = JSONObject.parseObject(new String(recArr, 68, recArr.length - 68).trim());
             if (sequence > peerSeq.getOrDefault(id, -1)){
                 peerSeq.put(id, sequence);
-                routerMap.put(id, peerMap);
+                routerMap.put(id, peerMap.get(id));
                 send(id, sequence);
             }else if(sequence == -1){
                 replyAlive(id, dsock, dpack);
@@ -95,7 +95,7 @@ public class Router {
         String reply = "yes";
         byte[] sendArr = new byte[68+reply.length()];
         System.arraycopy(header.getBytes(), 0, sendArr, 0, header.length());
-        System.arraycopy(reply.getBytes(), 68, sendArr, 0, reply.length());
+        System.arraycopy(reply.getBytes(), 0, sendArr, 68, reply.length());
         dpack.setData(sendArr);
         dsock.send(dpack);
     }
@@ -199,9 +199,9 @@ class Asker extends Thread{
                 String[] tmp = peer.split(",");
                 byte[] header = (uuid + "-1").getBytes();
                 byte[] content = "alive".getBytes();
-                byte[] sendArr = new byte[header.length + content.length];
+                byte[] sendArr = new byte[68 + content.length];
                 System.arraycopy(header, 0, sendArr, 0, header.length);
-                System.arraycopy(content, 0, sendArr, header.length, content.length);
+                System.arraycopy(content, 0, sendArr, 68, content.length);
                 dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName(tmp[1]), Integer.valueOf(tmp[3]));
                 dsock.send(dpack);
             }
