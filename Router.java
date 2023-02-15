@@ -169,6 +169,8 @@ class Asker extends Thread{
         this.peers = peers;
         this.uuid = uuid;
         this.routerMap = routerMap;
+        this.peerCount = new HashMap<>();
+        this.peerDistance = new HashMap<>();
     }
     public synchronized void modifyMap(){
         JSONObject localMap = routerMap.getJSONObject(uuid); //TODO 这句可能有问题
