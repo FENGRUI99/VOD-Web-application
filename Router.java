@@ -106,19 +106,15 @@ public class Router {
     public void send(String id, int sequence, byte[] recArr) throws Exception{
         DatagramSocket dsock = new DatagramSocket();
         DatagramPacket dpack;
-
-        byte[] sendArr = null;
+        byte[] sendArr;
 
         if(id == uuid){
             sendArr = readRouterMap();
             byte[] message = new byte[68+sendArr.length];
             String header = id+sequence;
             System.arraycopy(header.getBytes(), 0, message, 0, header.length());
-
             System.arraycopy(sendArr, 0, message, 68, sendArr.length);
-
             sendArr = new byte[message.length];
-
             System.arraycopy(message, 0, sendArr, 0, message.length);
             System.out.println("sendArr string:" + new String(sendArr));
             seq++;
@@ -126,7 +122,6 @@ public class Router {
             sendArr = new byte[recArr.length];
             System.arraycopy(recArr, 0, sendArr, 0, recArr.length);
         }
-
         for(int i = 0; i < peers.size(); i++){//1，3
             String[] peerInfo = peers.get(i).split(",");
             dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName(peerInfo[1]), Integer.valueOf(peerInfo[3]));
@@ -225,14 +220,22 @@ class Asker extends Thread{
                 int count = peerCount.get(id);
                 peerCount.put(id, count - 1);
             }
-
+            saveRouterMap(routerMap, "localRouterMap");
             long end = System.currentTimeMillis();
+
             try {
                 System.out.println("sleep time: " + (3 - (end - start) / 1000));
                 sleep(3000 - (end - start));
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
+        }
+    }
+    public void saveRouterMap(JSONObject routerMap, String fileName) throws Exception{
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
+            writer.write(routerMap.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
     @Override
