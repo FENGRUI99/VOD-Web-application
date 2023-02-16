@@ -80,7 +80,7 @@ public class Router {
                 routerMap.put(id, peerMap.get(id));
                 send(id, sequence);
             }else if(sequence == -1){
-                replyAlive(id, dsock, dpack);
+                replyAlive(uuid, dsock, dpack);
             }
 
 //            System.out.println("local router map size: " + routerMap.size());
@@ -215,6 +215,7 @@ class Asker extends Thread{
                 }
                 byte[] recArr = dpack.getData();
                 String id = new String(recArr, 0, 36);
+                System.out.println("##########id: " + id);
                 int count = peerCount.get(id);
                 peerCount.put(id, count - 1);
             }
