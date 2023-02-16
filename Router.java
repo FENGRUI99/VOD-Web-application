@@ -124,7 +124,7 @@ public class Router {
             seq++;
         }else{
             sendArr = new byte[recArr.length];
-            System.arraycopy(recArr, 0, sendArr, 68, recArr.length);
+            System.arraycopy(recArr, 0, sendArr, 0, recArr.length);
         }
 
         for(int i = 0; i < peers.size(); i++){//1，3
