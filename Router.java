@@ -69,12 +69,13 @@ public class Router {
             // 36: 67 sequence
             // 68:  JSON
             byte[] recArr = dpack.getData();
+            System.out.println("receive data: " + new String(recArr));
             String id = new String(recArr, 0, 36);
             int sequence = Integer.valueOf(new String(recArr, 36, 32).trim());
             //-1 keep Alive
             // TODO 这里接收可能有问题
-            JSONObject peerMap = JSONObject.parseObject(new String(recArr, 68, recArr.length - 68).trim());
             if (sequence > peerSeq.getOrDefault(id, -1)){
+                JSONObject peerMap = JSONObject.parseObject(new String(recArr, 68, recArr.length - 68).trim());
                 peerSeq.put(id, sequence);
                 routerMap.put(id, peerMap.get(id));
                 send(id, sequence);
@@ -82,11 +83,8 @@ public class Router {
                 replyAlive(id, dsock, dpack);
             }
 
-            System.out.println("local router map size: " + routerMap.size());
-//            for(String s : routerMap.keySet()){
-//                System.out.println(routerMap.get(s));
-//            }
-            System.out.println(routerMap.toJSONString());
+//            System.out.println("local router map size: " + routerMap.size());
+//            System.out.println(routerMap.toJSONString());
         }
     }
 
@@ -112,7 +110,6 @@ public class Router {
         if(id == uuid){
             byte[] message = new byte[68+sendArr.length];
             String header = id+sequence;
-            System.out.println("header string:" + header);
             System.arraycopy(header.getBytes(), 0, message, 0, header.length());
 
             System.arraycopy(sendArr, 0, message, 68, sendArr.length);
@@ -195,6 +192,7 @@ class Asker extends Thread{
         }
         while (true){
             long start = System.currentTimeMillis();
+            System.out.println("定时发送");
             for (String peer : peers){
                 String[] tmp = peer.split(",");
                 byte[] header = (uuid + "-1").getBytes();
@@ -223,7 +221,8 @@ class Asker extends Thread{
 
             long end = System.currentTimeMillis();
             try {
-                sleep(10 - (end - start) / 1000);
+                System.out.println("sleep time: " + (3 - (end - start) / 1000));
+                sleep(3000 - (end - start));
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
