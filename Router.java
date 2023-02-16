@@ -64,6 +64,8 @@ public class Router {
         asker.start();
 
         while(true){
+            sendArr = new byte[2048];
+            dpack = new DatagramPacket(sendArr, sendArr.length);
             dsock.receive(dpack);
             // 0:35 uuid
             // 36: 67 sequence
@@ -200,6 +202,7 @@ class Asker extends Thread{
                 byte[] sendArr = new byte[68 + content.length];
                 System.arraycopy(header, 0, sendArr, 0, header.length);
                 System.arraycopy(content, 0, sendArr, 68, content.length);
+                System.out.println("发送data: " + new String(sendArr));
                 dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName(tmp[1]), Integer.valueOf(tmp[3]));
                 dsock.send(dpack);
             }
@@ -215,7 +218,6 @@ class Asker extends Thread{
                 }
                 byte[] recArr = dpack.getData();
                 String id = new String(recArr, 0, 36);
-                System.out.println("##########id: " + id);
                 int count = peerCount.get(id);
                 peerCount.put(id, count - 1);
             }
