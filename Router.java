@@ -192,7 +192,7 @@ public class Router {
     }
 
     // the JSONObject routerMap input is for test only, simply delete it when used
-    public JSONObject dijkstra(JSONObject routerMap) {
+    public synchronized JSONObject dijkstra(JSONObject routerMap) {
         int start = 0;
         // Assign seq to uuid and form distance graph
         HashMap<String, Integer> uuidToInteger = new HashMap<>();
@@ -244,9 +244,21 @@ public class Router {
             }
         }
 
-        JSONObject rank = new JSONObject();
+        // Make order
+        PriorityQueue<Integer> makeRank = new PriorityQueue<>(new Comparator<Integer>() {
+            @Override
+            public int compare(Integer o1, Integer o2) {
+                return distances[o1] - distances[o2];
+            }
+        });
         for (int i = 1; i < distances.length; i++){
-            rank.put(integerToUuid.get(i), distances[i]);
+            makeRank.add(i);
+        }
+
+        JSONObject rank = new JSONObject();
+        while(!makeRank.isEmpty()){
+            int idx = makeRank.poll();
+            rank.put(integerToUuid.get(idx), distances[idx]);
         }
         return rank;
     }
