@@ -220,7 +220,7 @@ class Asker extends Thread{
                 int count = peerCount.get(id);
                 peerCount.put(id, count - 1);
             }
-            saveRouterMap(routerMap, "localRouterMap");
+            saveRouterMap(routerMap, uuid.substring(0, 3)+".json");
             long end = System.currentTimeMillis();
 
             try {
