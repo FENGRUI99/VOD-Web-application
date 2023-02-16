@@ -6,7 +6,8 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.List;
-
+import java.nio.file.Files;
+import java.nio.file.Paths;
 public class Router {
     String frontEndPort;
     String backEndPort;
@@ -54,6 +55,8 @@ public class Router {
     }
 
     public void start() throws Exception {
+        //System.out.println("test routerMap: " + routerMap.toString());
+        test();
         DatagramSocket dsock = new DatagramSocket(Integer.parseInt(backEndPort));
         byte[] sendArr;
         DatagramPacket dpack;
@@ -100,6 +103,7 @@ public class Router {
         dsock.send(dpack);
     }
     public synchronized byte[] readRouterMap(){
+        //System.out.println("test routerMap: " + routerMap.toJSONString());
         return routerMap.toJSONString().getBytes();
     }
     //发送自身路由表 或 转发peers路由表
@@ -122,16 +126,113 @@ public class Router {
             sendArr = new byte[recArr.length];
             System.arraycopy(recArr, 0, sendArr, 0, recArr.length);
         }
+        //System.out.println("test routerMap: " + new String(sendArr));
         for(int i = 0; i < peers.size(); i++){//1，3
             String[] peerInfo = peers.get(i).split(",");
             dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName(peerInfo[1]), Integer.valueOf(peerInfo[3]));
             dsock.send(dpack);
         }
     }
+    public void test(){
+        try {
+            // Read the entire file into a string
+            String jsonString = new String(Files.readAllBytes(Paths.get("dTest.json")));
+            // Parse the string into a JSONObject
+            JSONObject testMap = JSONObject.parseObject(jsonString);
+            HashMap<String, Integer> verticeSeq = new HashMap<>();
+            int sequence = 0;
+            for(String s : testMap.keySet()){
+                verticeSeq.put(s, sequence);
+                sequence++;
+            }
+
+            int numVertices = testMap.keySet().size();
+            int[][] graph = new int[numVertices][numVertices];
+
+            for(String s : testMap.keySet()){
+                JSONObject subMap = (JSONObject)testMap.get(s);
+                for(String id : subMap.keySet()){
+                    graph[verticeSeq.get(s)][verticeSeq.get(id)] = Integer.valueOf((String)subMap.get(id));
+                }
+            }
+            System.out.println("distance graph size: " + graph.length + " " + graph[0].length);
+            System.out.println("distance graph: ");
+            System.out.println(graph[0][0] + " " + graph[0][1] + " " + graph[0][2]);
+            System.out.println(graph[1][0] + " " + graph[1][1] + " " + graph[1][2]);
+            System.out.println(graph[2][0] + " " + graph[2][1] + " " + graph[2][2]);
+
+            System.out.println("distance array for curNode: " + dijkstra(testMap).toString());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // the JSONObject routerMap input is for test only, simply delete it when used
+    public JSONObject dijkstra(JSONObject routerMap) {
+        int start = 0;
+        // Assign seq to uuid and form distance graph
+        HashMap<String, Integer> uuidToInteger = new HashMap<>();
+        HashMap<Integer, String> integerToUuid = new HashMap<>();
+        int sequence = 0;
+        for(String s : routerMap.keySet()){
+            uuidToInteger.put(s, sequence);
+            integerToUuid.put(sequence, s);
+            sequence++;
+        }
+
+        int numVertices = routerMap.keySet().size();
+        int[][] graph = new int[numVertices][numVertices];
+        for(String s : routerMap.keySet()){
+            JSONObject subMap = (JSONObject)routerMap.get(s);
+            for(String id : subMap.keySet()){
+                graph[uuidToInteger.get(s)][uuidToInteger.get(id)] = Integer.valueOf((String)subMap.get(id));
+            }
+        }
+
+        // Create an array to store the shortest distances to each vertex
+        int[] distances = new int[numVertices];
+        Arrays.fill(distances, Integer.MAX_VALUE);
+        distances[start] = 0;
+
+        // Create a set to keep track of visited vertices
+        Set<Integer> visited = new HashSet<>();
+
+        // Create a priority queue to select the next vertex with the shortest distance
+        PriorityQueue<Integer> pq = new PriorityQueue<>(numVertices, Comparator.comparingInt(i -> distances[i]));
+        pq.offer(start);
+
+        while (!pq.isEmpty()) {
+            int vertex = pq.poll();
+            // Add the vertex to the visited set
+            visited.add(vertex);
+            // Check the neighbors of the vertex and renew the distance array
+            for (int neighbor = 0; neighbor < numVertices; neighbor++) {
+                int edgeWeight = graph[vertex][neighbor];
+
+                if (edgeWeight > 0 && !visited.contains(neighbor)) {
+                    int newDistance = distances[vertex] + edgeWeight;
+
+                    if (newDistance < distances[neighbor]) {
+                        distances[neighbor] = newDistance;
+                        pq.offer(neighbor);
+                    }
+                }
+            }
+        }
+
+        JSONObject rank = new JSONObject();
+        for (int i = 1; i < distances.length; i++){
+            rank.put(integerToUuid.get(i), distances[i]);
+        }
+        return rank;
+    }
+
 
     public static void main(String[] args) throws Exception {
         Router router = new Router("routerConfig/" + args[0]);
 //        System.out.println(router.routerMap.get("bbbee632-56b5-4a15-88ef-7bd3b7081141"));
+//        Router router = new Router("routerConfig/" + "nodeA.config");
         router.start();
     }
     // change the information in node.config
