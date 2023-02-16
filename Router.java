@@ -6,8 +6,9 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.List;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+
+import static java.lang.Thread.sleep;
+
 public class Router {
     String frontEndPort;
     String backEndPort;
@@ -16,8 +17,7 @@ public class Router {
     String peerCount;
     String uuid;
     String content;
-    int seq;
-    HashMap<String, Integer> peerSeq; // peerName -> sequence
+    Map<String, Object> peerSeq; // peerName -> sequence
     JSONObject routerMap;
     public Router(String configName){
         File configFile = new File(configName);
@@ -46,24 +46,24 @@ public class Router {
 
         peerSeq = new HashMap<>();
         routerMap = new JSONObject();
+
         JSONObject localMap = new JSONObject();
-        for (String peer : peers){
-            String[] peerInfo = peer.split(",");
-            localMap.put(peerInfo[0], peerInfo[4]);  // uuid -> distance
-        }
+        peerSeq.put(uuid, 0);
+//        for (String peer : peers){
+//            String[] peerInfo = peer.split(",");
+//            localMap.put(peerInfo[0], peerInfo[4]);  // uuid -> distance
+//        }
         routerMap.put(uuid, localMap);
+//        System.out.println("本地map初始化: " + routerMap.toJSONString());
     }
 
     public void start() throws Exception {
-        //System.out.println("test routerMap: " + routerMap.toString());
-        test();
         DatagramSocket dsock = new DatagramSocket(Integer.parseInt(backEndPort));
         byte[] sendArr;
         DatagramPacket dpack;
-        send(this.uuid, seq, new byte[1]);
 
         //Start asker thread periodic inquiring neighbor whether alive or not
-        Asker asker = new Asker(peers, uuid, routerMap);
+        Asker asker = new Asker(peers, uuid, peerSeq, routerMap);
         asker.start();
 
         while(true){
@@ -74,15 +74,32 @@ public class Router {
             // 36: 67 sequence
             // 68:  JSON
             byte[] recArr = dpack.getData();
-            System.out.println("receive data: " + new String(recArr));
+//            System.out.println("receive data: " + new String(recArr));
             String id = new String(recArr, 0, 36);
             int sequence = Integer.valueOf(new String(recArr, 36, 32).trim());
+//            System.out.println("######receive data: " + new String(recArr));
             //-1 keep Alive
-            // TODO 这里接收可能有问题
-            if (sequence > peerSeq.getOrDefault(id, -1)){
+            if (sequence > getPeerSeq(id)){
                 JSONObject peerMap = JSONObject.parseObject(new String(recArr, 68, recArr.length - 68).trim());
-                peerSeq.put(id, sequence);
-                routerMap.put(id, peerMap.get(id));
+//                System.out.println("######receive data: " + new String(recArr));
+
+                // neighbor's peerSeq
+                Map<String, Object> tmp = (Map<String, Object>) peerMap.get("seq"); //TODO 这里可能有问题
+                for (String s : tmp.keySet()){
+                    if ((int)tmp.get(s) > (int)peerSeq.getOrDefault(s, -1)){
+                        //更新路由表
+                        if (peerMap.containsKey(s)){
+                            peerSeq.put(s, tmp.get(s));
+                            routerMap.put(s, peerMap.get(s)); //TODO 这里可能有问题
+                        }
+                        //删除路由表
+                        else {
+                            peerSeq.put(s, -1);
+                            if (routerMap.containsKey(s)) routerMap.remove(s);
+                        }
+                    }
+                }
+                System.out.println("########接收并更新路由表: " + routerMap.toJSONString());
                 send(id, sequence, recArr);
             }else if(sequence == -1){
                 replyAlive(uuid, dsock, dpack);
@@ -103,8 +120,14 @@ public class Router {
         dsock.send(dpack);
     }
     public synchronized byte[] readRouterMap(){
-        //System.out.println("test routerMap: " + routerMap.toJSONString());
-        return routerMap.toJSONString().getBytes();
+        routerMap.put("seq", new JSONObject(peerSeq));
+        byte[] res =  routerMap.toJSONString().getBytes();
+        routerMap.remove("seq");
+        return res;
+    }
+
+    public synchronized int getPeerSeq(String id){
+        return (int) peerSeq.getOrDefault(id, -1);
     }
     //发送自身路由表 或 转发peers路由表
     public void send(String id, int sequence, byte[] recArr) throws Exception{
@@ -120,119 +143,20 @@ public class Router {
             System.arraycopy(sendArr, 0, message, 68, sendArr.length);
             sendArr = new byte[message.length];
             System.arraycopy(message, 0, sendArr, 0, message.length);
-            System.out.println("sendArr string:" + new String(sendArr));
-            seq++;
         }else{
             sendArr = new byte[recArr.length];
             System.arraycopy(recArr, 0, sendArr, 0, recArr.length);
         }
-        //System.out.println("test routerMap: " + new String(sendArr));
         for(int i = 0; i < peers.size(); i++){//1，3
             String[] peerInfo = peers.get(i).split(",");
             dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName(peerInfo[1]), Integer.valueOf(peerInfo[3]));
             dsock.send(dpack);
         }
     }
-    public void test(){
-        try {
-            // Read the entire file into a string
-            String jsonString = new String(Files.readAllBytes(Paths.get("dTest.json")));
-            // Parse the string into a JSONObject
-            JSONObject testMap = JSONObject.parseObject(jsonString);
-            HashMap<String, Integer> verticeSeq = new HashMap<>();
-            int sequence = 0;
-            for(String s : testMap.keySet()){
-                verticeSeq.put(s, sequence);
-                sequence++;
-            }
-
-            int numVertices = testMap.keySet().size();
-            int[][] graph = new int[numVertices][numVertices];
-
-            for(String s : testMap.keySet()){
-                JSONObject subMap = (JSONObject)testMap.get(s);
-                for(String id : subMap.keySet()){
-                    graph[verticeSeq.get(s)][verticeSeq.get(id)] = Integer.valueOf((String)subMap.get(id));
-                }
-            }
-            System.out.println("distance graph size: " + graph.length + " " + graph[0].length);
-            System.out.println("distance graph: ");
-            System.out.println(graph[0][0] + " " + graph[0][1] + " " + graph[0][2]);
-            System.out.println(graph[1][0] + " " + graph[1][1] + " " + graph[1][2]);
-            System.out.println(graph[2][0] + " " + graph[2][1] + " " + graph[2][2]);
-
-            System.out.println("distance array for curNode: " + dijkstra(testMap).toString());
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    // the JSONObject routerMap input is for test only, simply delete it when used
-    public JSONObject dijkstra(JSONObject routerMap) {
-        int start = 0;
-        // Assign seq to uuid and form distance graph
-        HashMap<String, Integer> uuidToInteger = new HashMap<>();
-        HashMap<Integer, String> integerToUuid = new HashMap<>();
-        int sequence = 0;
-        for(String s : routerMap.keySet()){
-            uuidToInteger.put(s, sequence);
-            integerToUuid.put(sequence, s);
-            sequence++;
-        }
-
-        int numVertices = routerMap.keySet().size();
-        int[][] graph = new int[numVertices][numVertices];
-        for(String s : routerMap.keySet()){
-            JSONObject subMap = (JSONObject)routerMap.get(s);
-            for(String id : subMap.keySet()){
-                graph[uuidToInteger.get(s)][uuidToInteger.get(id)] = Integer.valueOf((String)subMap.get(id));
-            }
-        }
-
-        // Create an array to store the shortest distances to each vertex
-        int[] distances = new int[numVertices];
-        Arrays.fill(distances, Integer.MAX_VALUE);
-        distances[start] = 0;
-
-        // Create a set to keep track of visited vertices
-        Set<Integer> visited = new HashSet<>();
-
-        // Create a priority queue to select the next vertex with the shortest distance
-        PriorityQueue<Integer> pq = new PriorityQueue<>(numVertices, Comparator.comparingInt(i -> distances[i]));
-        pq.offer(start);
-
-        while (!pq.isEmpty()) {
-            int vertex = pq.poll();
-            // Add the vertex to the visited set
-            visited.add(vertex);
-            // Check the neighbors of the vertex and renew the distance array
-            for (int neighbor = 0; neighbor < numVertices; neighbor++) {
-                int edgeWeight = graph[vertex][neighbor];
-
-                if (edgeWeight > 0 && !visited.contains(neighbor)) {
-                    int newDistance = distances[vertex] + edgeWeight;
-
-                    if (newDistance < distances[neighbor]) {
-                        distances[neighbor] = newDistance;
-                        pq.offer(neighbor);
-                    }
-                }
-            }
-        }
-
-        JSONObject rank = new JSONObject();
-        for (int i = 1; i < distances.length; i++){
-            rank.put(integerToUuid.get(i), distances[i]);
-        }
-        return rank;
-    }
-
 
     public static void main(String[] args) throws Exception {
         Router router = new Router("routerConfig/" + args[0]);
 //        System.out.println(router.routerMap.get("bbbee632-56b5-4a15-88ef-7bd3b7081141"));
-//        Router router = new Router("routerConfig/" + "nodeA.config");
         router.start();
     }
     // change the information in node.config
@@ -262,26 +186,48 @@ class Asker extends Thread{
     List<String> peers;
     String uuid;
     JSONObject routerMap;
+    Map<String, Object> peerSeq;
     HashMap<String, Integer> peerCount;
     HashMap<String, String> peerDistance;
-    public Asker(List<String> peers, String uuid, JSONObject routerMap){
+    public Asker(List<String> peers, String uuid,Map<String, Object> peerSeq, JSONObject routerMap){
         this.peers = peers;
         this.uuid = uuid;
         this.routerMap = routerMap;
+        this.peerSeq = peerSeq;
         this.peerCount = new HashMap<>();
         this.peerDistance = new HashMap<>();
+//        System.out.println("Asker routerMap: " + routerMap.toJSONString());
     }
-    public synchronized void modifyMap(){
+    public synchronized void modifyMap() throws Exception {
+        //TODO 删除不仅仅是uuid里的id这一项，也要删除id这一项
         JSONObject localMap = routerMap.getJSONObject(uuid); //TODO 这句可能有问题
+        boolean flag = false;
+        List<String> removeId = new ArrayList<>();
         for (String id : peerCount.keySet()){
-            if (peerCount.get(id) <= 0 && localMap.containsKey(id)){
-                localMap.remove(id);
+            peerCount.put(id, peerCount.get(id) - 1);
+            if (peerCount.get(id) < 0 && peerCount.get(id) >= -3){
+                System.out.println("########第"+ Math.abs(peerCount.get(id)) +"次找不到: " + id);
             }
-            else if (peerCount.get(id) > 0 && !localMap.containsKey(id)){
+            if (peerCount.get(id) <= -3 && localMap.containsKey(id)){
+                localMap.remove(id);
+//                peerSeq.put(id, -1);
+                removeId.add(id);
+                System.out.println("########remove: " + id);
+                flag = true;
+            }
+            else if (peerCount.get(id) >= 0 && !localMap.containsKey(id)){
                 localMap.put(id, peerDistance.get(id));
+                System.out.println("########add: " + id);
+                flag = true;
             }
         }
-        routerMap.put(uuid, localMap);
+        if (flag){
+            routerMap.put(uuid, localMap);
+            System.out.println("########更新路由表:" + routerMap.toJSONString());
+            // TODO 更新路由表后要往外发
+            send(uuid, (int)peerSeq.get(uuid), removeId);
+            peerSeq.put(uuid, (int)peerSeq.get(uuid) + 1);
+        }
     }
     public void startThread() throws Exception{
         DatagramSocket dsock = new DatagramSocket();
@@ -294,7 +240,6 @@ class Asker extends Thread{
         }
         while (true){
             long start = System.currentTimeMillis();
-            System.out.println("定时发送");
             for (String peer : peers){
                 String[] tmp = peer.split(",");
                 byte[] header = (uuid + "-1").getBytes();
@@ -302,7 +247,6 @@ class Asker extends Thread{
                 byte[] sendArr = new byte[68 + content.length];
                 System.arraycopy(header, 0, sendArr, 0, header.length);
                 System.arraycopy(content, 0, sendArr, 68, content.length);
-                System.out.println("发送data: " + new String(sendArr));
                 dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName(tmp[1]), Integer.valueOf(tmp[3]));
                 dsock.send(dpack);
             }
@@ -317,16 +261,17 @@ class Asker extends Thread{
                     break;
                 }
                 byte[] recArr = dpack.getData();
+//                System.out.println("########receive date:" + new String(recArr));
                 String id = new String(recArr, 0, 36);
-                int count = peerCount.get(id);
-                peerCount.put(id, count - 1);
+                peerCount.put(id, 1);
             }
             saveRouterMap(routerMap, uuid.substring(0, 3)+".json");
             long end = System.currentTimeMillis();
 
             try {
-                System.out.println("sleep time: " + (3 - (end - start) / 1000));
-                sleep(3000 - (end - start));
+//                System.out.println(new JSONObject(peerSeq).toJSONString());
+                System.out.println("sleep time: " + (5 - (end - start) / 1000));
+                sleep(5000 - (end - start));
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -338,6 +283,38 @@ class Asker extends Thread{
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+    public void send(String id, int sequence, List<String> removeId) throws Exception{
+        DatagramSocket dsock = new DatagramSocket();
+        DatagramPacket dpack;
+        byte[] sendArr;
+
+        sendArr = readRouterMap(removeId);
+        byte[] message = new byte[68+sendArr.length];
+        String header = id+sequence;
+        System.arraycopy(header.getBytes(), 0, message, 0, header.length());
+        System.arraycopy(sendArr, 0, message, 68, sendArr.length);
+        sendArr = new byte[message.length];
+        System.arraycopy(message, 0, sendArr, 0, message.length);
+
+        for(int i = 0; i < peers.size(); i++){//1，3
+            String[] peerInfo = peers.get(i).split(",");
+            dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName(peerInfo[1]), Integer.valueOf(peerInfo[3]));
+            dsock.send(dpack);
+        }
+    }
+    public synchronized byte[] readRouterMap(List<String> removeId){
+        for (String s : removeId){
+            peerSeq.put(s, (int)peerSeq.getOrDefault(s, -1) + 1);
+            routerMap.remove(s);
+        }
+        routerMap.put("seq", new JSONObject(peerSeq));
+        byte[] res =  routerMap.toJSONString().getBytes();
+        routerMap.remove("seq");
+        for (String s : removeId){
+            peerSeq.put(s, -1);
+        }
+        return res;
     }
     @Override
     public void run() {
