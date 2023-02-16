@@ -55,8 +55,8 @@ public class Router {
 
     public void start() throws Exception {
         DatagramSocket dsock = new DatagramSocket(Integer.parseInt(backEndPort));
-        byte[] sendArr = new byte[2048];
-        DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length);
+        byte[] sendArr;
+        DatagramPacket dpack;
         send(this.uuid, seq);
 
         //Start asker thread periodic inquiring neighbor whether alive or not
