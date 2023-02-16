@@ -57,7 +57,7 @@ public class Router {
         DatagramSocket dsock = new DatagramSocket(Integer.parseInt(backEndPort));
         byte[] sendArr;
         DatagramPacket dpack;
-        send(this.uuid, seq);
+        send(this.uuid, seq, new byte[1]);
 
         //Start asker thread periodic inquiring neighbor whether alive or not
         Asker asker = new Asker(peers, uuid, routerMap);
