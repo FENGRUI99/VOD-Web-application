@@ -60,7 +60,6 @@ public class Router {
     }
 
     public void start() throws Exception {
-        test();
         DatagramSocket dsock = new DatagramSocket(Integer.parseInt(backEndPort));
         byte[] sendArr;
         DatagramPacket dpack;
@@ -184,7 +183,7 @@ public class Router {
             System.out.println(graph[1][0] + " " + graph[1][1] + " " + graph[1][2]);
             System.out.println(graph[2][0] + " " + graph[2][1] + " " + graph[2][2]);
 
-            System.out.println("distance array for curNode: " + dijkstra(testMap).toString());
+            System.out.println("distance array for curNode: " + dijkstra().toJSONString());
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -192,7 +191,7 @@ public class Router {
     }
 
     // the JSONObject routerMap input is for test only, simply delete it when used
-    public synchronized JSONObject dijkstra(JSONObject routerMap) {
+    public synchronized JSONObject dijkstra() {
         int start = 0;
         // Assign seq to uuid and form distance graph
         HashMap<String, Integer> uuidToInteger = new HashMap<>();
@@ -374,6 +373,7 @@ class Asker extends Thread{
                 peerCount.put(id, 1);
             }
             saveRouterMap(routerMap, uuid.substring(0, 3)+".json");
+            System.out.println(dijkstra().toJSONString());
             long end = System.currentTimeMillis();
 
             try {
@@ -423,6 +423,76 @@ class Asker extends Thread{
             peerSeq.put(s, -1);
         }
         return res;
+    }
+    public synchronized JSONObject dijkstra() {
+        int start = 0;
+        // Assign seq to uuid and form distance graph
+        HashMap<String, Integer> uuidToInteger = new HashMap<>();
+        HashMap<Integer, String> integerToUuid = new HashMap<>();
+        int sequence = 0;
+        for(String s : routerMap.keySet()){
+            uuidToInteger.put(s, sequence);
+            integerToUuid.put(sequence, s);
+            sequence++;
+        }
+
+        int numVertices = routerMap.keySet().size();
+        int[][] graph = new int[numVertices][numVertices];
+        for(String s : routerMap.keySet()){
+            JSONObject subMap = (JSONObject)routerMap.get(s);
+            for(String id : subMap.keySet()){
+                graph[uuidToInteger.get(s)][uuidToInteger.get(id)] = Integer.valueOf((String)subMap.get(id));
+            }
+        }
+
+        // Create an array to store the shortest distances to each vertex
+        int[] distances = new int[numVertices];
+        Arrays.fill(distances, Integer.MAX_VALUE);
+        distances[start] = 0;
+
+        // Create a set to keep track of visited vertices
+        Set<Integer> visited = new HashSet<>();
+
+        // Create a priority queue to select the next vertex with the shortest distance
+        PriorityQueue<Integer> pq = new PriorityQueue<>(numVertices, Comparator.comparingInt(i -> distances[i]));
+        pq.offer(start);
+
+        while (!pq.isEmpty()) {
+            int vertex = pq.poll();
+            // Add the vertex to the visited set
+            visited.add(vertex);
+            // Check the neighbors of the vertex and renew the distance array
+            for (int neighbor = 0; neighbor < numVertices; neighbor++) {
+                int edgeWeight = graph[vertex][neighbor];
+
+                if (edgeWeight > 0 && !visited.contains(neighbor)) {
+                    int newDistance = distances[vertex] + edgeWeight;
+
+                    if (newDistance < distances[neighbor]) {
+                        distances[neighbor] = newDistance;
+                        pq.offer(neighbor);
+                    }
+                }
+            }
+        }
+
+        // Make order
+        PriorityQueue<Integer> makeRank = new PriorityQueue<>(new Comparator<Integer>() {
+            @Override
+            public int compare(Integer o1, Integer o2) {
+                return distances[o1] - distances[o2];
+            }
+        });
+        for (int i = 1; i < distances.length; i++){
+            makeRank.add(i);
+        }
+
+        JSONObject rank = new JSONObject();
+        while(!makeRank.isEmpty()){
+            int idx = makeRank.poll();
+            rank.put(integerToUuid.get(idx), distances[idx]);
+        }
+        return rank;
     }
     @Override
     public void run() {
