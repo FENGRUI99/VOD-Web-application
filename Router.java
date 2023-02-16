@@ -80,7 +80,7 @@ public class Router {
                 JSONObject peerMap = JSONObject.parseObject(new String(recArr, 68, recArr.length - 68).trim());
                 peerSeq.put(id, sequence);
                 routerMap.put(id, peerMap.get(id));
-                send(id, sequence);
+                send(id, sequence, recArr);
             }else if(sequence == -1){
                 replyAlive(uuid, dsock, dpack);
             }
@@ -91,7 +91,7 @@ public class Router {
     }
 
     public void replyAlive(String id, DatagramSocket dsock, DatagramPacket dpack) throws Exception{
-        String header = id + "-1";
+        String header = uuid + "-1";
         String reply = "yes";
         byte[] sendArr = new byte[68+reply.length()];
         System.arraycopy(header.getBytes(), 0, sendArr, 0, header.length());
@@ -103,13 +103,14 @@ public class Router {
         return routerMap.toJSONString().getBytes();
     }
     //发送自身路由表 或 转发peers路由表
-    public void send(String id, int sequence) throws Exception{
+    public void send(String id, int sequence, byte[] recArr) throws Exception{
         DatagramSocket dsock = new DatagramSocket();
         DatagramPacket dpack;
 
-        byte[] sendArr = readRouterMap();
+        byte[] sendArr = null;
 
         if(id == uuid){
+            sendArr = readRouterMap();
             byte[] message = new byte[68+sendArr.length];
             String header = id+sequence;
             System.arraycopy(header.getBytes(), 0, message, 0, header.length());
@@ -121,6 +122,9 @@ public class Router {
             System.arraycopy(message, 0, sendArr, 0, message.length);
             System.out.println("sendArr string:" + new String(sendArr));
             seq++;
+        }else{
+            sendArr = new byte[recArr.length];
+            System.arraycopy(recArr, 0, sendArr, 68, recArr.length);
         }
 
         for(int i = 0; i < peers.size(); i++){//1，3
