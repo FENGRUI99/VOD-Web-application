@@ -662,11 +662,9 @@ class Sender extends Thread{
 
     }
     private void killThread() throws IOException{
-        DatagramSocket dsock = new DatagramSocket();
-        String message = "killThread";
-        byte[] sendArr = message.getBytes();
-        DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
-        dsock.send(dpack);
+        responseFake200();
+        System.exit(1);
     }
+
 
 }

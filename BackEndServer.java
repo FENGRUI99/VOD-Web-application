@@ -242,6 +242,7 @@ class BackEndRequest extends Thread{
                     windowSize ++;
                 }
             }
+
             else{ //Not found
                 break;
             }
