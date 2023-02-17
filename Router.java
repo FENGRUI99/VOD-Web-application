@@ -56,6 +56,8 @@ public class Router {
     }
 
     public void start() throws Exception {
+        //System.out.println(routerMap.toJSONString());
+        //test();
         DatagramSocket dsock = new DatagramSocket(Integer.parseInt(backEndPort));
         byte[] sendArr;
         DatagramPacket dpack;
@@ -190,18 +192,33 @@ public class Router {
 
     // the JSONObject routerMap input is for test only, simply delete it when used
     public synchronized JSONObject dijkstra() {
-        int start = 0;
-        // Assign seq to uuid and form distance graph
+        // todo: Assign unique seq to all uuid (uuid0 -> 0; uuid1 -> 1; ...)
         HashMap<String, Integer> uuidToInteger = new HashMap<>();
         HashMap<Integer, String> integerToUuid = new HashMap<>();
-        int sequence = 0;
-        for(String s : routerMap.keySet()){
-            uuidToInteger.put(s, sequence);
-            integerToUuid.put(sequence, s);
-            sequence++;
-        }
 
-        int numVertices = routerMap.keySet().size();
+        int sequence = 0;
+        System.out.println("routerMap.size(): " + routerMap.keySet().size());
+        for(String ID : routerMap.keySet()){
+            if(!uuidToInteger.containsKey(ID)){
+                uuidToInteger.put(ID, sequence);
+                integerToUuid.put(sequence, ID);
+                sequence++;
+            }
+
+            JSONObject subMap = (JSONObject)routerMap.get(ID);
+            System.out.println("subMap.size(): " + subMap.keySet().size());
+            for(String id : subMap.keySet()){
+                if(!uuidToInteger.containsKey(id)){
+                    uuidToInteger.put(id, sequence);
+                    integerToUuid.put(sequence, id);
+                    sequence++;
+                }
+            }
+        }
+        System.out.println("sequence: " + sequence);
+
+        //todo: form graph
+        int numVertices = sequence;
         int[][] graph = new int[numVertices][numVertices];
         for(String s : routerMap.keySet()){
             JSONObject subMap = (JSONObject)routerMap.get(s);
@@ -210,6 +227,7 @@ public class Router {
             }
         }
 
+        int start = uuidToInteger.get(uuid);
         // Create an array to store the shortest distances to each vertex
         int[] distances = new int[numVertices];
         Arrays.fill(distances, Integer.MAX_VALUE);
@@ -248,7 +266,7 @@ public class Router {
                 return distances[o1] - distances[o2];
             }
         });
-        for (int i = 1; i < distances.length; i++){
+        for (int i = 0; i < distances.length; i++){
             makeRank.add(i);
         }
 
@@ -371,7 +389,7 @@ class Asker extends Thread{
                 peerCount.put(id, 1);
             }
             saveRouterMap(routerMap, uuid.substring(0, 3)+".json");
-//            System.out.println(dijkstra().toJSONString());
+            System.out.println("###dijkstra###: " + dijkstra().toJSONString());
             long end = System.currentTimeMillis();
 
             try {
@@ -423,18 +441,33 @@ class Asker extends Thread{
         return res;
     }
     public synchronized JSONObject dijkstra() {
-        int start = 0;
-        // Assign seq to uuid and form distance graph
+        // todo: Assign unique seq to all uuid (uuid0 -> 0; uuid1 -> 1; ...)
         HashMap<String, Integer> uuidToInteger = new HashMap<>();
         HashMap<Integer, String> integerToUuid = new HashMap<>();
-        int sequence = 0;
-        for(String s : routerMap.keySet()){
-            uuidToInteger.put(s, sequence);
-            integerToUuid.put(sequence, s);
-            sequence++;
-        }
 
-        int numVertices = routerMap.keySet().size();
+        int sequence = 0;
+        System.out.println("routerMap.size(): " + routerMap.keySet().size());
+        for(String ID : routerMap.keySet()){
+            if(!uuidToInteger.containsKey(ID)){
+                uuidToInteger.put(ID, sequence);
+                integerToUuid.put(sequence, ID);
+                sequence++;
+            }
+
+            JSONObject subMap = (JSONObject)routerMap.get(ID);
+            System.out.println("subMap.size(): " + subMap.keySet().size());
+            for(String id : subMap.keySet()){
+                if(!uuidToInteger.containsKey(id)){
+                    uuidToInteger.put(id, sequence);
+                    integerToUuid.put(sequence, id);
+                    sequence++;
+                }
+            }
+        }
+        System.out.println("sequence: " + sequence);
+
+        //todo: form graph
+        int numVertices = sequence;
         int[][] graph = new int[numVertices][numVertices];
         for(String s : routerMap.keySet()){
             JSONObject subMap = (JSONObject)routerMap.get(s);
@@ -443,6 +476,7 @@ class Asker extends Thread{
             }
         }
 
+        int start = uuidToInteger.get(uuid);
         // Create an array to store the shortest distances to each vertex
         int[] distances = new int[numVertices];
         Arrays.fill(distances, Integer.MAX_VALUE);
@@ -481,7 +515,7 @@ class Asker extends Thread{
                 return distances[o1] - distances[o2];
             }
         });
-        for (int i = 1; i < distances.length; i++){
+        for (int i = 0; i < distances.length; i++){
             makeRank.add(i);
         }
 
