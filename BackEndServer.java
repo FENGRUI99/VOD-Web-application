@@ -6,17 +6,51 @@ import java.math.BigInteger;
 import java.net.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class BackEndServer extends Thread{
-    int port;
-    public BackEndServer(int port){
-        this.port = port;
+    int frontEndPort;
+    int backEndPort;
+    String name;
+    List<String> peers;
+    String peerCount;
+    String uuid;
+    String content;
+    Map<String, Object> peerSeq; // peerName -> sequence
+    JSONObject routerMap;
+
+    public BackEndServer(int port, String configName){
+        this.backEndPort = port;
+        File configFile = new File("routerConfig/" + configName);
+        // Create a Properties object
+        Properties configProperties = new Properties();
+        //Read the properties file
+        try (FileInputStream input = new FileInputStream(configFile)) {
+            configProperties.load(input);
+        } catch (IOException e) {
+            System.out.println("Error reading config file: " + e.getMessage());
+        }
+        this.frontEndPort = Integer.valueOf(configProperties.getProperty("frontend_port"));
+        this.name = configProperties.getProperty("name");
+        this.peerCount = configProperties.getProperty("peer_count");
+        this.content = configProperties.getProperty("content_dir");
+        this.peers = new ArrayList<String>();
+        for(int i = 0; i < Integer.valueOf(peerCount); i++){
+            peers.add(configProperties.getProperty("peer_" + i));
+        }
+        this.uuid = configProperties.getProperty("uuid");
+        if(uuid.length() != 36){
+            uuid = UUID.randomUUID().toString();
+        }
+
+        this.peerSeq = new HashMap<>();
+        this.routerMap = new JSONObject();
+
+        JSONObject localMap = new JSONObject();
+        peerSeq.put(uuid, 0);
+        routerMap.put(uuid, localMap);
     }
 
     @Override
@@ -28,31 +62,135 @@ public class BackEndServer extends Thread{
         }
     }
 
-    public static void main(String[] args) throws Exception{
-        BackEndServer backend = new BackEndServer(8081);
-        backend.startServer();
-    }
+//    public static void main(String[] args) throws Exception{
+//        BackEndServer backend = new BackEndServer(8081);
+//        backend.startServer();
+//    }
 
     public void startServer() throws Exception{
         ExecutorService pool = Executors.newCachedThreadPool();
-        DatagramSocket dsock = new DatagramSocket(port);
+        DatagramSocket dsock = new DatagramSocket(backEndPort);
+        //Start asker thread periodic inquiring neighbor whether alive or not
+        Asker asker = new Asker(peers, uuid, peerSeq, routerMap);
+        asker.start();
         while(true){
             //listener
             byte[] recArr = new byte[2048];
             DatagramPacket dpack = new DatagramPacket(recArr, recArr.length);
             dsock.receive(dpack);
-            ListenerHeader header = JSONObject.parseObject(new String(recArr), ListenerHeader.class);
-//            System.out.println(header.toString());
-//            System.out.println("####################");
-            // message from http server
-            if (header.getSrc() == 0){
-                pool.execute(new BackEndRequest(dpack.getAddress(), dpack.getPort(), header.peerIp, header.peerPort, header.fileName, header.start, header.length, header.rate));
+            String msg = new String(recArr).trim();
+            System.out.println(msg);
+            //message from peer's router
+            if (new String(recArr, 36, 6).equals("router")){
+
             }
-            // message from peer back-end server
+            else if (msg.equals("/peer/uuid")){
+
+            }
+            else if (msg.equals("/peer/neighbors")){
+
+            }
             else {
-                pool.execute(new BackEndResponse(dpack.getAddress(), dpack.getPort()));
+                ListenerHeader header = JSONObject.parseObject(new String(recArr), ListenerHeader.class);
+                // message from http server
+                if (header.getSrc() == 0){
+                    pool.execute(new BackEndRequest(dpack.getAddress(), dpack.getPort(), header.peerIp, header.peerPort, header.fileName, header.start, header.length, header.rate));
+                }
+                // message from peer back-end server
+                else {
+                    pool.execute(new BackEndResponse(dpack.getAddress(), dpack.getPort()));
+                }
             }
         }
+    }
+    public synchronized List<String> dijkstra() {
+        // todo: Assign unique seq to all uuid (uuid0 -> 0; uuid1 -> 1; ...)
+        HashMap<String, Integer> uuidToInteger = new HashMap<>();
+        HashMap<Integer, String> integerToUuid = new HashMap<>();
+
+        int sequence = 0;
+        System.out.println("routerMap.size(): " + routerMap.keySet().size());
+        for(String ID : routerMap.keySet()){
+            if(!uuidToInteger.containsKey(ID)){
+                uuidToInteger.put(ID, sequence);
+                integerToUuid.put(sequence, ID);
+                sequence++;
+            }
+
+            JSONObject subMap = (JSONObject)routerMap.get(ID);
+            System.out.println("subMap.size(): " + subMap.keySet().size());
+            for(String id : subMap.keySet()){
+                if(!uuidToInteger.containsKey(id)){
+                    uuidToInteger.put(id, sequence);
+                    integerToUuid.put(sequence, id);
+                    sequence++;
+                }
+            }
+        }
+        System.out.println("sequence: " + sequence);
+
+        //todo: form graph
+        int numVertices = sequence;
+        int[][] graph = new int[numVertices][numVertices];
+        for(String s : routerMap.keySet()){
+            JSONObject subMap = (JSONObject)routerMap.get(s);
+            for(String id : subMap.keySet()){
+                graph[uuidToInteger.get(s)][uuidToInteger.get(id)] = Integer.valueOf((String)subMap.get(id));
+            }
+        }
+
+        int start = uuidToInteger.get(uuid);
+        // Create an array to store the shortest distances to each vertex
+        int[] distances = new int[numVertices];
+        Arrays.fill(distances, Integer.MAX_VALUE);
+        distances[start] = 0;
+
+        // Create a set to keep track of visited vertices
+        Set<Integer> visited = new HashSet<>();
+
+        // Create a priority queue to select the next vertex with the shortest distance
+        PriorityQueue<Integer> pq = new PriorityQueue<>(numVertices, Comparator.comparingInt(i -> distances[i]));
+        pq.offer(start);
+
+        while (!pq.isEmpty()) {
+            int vertex = pq.poll();
+            // Add the vertex to the visited set
+            visited.add(vertex);
+            // Check the neighbors of the vertex and renew the distance array
+            for (int neighbor = 0; neighbor < numVertices; neighbor++) {
+                int edgeWeight = graph[vertex][neighbor];
+
+                if (edgeWeight > 0 && !visited.contains(neighbor)) {
+                    int newDistance = distances[vertex] + edgeWeight;
+
+                    if (newDistance < distances[neighbor]) {
+                        distances[neighbor] = newDistance;
+                        pq.offer(neighbor);
+                    }
+                }
+            }
+        }
+
+        // Make output ordered
+        PriorityQueue<Integer> makeRank = new PriorityQueue<>(new Comparator<Integer>() {
+            @Override
+            public int compare(Integer o1, Integer o2) {
+                return distances[o1] - distances[o2];
+            }
+        });
+
+        for (int i = 0; i < distances.length; i++){
+            makeRank.add(i);
+        }
+
+        List<String> rank = new ArrayList<>();
+        while(!makeRank.isEmpty()) {
+            int idx = makeRank.poll();
+            if (distances[idx] != 0) {
+                rank.add(integerToUuid.get(idx)+": " + distances[idx]);
+            }
+        }
+        return rank;
     }
 }
 
@@ -139,7 +277,7 @@ class BackEndRequest extends Thread{
                 dsock.receive(dpack);                           // receive the packet
 
                 //todo:simulate the packet loss
-                if(Packet_Loss_Simulation(0.5)){
+                if(Packet_Loss_Simulation(0.0)){
                     System.out.println("#############Packge loss#############");
                     windowSize = Math.max(windowSize/2, 1);
                     requestRange(fileName, start, length, chunkSize);
@@ -299,7 +437,7 @@ class BackEndRequest extends Thread{
 
         dpack.setData(sendArr, 0, sendArr.length);
         dsock.send(dpack);
-       // System.out.println("Status_1 send success");
+        // System.out.println("Status_1 send success");
     }
     public void close () throws Exception{
         byte[] header = getReqHeader(2, fileName, 0, 0, 0).getBytes();
@@ -511,5 +649,240 @@ class BackEndResponse extends Thread{
         }
         String md5Str = new BigInteger(1, digest).toString(16);
         return md5Str;
+    }
+}
+
+class Asker extends Thread{
+    List<String> peers;
+    String uuid;
+    JSONObject routerMap;
+    Map<String, Object> peerSeq;
+    HashMap<String, Integer> peerCount;
+    HashMap<String, String> peerDistance;
+    public Asker(List<String> peers, String uuid,Map<String, Object> peerSeq, JSONObject routerMap){
+        this.peers = peers;
+        this.uuid = uuid;
+        this.routerMap = routerMap;
+        this.peerSeq = peerSeq;
+        this.peerCount = new HashMap<>();
+        this.peerDistance = new HashMap<>();
+//        System.out.println("Asker routerMap: " + routerMap.toJSONString());
+    }
+    public synchronized void modifyMap() throws Exception {
+        //TODO 删除不仅仅是uuid里的id这一项，也要删除id这一项
+        JSONObject localMap = routerMap.getJSONObject(uuid); //TODO 这句可能有问题
+        boolean flag = false;
+        List<String> removeId = new ArrayList<>();
+        for (String id : peerCount.keySet()){
+            peerCount.put(id, peerCount.get(id) - 1);
+            if (peerCount.get(id) < 0 && peerCount.get(id) >= -3){
+                System.out.println("########第"+ Math.abs(peerCount.get(id)) +"次找不到: " + id);
+            }
+            if (peerCount.get(id) <= -3 && localMap.containsKey(id)){
+                localMap.remove(id);
+//                peerSeq.put(id, -1);
+                removeId.add(id);
+                System.out.println("########remove: " + id);
+                flag = true;
+            }
+            else if (peerCount.get(id) >= 0 && !localMap.containsKey(id)){
+                localMap.put(id, peerDistance.get(id));
+                System.out.println("########add: " + id);
+                flag = true;
+            }
+        }
+        if (flag){
+            routerMap.put(uuid, localMap);
+            System.out.println("########更新路由表:" + routerMap.toJSONString());
+            // TODO 更新路由表后要往外发
+            send(uuid, (int)peerSeq.get(uuid), removeId);
+            peerSeq.put(uuid, (int)peerSeq.get(uuid) + 1);
+        }
+    }
+    public void startThread() throws Exception{
+        DatagramSocket dsock = new DatagramSocket();
+        DatagramPacket dpack;
+        dsock.setSoTimeout(1000);
+        for (String peer : peers){
+            String[] tmp = peer.split(",");
+            peerCount.put(tmp[0], 0);
+            peerDistance.put(tmp[0], tmp[4]);
+        }
+        while (true){
+            long start = System.currentTimeMillis();
+            for (String peer : peers){
+                String[] tmp = peer.split(",");
+                byte[] header = (uuid + "router-1").getBytes();
+                byte[] content = "alive".getBytes();
+                byte[] sendArr = new byte[74 + content.length];
+                System.arraycopy(header, 0, sendArr, 0, header.length);
+                System.arraycopy(content, 0, sendArr, 74, content.length);
+                dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName(tmp[1]), Integer.valueOf(tmp[3]));
+                dsock.send(dpack);
+            }
+            while (true){
+                try{
+                    byte[] recArr = new byte[2048];
+                    dpack = new DatagramPacket(recArr, recArr.length);
+                    dsock.receive(dpack);
+                } catch (SocketTimeoutException e){
+                    //TODO 怎么写，既要考虑node下线，也要考虑node上线
+                    modifyMap(); //TODO 线程同步
+                    break;
+                }
+                byte[] recArr = dpack.getData();
+//                System.out.println("########receive date:" + new String(recArr));
+                String id = new String(recArr, 0, 36);
+                peerCount.put(id, 1);
+            }
+            saveRouterMap(routerMap, uuid.substring(0, 3)+".json");
+            System.out.println("###dijkstra###: " + dijkstra().toString());
+            long end = System.currentTimeMillis();
+
+            try {
+//                System.out.println(new JSONObject(peerSeq).toJSONString());
+                System.out.println("sleep time: " + (5 - (end - start) / 1000));
+                sleep(5000 - (end - start));
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+    public void saveRouterMap(JSONObject routerMap, String fileName) throws Exception{
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
+            writer.write(routerMap.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public void send(String id, int sequence, List<String> removeId) throws Exception{
+        DatagramSocket dsock = new DatagramSocket();
+        DatagramPacket dpack;
+        byte[] sendArr;
+
+        sendArr = readRouterMap(removeId);
+        byte[] message = new byte[74+sendArr.length];
+        String header = id+"router"+sequence;
+        System.arraycopy(header.getBytes(), 0, message, 0, header.length());
+        System.arraycopy(sendArr, 0, message, 74, sendArr.length);
+        sendArr = new byte[message.length];
+        System.arraycopy(message, 0, sendArr, 0, message.length);
+
+        for(int i = 0; i < peers.size(); i++){//1，3
+            String[] peerInfo = peers.get(i).split(",");
+            dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName(peerInfo[1]), Integer.valueOf(peerInfo[3]));
+            dsock.send(dpack);
+        }
+    }
+    public synchronized byte[] readRouterMap(List<String> removeId){
+        for (String s : removeId){
+            peerSeq.put(s, (int)peerSeq.getOrDefault(s, -1) + 1);
+            routerMap.remove(s);
+        }
+        routerMap.put("seq", new JSONObject(peerSeq));
+        byte[] res =  routerMap.toJSONString().getBytes();
+        routerMap.remove("seq");
+        for (String s : removeId){
+            peerSeq.put(s, -1);
+        }
+        return res;
+    }
+    public synchronized List<String> dijkstra() {
+        // todo: Assign unique seq to all uuid (uuid0 -> 0; uuid1 -> 1; ...)
+        HashMap<String, Integer> uuidToInteger = new HashMap<>();
+        HashMap<Integer, String> integerToUuid = new HashMap<>();
+
+        int sequence = 0;
+        System.out.println("routerMap.size(): " + routerMap.keySet().size());
+        for(String ID : routerMap.keySet()){
+            if(!uuidToInteger.containsKey(ID)){
+                uuidToInteger.put(ID, sequence);
+                integerToUuid.put(sequence, ID);
+                sequence++;
+            }
+
+            JSONObject subMap = (JSONObject)routerMap.get(ID);
+            System.out.println("subMap.size(): " + subMap.keySet().size());
+            for(String id : subMap.keySet()){
+                if(!uuidToInteger.containsKey(id)){
+                    uuidToInteger.put(id, sequence);
+                    integerToUuid.put(sequence, id);
+                    sequence++;
+                }
+            }
+        }
+        System.out.println("sequence: " + sequence);
+
+        //todo: form graph
+        int numVertices = sequence;
+        int[][] graph = new int[numVertices][numVertices];
+        for(String s : routerMap.keySet()){
+            JSONObject subMap = (JSONObject)routerMap.get(s);
+            for(String id : subMap.keySet()){
+                graph[uuidToInteger.get(s)][uuidToInteger.get(id)] = Integer.valueOf((String)subMap.get(id));
+            }
+        }
+
+        int start = uuidToInteger.get(uuid);
+        // Create an array to store the shortest distances to each vertex
+        int[] distances = new int[numVertices];
+        Arrays.fill(distances, Integer.MAX_VALUE);
+        distances[start] = 0;
+
+        // Create a set to keep track of visited vertices
+        Set<Integer> visited = new HashSet<>();
+
+        // Create a priority queue to select the next vertex with the shortest distance
+        PriorityQueue<Integer> pq = new PriorityQueue<>(numVertices, Comparator.comparingInt(i -> distances[i]));
+        pq.offer(start);
+
+        while (!pq.isEmpty()) {
+            int vertex = pq.poll();
+            // Add the vertex to the visited set
+            visited.add(vertex);
+            // Check the neighbors of the vertex and renew the distance array
+            for (int neighbor = 0; neighbor < numVertices; neighbor++) {
+                int edgeWeight = graph[vertex][neighbor];
+
+                if (edgeWeight > 0 && !visited.contains(neighbor)) {
+                    int newDistance = distances[vertex] + edgeWeight;
+
+                    if (newDistance < distances[neighbor]) {
+                        distances[neighbor] = newDistance;
+                        pq.offer(neighbor);
+                    }
+                }
+            }
+        }
+
+        // Make output ordered
+        PriorityQueue<Integer> makeRank = new PriorityQueue<>(new Comparator<Integer>() {
+            @Override
+            public int compare(Integer o1, Integer o2) {
+                return distances[o1] - distances[o2];
+            }
+        });
+
+        for (int i = 0; i < distances.length; i++){
+            makeRank.add(i);
+        }
+
+        List<String> rank = new ArrayList<>();
+        while(!makeRank.isEmpty()) {
+            int idx = makeRank.poll();
+            if (distances[idx] != 0) {
+                rank.add(integerToUuid.get(idx)+": " + distances[idx]);
+            }
+        }
+        return rank;
+    }
+    @Override
+    public void run() {
+        try{
+            startThread();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
     }
 }
