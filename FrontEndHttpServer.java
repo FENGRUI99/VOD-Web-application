@@ -145,11 +145,14 @@ class Sender extends Thread{
                 else if(info[1].startsWith("/peer/uuid")){
                     UUID();
                 }
+                ///返回neighbors
                 else if(info[1].startsWith("/peer/neighbors")){
                     sendNeighbors();
                 }
-                ///返回neighbors
-                else if(info[1].startsWith("/peer/neighbors")){
+                else if(info[1].startsWith("/peer/map")){
+
+                }
+                else if(info[1].startsWith("/peer/rank")){
 
                 }
                 else{
