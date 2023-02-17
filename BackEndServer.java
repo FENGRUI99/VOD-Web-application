@@ -21,8 +21,7 @@ public class BackEndServer extends Thread{
     Map<String, Object> peerSeq; // peerName -> sequence
     JSONObject routerMap;
 
-    public BackEndServer(int port, String configName){
-        this.backEndPort = port;
+    public BackEndServer(String configName){
         File configFile = new File("routerConfig/" + configName);
         // Create a Properties object
         Properties configProperties = new Properties();
@@ -33,6 +32,7 @@ public class BackEndServer extends Thread{
             System.out.println("Error reading config file: " + e.getMessage());
         }
         this.frontEndPort = Integer.valueOf(configProperties.getProperty("frontend_port"));
+        this.backEndPort = Integer.valueOf(configProperties.getProperty("backend_port"));
         this.name = configProperties.getProperty("name");
         this.peerCount = configProperties.getProperty("peer_count");
         this.content = configProperties.getProperty("content_dir");
@@ -73,6 +73,7 @@ public class BackEndServer extends Thread{
         //Start asker thread periodic inquiring neighbor whether alive or not
         Asker asker = new Asker(peers, uuid, peerSeq, routerMap);
         asker.start();
+
         while(true){
             //listener
             byte[] recArr = new byte[2048];
