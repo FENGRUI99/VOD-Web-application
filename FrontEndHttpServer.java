@@ -685,7 +685,6 @@ class Sender extends Thread{
     private void UUID()throws IOException{
         //send to backend
         DatagramSocket dsock = new DatagramSocket();
-        dsock.setSoTimeout(1000);
         String message = "/peer/uuid";
         byte[] sendArr = message.getBytes();
         DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
@@ -726,7 +725,6 @@ class Sender extends Thread{
     private void sendNeighbors() throws IOException{
         //send to backend
         DatagramSocket dsock = new DatagramSocket();
-        dsock.setSoTimeout(1000);
         String message = "/peer/neighbors";
         byte[] sendArr = message.getBytes();
         DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
@@ -767,7 +765,6 @@ class Sender extends Thread{
     private void getMap() throws IOException {
         //send to backend
         DatagramSocket dsock = new DatagramSocket();
-        dsock.setSoTimeout(1000);
         String message = "/peer/map";
         byte[] sendArr = message.getBytes();
         DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
@@ -807,7 +804,6 @@ class Sender extends Thread{
     private void getRank() throws IOException {
         //send to backend
         DatagramSocket dsock = new DatagramSocket();
-        dsock.setSoTimeout(1000);
         String message = "/peer/rank";
         byte[] sendArr = message.getBytes();
         DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
@@ -846,7 +842,6 @@ class Sender extends Thread{
     private void addNeighbor() throws IOException {
         //send to backend
         DatagramSocket dsock = new DatagramSocket();
-        dsock.setSoTimeout(1000);
         String message = "/peer/addneighbor";
         byte[] sendArr = message.getBytes();
         DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
