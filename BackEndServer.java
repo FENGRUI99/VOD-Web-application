@@ -83,7 +83,34 @@ public class BackEndServer extends Thread{
             System.out.println(msg);
             //message from peer's router
             if (new String(recArr, 36, 6).equals("router")){
+                String id = new String(recArr, 0, 36);
+                int sequence = Integer.valueOf(new String(recArr, 42, 32).trim());
+                //-1 keep Alive
+                if (sequence > getPeerSeq(id)){
+                    JSONObject peerMap = JSONObject.parseObject(new String(recArr, 74, recArr.length - 74).trim());
+//                System.out.println("######receive data: " + new String(recArr));
 
+                    // neighbor's peerSeq
+                    Map<String, Object> tmp = (Map<String, Object>) peerMap.get("seq"); //TODO 这里可能有问题
+                    for (String s : tmp.keySet()){
+                        if ((int)tmp.get(s) > (int)peerSeq.getOrDefault(s, -1)){
+                            //更新路由表
+                            if (peerMap.containsKey(s)){
+                                peerSeq.put(s, tmp.get(s));
+                                routerMap.put(s, peerMap.get(s)); //TODO 这里可能有问题
+                            }
+                            //删除路由表
+                            else {
+                                peerSeq.put(s, -1);
+                                if (routerMap.containsKey(s)) routerMap.remove(s);
+                            }
+                        }
+                    }
+                    System.out.println("########接收并更新路由表: " + routerMap.toJSONString());
+                    send(id, sequence, recArr);
+                }else if(sequence == -1){
+                    replyAlive(uuid, dsock, dpack);
+                }
             }
             else if (msg.equals("/peer/uuid")){
 
@@ -102,6 +129,48 @@ public class BackEndServer extends Thread{
                     pool.execute(new BackEndResponse(dpack.getAddress(), dpack.getPort()));
                 }
             }
+        }
+    }
+    public void replyAlive(String id, DatagramSocket dsock, DatagramPacket dpack) throws Exception{
+        String header = uuid + "router-1";
+        String reply = "yes";
+        byte[] sendArr = new byte[74+reply.length()];
+        System.arraycopy(header.getBytes(), 0, sendArr, 0, header.length());
+        System.arraycopy(reply.getBytes(), 0, sendArr, 74, reply.length());
+        dpack.setData(sendArr);
+        dsock.send(dpack);
+    }
+    public synchronized byte[] readRouterMap(){
+        routerMap.put("seq", new JSONObject(peerSeq));
+        byte[] res =  routerMap.toJSONString().getBytes();
+        routerMap.remove("seq");
+        return res;
+    }
+    public synchronized int getPeerSeq(String id){
+        return (int) peerSeq.getOrDefault(id, -1);
+    }
+    //发送自身路由表 或 转发peers路由表
+    public void send(String id, int sequence, byte[] recArr) throws Exception{
+        DatagramSocket dsock = new DatagramSocket();
+        DatagramPacket dpack;
+        byte[] sendArr;
+
+        if(id == uuid){
+            sendArr = readRouterMap();
+            byte[] message = new byte[74+sendArr.length];
+            String header = id+"router"+sequence;
+            System.arraycopy(header.getBytes(), 0, message, 0, header.length());
+            System.arraycopy(sendArr, 0, message, 74, sendArr.length);
+            sendArr = new byte[message.length];
+            System.arraycopy(message, 0, sendArr, 0, message.length);
+        }else{
+            sendArr = new byte[recArr.length];
+            System.arraycopy(recArr, 0, sendArr, 0, recArr.length);
+        }
+        for(int i = 0; i < peers.size(); i++){//1，3
+            String[] peerInfo = peers.get(i).split(",");
+            dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName(peerInfo[1]), Integer.valueOf(peerInfo[3]));
+            dsock.send(dpack);
         }
     }
     public synchronized List<String> dijkstra() {
@@ -490,7 +559,6 @@ class BackEndRequest extends Thread{
         return md5Str;
     }
 }
-
 
 class BackEndResponse extends Thread{
     InetAddress peerIp;
