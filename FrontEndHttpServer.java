@@ -690,36 +690,33 @@ class Sender extends Thread{
         DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
         dsock.send(dpack);
         //hear from backend
-        while(true) {
-            byte[] recArr = new byte[2048];
-            dpack = new DatagramPacket(recArr, recArr.length);
+        byte[] recArr = new byte[2048];
+        dpack = new DatagramPacket(recArr, recArr.length);
 
-            Date date = new Date();
-            SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
+        Date date = new Date();
+        SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
 
-            String header = "HTTP/1.1 200 OK" + CRLF +
-                    "Content-Length: " + "2048" + CRLF +
-                    "Content-Type: " + "json/application" + CRLF +
-                    "Cache-Control: " + "public" + CRLF +
-                    "Connection: " + "keep-alive" + CRLF +
-                    "Access-Control-Allow-Origin: *" + CRLF +
-                    "Accept-Ranges: " + "bytes" + CRLF +
-                    "Date: " + dateFormat1.format(date) + " GMT" + CRLF + CRLF;
-            //send to page
-            try {
-                int length;
-                sOut.writeUTF(header);
-                byte[] uuid = dpack.getData();
-                while ((length = in.read(uuid, 0, uuid.length)) != -1) {
-                    sOut.write(uuid, 0, length);
-                    sOut.flush();
-                }
-                // System.out.println("successful");
-            } catch (Exception e) {
-                e.printStackTrace();
+        String header = "HTTP/1.1 200 OK" + CRLF +
+                "Content-Length: " + "2048" + CRLF +
+                "Content-Type: " + "json/application" + CRLF +
+                "Cache-Control: " + "public" + CRLF +
+                "Connection: " + "keep-alive" + CRLF +
+                "Access-Control-Allow-Origin: *" + CRLF +
+                "Accept-Ranges: " + "bytes" + CRLF +
+                "Date: " + dateFormat1.format(date) + " GMT" + CRLF + CRLF;
+        //send to page
+        try {
+            int length;
+            sOut.writeUTF(header);
+            byte[] uuid = dpack.getData();
+            while ((length = in.read(uuid, 0, uuid.length)) != -1) {
+                sOut.write(uuid, 0, length);
+                sOut.flush();
             }
-          //System.out.println("@Frontend/httpRetransfer200: 200 content发送...");
-            }
+            // System.out.println("successful");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void sendNeighbors() throws IOException{
@@ -730,35 +727,32 @@ class Sender extends Thread{
         DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
         dsock.send(dpack);
         //hear from backend
-        while(true) {
-            byte[] recArr = new byte[2048];
-            dpack = new DatagramPacket(recArr, recArr.length);
+        byte[] recArr = new byte[2048];
+        dpack = new DatagramPacket(recArr, recArr.length);
 
-            Date date = new Date();
-            SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
+        Date date = new Date();
+        SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
 
-            String header = "HTTP/1.1 200 OK" + CRLF +
-                    "Content-Length: " + "2048" + CRLF +
-                    "Content-Type: " + "json/application" + CRLF +
-                    "Cache-Control: " + "public" + CRLF +
-                    "Connection: " + "keep-alive" + CRLF +
-                    "Access-Control-Allow-Origin: *" + CRLF +
-                    "Accept-Ranges: " + "bytes" + CRLF +
-                    "Date: " + dateFormat1.format(date) + " GMT" + CRLF + CRLF;
-            //send to page
-            try {
-                int length;
-                sOut.writeUTF(header);
-                byte[] neighbor = dpack.getData();
-                while ((length = in.read(neighbor, 0, neighbor.length)) != -1) {
-                    sOut.write(neighbor, 0, length);
-                    sOut.flush();
-                }
-                // System.out.println("successful");
-            } catch (Exception e) {
-                e.printStackTrace();
+        String header = "HTTP/1.1 200 OK" + CRLF +
+                "Content-Length: " + "2048" + CRLF +
+                "Content-Type: " + "json/application" + CRLF +
+                "Cache-Control: " + "public" + CRLF +
+                "Connection: " + "keep-alive" + CRLF +
+                "Access-Control-Allow-Origin: *" + CRLF +
+                "Accept-Ranges: " + "bytes" + CRLF +
+                "Date: " + dateFormat1.format(date) + " GMT" + CRLF + CRLF;
+        //send to page
+        try {
+            int length;
+            sOut.writeUTF(header);
+            byte[] neighbor = dpack.getData();
+            while ((length = in.read(neighbor, 0, neighbor.length)) != -1) {
+                sOut.write(neighbor, 0, length);
+                sOut.flush();
             }
-            //System.out.println("@Frontend/httpRetransfer200: 200 content发送...");
+            // System.out.println("successful");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -770,34 +764,32 @@ class Sender extends Thread{
         DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
         dsock.send(dpack);
         //hear from backend
-        while (true) {
-            byte[] recArr = new byte[2048];
-            dpack = new DatagramPacket(recArr, recArr.length);
+        byte[] recArr = new byte[2048];
+        dpack = new DatagramPacket(recArr, recArr.length);
 
-            Date date = new Date();
-            SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
+        Date date = new Date();
+        SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
 
-            String header = "HTTP/1.1 200 OK" + CRLF +
-                    "Content-Length: " + "2048" + CRLF +
-                    "Content-Type: " + "json/application" + CRLF +
-                    "Cache-Control: " + "public" + CRLF +
-                    "Connection: " + "keep-alive" + CRLF +
-                    "Access-Control-Allow-Origin: *" + CRLF +
-                    "Accept-Ranges: " + "bytes" + CRLF +
-                    "Date: " + dateFormat1.format(date) + " GMT" + CRLF + CRLF;
-            //send to page
-            try {
-                int length;
-                sOut.writeUTF(header);
-                byte[] bytes = dpack.getData();
-                while ((length = in.read(bytes, 0, bytes.length)) != -1) {
-                    sOut.write(bytes, 0, length);
-                    sOut.flush();
-                }
-                // System.out.println("successful");
-            } catch (Exception e) {
-                e.printStackTrace();
+        String header = "HTTP/1.1 200 OK" + CRLF +
+                "Content-Length: " + "2048" + CRLF +
+                "Content-Type: " + "json/application" + CRLF +
+                "Cache-Control: " + "public" + CRLF +
+                "Connection: " + "keep-alive" + CRLF +
+                "Access-Control-Allow-Origin: *" + CRLF +
+                "Accept-Ranges: " + "bytes" + CRLF +
+                "Date: " + dateFormat1.format(date) + " GMT" + CRLF + CRLF;
+        //send to page
+        try {
+            int length;
+            sOut.writeUTF(header);
+            byte[] bytes = dpack.getData();
+            while ((length = in.read(bytes, 0, bytes.length)) != -1) {
+                sOut.write(bytes, 0, length);
+                sOut.flush();
             }
+            // System.out.println("successful");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -809,35 +801,34 @@ class Sender extends Thread{
         DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
         dsock.send(dpack);
         //hear from backend
-        while (true) {
-            byte[] recArr = new byte[2048];
-            dpack = new DatagramPacket(recArr, recArr.length);
+        byte[] recArr = new byte[2048];
+        dpack = new DatagramPacket(recArr, recArr.length);
 
-            Date date = new Date();
-            SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
+        Date date = new Date();
+        SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
 
-            String header = "HTTP/1.1 200 OK" + CRLF +
-                    "Content-Length: " + "2048" + CRLF +
-                    "Content-Type: " + "json/application" + CRLF +
-                    "Cache-Control: " + "public" + CRLF +
-                    "Connection: " + "keep-alive" + CRLF +
-                    "Access-Control-Allow-Origin: *" + CRLF +
-                    "Accept-Ranges: " + "bytes" + CRLF +
-                    "Date: " + dateFormat1.format(date) + " GMT" + CRLF + CRLF;
-            //send to page
-            try {
-                int length;
-                sOut.writeUTF(header);
-                byte[] bytes = dpack.getData();
-                while ((length = in.read(bytes, 0, bytes.length)) != -1) {
-                    sOut.write(bytes, 0, length);
-                    sOut.flush();
-                }
-                // System.out.println("successful");
-            } catch (Exception e) {
-                e.printStackTrace();
+        String header = "HTTP/1.1 200 OK" + CRLF +
+                "Content-Length: " + "2048" + CRLF +
+                "Content-Type: " + "json/application" + CRLF +
+                "Cache-Control: " + "public" + CRLF +
+                "Connection: " + "keep-alive" + CRLF +
+                "Access-Control-Allow-Origin: *" + CRLF +
+                "Accept-Ranges: " + "bytes" + CRLF +
+                "Date: " + dateFormat1.format(date) + " GMT" + CRLF + CRLF;
+        //send to page
+        try {
+            int length;
+            sOut.writeUTF(header);
+            byte[] bytes = dpack.getData();
+            while ((length = in.read(bytes, 0, bytes.length)) != -1) {
+                sOut.write(bytes, 0, length);
+                sOut.flush();
             }
+            // System.out.println("successful");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+
     }
     private void addNeighbor() throws IOException {
         //send to backend
@@ -847,11 +838,11 @@ class Sender extends Thread{
         DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
         dsock.send(dpack);
         //hear from backend
-        while (true) {
-            byte[] recArr = new byte[2048];
-            dpack = new DatagramPacket(recArr, recArr.length);
-            responseFake200();
-        }
+
+        byte[] recArr = new byte[2048];
+        dpack = new DatagramPacket(recArr, recArr.length);
+        responseFake200();
+
     }
 
 }
