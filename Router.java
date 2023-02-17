@@ -183,7 +183,7 @@ public class Router {
             System.out.println(graph[1][0] + " " + graph[1][1] + " " + graph[1][2]);
             System.out.println(graph[2][0] + " " + graph[2][1] + " " + graph[2][2]);
 
-            System.out.println("distance array for curNode: " + dijkstra().toJSONString());
+            System.out.println("distance array for curNode: " + dijkstra().toString());
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -191,7 +191,7 @@ public class Router {
     }
 
     // the JSONObject routerMap input is for test only, simply delete it when used
-    public synchronized JSONObject dijkstra() {
+    public synchronized List<String> dijkstra() {
         // todo: Assign unique seq to all uuid (uuid0 -> 0; uuid1 -> 1; ...)
         HashMap<String, Integer> uuidToInteger = new HashMap<>();
         HashMap<Integer, String> integerToUuid = new HashMap<>();
@@ -259,21 +259,24 @@ public class Router {
             }
         }
 
-        // Make order
+        // Make output ordered
         PriorityQueue<Integer> makeRank = new PriorityQueue<>(new Comparator<Integer>() {
             @Override
             public int compare(Integer o1, Integer o2) {
                 return distances[o1] - distances[o2];
             }
         });
+
         for (int i = 0; i < distances.length; i++){
             makeRank.add(i);
         }
 
-        JSONObject rank = new JSONObject();
-        while(!makeRank.isEmpty()){
+        List<String> rank = new ArrayList<>();
+        while(!makeRank.isEmpty()) {
             int idx = makeRank.poll();
-            rank.put(integerToUuid.get(idx), distances[idx]);
+            if (distances[idx] != 0) {
+                rank.add(integerToUuid.get(idx)+": " + distances[idx]);
+            }
         }
         return rank;
     }
@@ -389,7 +392,7 @@ class Asker extends Thread{
                 peerCount.put(id, 1);
             }
             saveRouterMap(routerMap, uuid.substring(0, 3)+".json");
-            System.out.println("###dijkstra###: " + dijkstra().toJSONString());
+            System.out.println("###dijkstra###: " + dijkstra().toString());
             long end = System.currentTimeMillis();
 
             try {
@@ -440,7 +443,7 @@ class Asker extends Thread{
         }
         return res;
     }
-    public synchronized JSONObject dijkstra() {
+    public synchronized List<String> dijkstra() {
         // todo: Assign unique seq to all uuid (uuid0 -> 0; uuid1 -> 1; ...)
         HashMap<String, Integer> uuidToInteger = new HashMap<>();
         HashMap<Integer, String> integerToUuid = new HashMap<>();
@@ -508,21 +511,24 @@ class Asker extends Thread{
             }
         }
 
-        // Make order
+        // Make output ordered
         PriorityQueue<Integer> makeRank = new PriorityQueue<>(new Comparator<Integer>() {
             @Override
             public int compare(Integer o1, Integer o2) {
                 return distances[o1] - distances[o2];
             }
         });
+
         for (int i = 0; i < distances.length; i++){
             makeRank.add(i);
         }
 
-        JSONObject rank = new JSONObject();
-        while(!makeRank.isEmpty()){
+        List<String> rank = new ArrayList<>();
+        while(!makeRank.isEmpty()) {
             int idx = makeRank.poll();
-            rank.put(integerToUuid.get(idx), distances[idx]);
+            if (distances[idx] != 0) {
+                rank.add(integerToUuid.get(idx)+": " + distances[idx]);
+            }
         }
         return rank;
     }
