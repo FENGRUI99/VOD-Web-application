@@ -51,10 +51,6 @@ public class Router {
 
         JSONObject localMap = new JSONObject();
         peerSeq.put(uuid, 0);
-//        for (String peer : peers){
-//            String[] peerInfo = peer.split(",");
-//            localMap.put(peerInfo[0], peerInfo[4]);  // uuid -> distance
-//        }
         routerMap.put(uuid, localMap);
 //        System.out.println("本地map初始化: " + routerMap.toJSONString());
     }
@@ -73,16 +69,18 @@ public class Router {
             dpack = new DatagramPacket(sendArr, sendArr.length);
             dsock.receive(dpack);
             // 0:35 uuid
-            // 36: 67 sequence
-            // 68:  JSON
+            // 36-41 router
+            // 42: 73 sequence
+            // 74:  JSON
             byte[] recArr = dpack.getData();
 //            System.out.println("receive data: " + new String(recArr));
             String id = new String(recArr, 0, 36);
-            int sequence = Integer.valueOf(new String(recArr, 36, 32).trim());
+            //TODO 36-41是router
+            int sequence = Integer.valueOf(new String(recArr, 42, 32).trim());
 //            System.out.println("######receive data: " + new String(recArr));
             //-1 keep Alive
             if (sequence > getPeerSeq(id)){
-                JSONObject peerMap = JSONObject.parseObject(new String(recArr, 68, recArr.length - 68).trim());
+                JSONObject peerMap = JSONObject.parseObject(new String(recArr, 74, recArr.length - 74).trim());
 //                System.out.println("######receive data: " + new String(recArr));
 
                 // neighbor's peerSeq
@@ -113,11 +111,11 @@ public class Router {
     }
 
     public void replyAlive(String id, DatagramSocket dsock, DatagramPacket dpack) throws Exception{
-        String header = uuid + "-1";
+        String header = uuid + "router-1";
         String reply = "yes";
-        byte[] sendArr = new byte[68+reply.length()];
+        byte[] sendArr = new byte[74+reply.length()];
         System.arraycopy(header.getBytes(), 0, sendArr, 0, header.length());
-        System.arraycopy(reply.getBytes(), 0, sendArr, 68, reply.length());
+        System.arraycopy(reply.getBytes(), 0, sendArr, 74, reply.length());
         dpack.setData(sendArr);
         dsock.send(dpack);
     }
@@ -139,10 +137,10 @@ public class Router {
 
         if(id == uuid){
             sendArr = readRouterMap();
-            byte[] message = new byte[68+sendArr.length];
-            String header = id+sequence;
+            byte[] message = new byte[74+sendArr.length];
+            String header = id+"router"+sequence;
             System.arraycopy(header.getBytes(), 0, message, 0, header.length());
-            System.arraycopy(sendArr, 0, message, 68, sendArr.length);
+            System.arraycopy(sendArr, 0, message, 74, sendArr.length);
             sendArr = new byte[message.length];
             System.arraycopy(message, 0, sendArr, 0, message.length);
         }else{
@@ -349,11 +347,11 @@ class Asker extends Thread{
             long start = System.currentTimeMillis();
             for (String peer : peers){
                 String[] tmp = peer.split(",");
-                byte[] header = (uuid + "-1").getBytes();
+                byte[] header = (uuid + "router-1").getBytes();
                 byte[] content = "alive".getBytes();
-                byte[] sendArr = new byte[68 + content.length];
+                byte[] sendArr = new byte[74 + content.length];
                 System.arraycopy(header, 0, sendArr, 0, header.length);
-                System.arraycopy(content, 0, sendArr, 68, content.length);
+                System.arraycopy(content, 0, sendArr, 74, content.length);
                 dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName(tmp[1]), Integer.valueOf(tmp[3]));
                 dsock.send(dpack);
             }
@@ -373,7 +371,7 @@ class Asker extends Thread{
                 peerCount.put(id, 1);
             }
             saveRouterMap(routerMap, uuid.substring(0, 3)+".json");
-            System.out.println(dijkstra().toJSONString());
+//            System.out.println(dijkstra().toJSONString());
             long end = System.currentTimeMillis();
 
             try {
@@ -398,10 +396,10 @@ class Asker extends Thread{
         byte[] sendArr;
 
         sendArr = readRouterMap(removeId);
-        byte[] message = new byte[68+sendArr.length];
-        String header = id+sequence;
+        byte[] message = new byte[74+sendArr.length];
+        String header = id+"router"+sequence;
         System.arraycopy(header.getBytes(), 0, message, 0, header.length());
-        System.arraycopy(sendArr, 0, message, 68, sendArr.length);
+        System.arraycopy(sendArr, 0, message, 74, sendArr.length);
         sendArr = new byte[message.length];
         System.arraycopy(message, 0, sendArr, 0, message.length);
 
