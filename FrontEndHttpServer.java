@@ -150,10 +150,13 @@ class Sender extends Thread{
                     sendNeighbors();
                 }
                 else if(info[1].startsWith("/peer/map")){
-
+                    getMap();
                 }
                 else if(info[1].startsWith("/peer/rank")){
-
+                    getRank();
+                }
+                else if(info[1].startsWith("/peer/addneighbor")){
+                    addNeighbor();
                 }
                 else{
                     //Store peers info.
@@ -748,9 +751,9 @@ class Sender extends Thread{
             try {
                 int length;
                 sOut.writeUTF(header);
-                byte[] uuid = dpack.getData();
-                while ((length = in.read(uuid, 0, uuid.length)) != -1) {
-                    sOut.write(uuid, 0, length);
+                byte[] neighbor = dpack.getData();
+                while ((length = in.read(neighbor, 0, neighbor.length)) != -1) {
+                    sOut.write(neighbor, 0, length);
                     sOut.flush();
                 }
                 // System.out.println("successful");
@@ -758,6 +761,101 @@ class Sender extends Thread{
                 e.printStackTrace();
             }
             //System.out.println("@Frontend/httpRetransfer200: 200 content发送...");
+        }
+    }
+
+    private void getMap() throws IOException {
+        //send to backend
+        DatagramSocket dsock = new DatagramSocket();
+        dsock.setSoTimeout(1000);
+        String message = "/peer/map";
+        byte[] sendArr = message.getBytes();
+        DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
+        dsock.send(dpack);
+        //hear from backend
+        while (true) {
+            byte[] recArr = new byte[2048];
+            dpack = new DatagramPacket(recArr, recArr.length);
+
+            Date date = new Date();
+            SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
+
+            String header = "HTTP/1.1 200 OK" + CRLF +
+                    "Content-Length: " + "2048" + CRLF +
+                    "Content-Type: " + "json/application" + CRLF +
+                    "Cache-Control: " + "public" + CRLF +
+                    "Connection: " + "keep-alive" + CRLF +
+                    "Access-Control-Allow-Origin: *" + CRLF +
+                    "Accept-Ranges: " + "bytes" + CRLF +
+                    "Date: " + dateFormat1.format(date) + " GMT" + CRLF + CRLF;
+            //send to page
+            try {
+                int length;
+                sOut.writeUTF(header);
+                byte[] bytes = dpack.getData();
+                while ((length = in.read(bytes, 0, bytes.length)) != -1) {
+                    sOut.write(bytes, 0, length);
+                    sOut.flush();
+                }
+                // System.out.println("successful");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void getRank() throws IOException {
+        //send to backend
+        DatagramSocket dsock = new DatagramSocket();
+        dsock.setSoTimeout(1000);
+        String message = "/peer/rank";
+        byte[] sendArr = message.getBytes();
+        DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
+        dsock.send(dpack);
+        //hear from backend
+        while (true) {
+            byte[] recArr = new byte[2048];
+            dpack = new DatagramPacket(recArr, recArr.length);
+
+            Date date = new Date();
+            SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
+
+            String header = "HTTP/1.1 200 OK" + CRLF +
+                    "Content-Length: " + "2048" + CRLF +
+                    "Content-Type: " + "json/application" + CRLF +
+                    "Cache-Control: " + "public" + CRLF +
+                    "Connection: " + "keep-alive" + CRLF +
+                    "Access-Control-Allow-Origin: *" + CRLF +
+                    "Accept-Ranges: " + "bytes" + CRLF +
+                    "Date: " + dateFormat1.format(date) + " GMT" + CRLF + CRLF;
+            //send to page
+            try {
+                int length;
+                sOut.writeUTF(header);
+                byte[] bytes = dpack.getData();
+                while ((length = in.read(bytes, 0, bytes.length)) != -1) {
+                    sOut.write(bytes, 0, length);
+                    sOut.flush();
+                }
+                // System.out.println("successful");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    private void addNeighbor() throws IOException {
+        //send to backend
+        DatagramSocket dsock = new DatagramSocket();
+        dsock.setSoTimeout(1000);
+        String message = "/peer/addneighbor";
+        byte[] sendArr = message.getBytes();
+        DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
+        dsock.send(dpack);
+        //hear from backend
+        while (true) {
+            byte[] recArr = new byte[2048];
+            dpack = new DatagramPacket(recArr, recArr.length);
+            responseFake200();
         }
     }
 
