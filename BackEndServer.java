@@ -112,11 +112,23 @@ public class BackEndServer extends Thread{
                     replyAlive(uuid, dsock, dpack);
                 }
             }
-            else if (msg.equals("/peer/uuid")){
+            //TODO
+            else if (msg.startsWith("/peer")){
+                if (msg.equals("/peer/uuid")){
 
-            }
-            else if (msg.equals("/peer/neighbors")){
+                }
+                else if (msg.equals("/peer/neighbors")){
 
+                }
+                else if (msg.startsWith("/peer/addneighbor?")){
+
+                }
+                else if (msg.equals("/peer/map")){
+
+                }
+                else if (msg.equals("/peer/rank/")){
+
+                }
             }
             else {
                 ListenerHeader header = JSONObject.parseObject(new String(recArr), ListenerHeader.class);
