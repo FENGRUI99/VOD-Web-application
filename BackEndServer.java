@@ -122,10 +122,13 @@ public class BackEndServer extends Thread{
                     replyAlive(uuid, dsock, dpack);
                 }
             }
-            //TODO
+            //TODO: Lzj responsibility; 后端返回消息给前端；  config文件补全，uuid没给要写入config   /
             else if (msg.startsWith("/peer")){
                 if (msg.equals("/peer/uuid")){
-
+                    String sendString = "uuid: " + uuid;
+                    byte[] sendArr = sendString.getBytes();
+                    dpack.setData(sendArr);
+                    dsock.send(dpack);
                 }
                 //24f22a83-16f4-4bd5-af63-b5c6e979dbb,pi.ece.cmu.edu,18345,18346,10
                 else if (msg.equals("/peer/neighbors")){
@@ -168,10 +171,16 @@ public class BackEndServer extends Thread{
                     }
                 }
                 else if (msg.equals("/peer/map")){
-
+                    String sendString = routerMap.toString();
+                    byte[] sendArr = sendString.getBytes();
+                    dpack.setData(sendArr);
+                    dsock.send(dpack);
                 }
                 else if (msg.equals("/peer/rank/")){
-
+                    String sendString = dijkstra().toString();
+                    byte[] sendArr = sendString.getBytes();
+                    dpack.setData(sendArr);
+                    dsock.send(dpack);
                 }
             }
             else {
