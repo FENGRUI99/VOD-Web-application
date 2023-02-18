@@ -12,8 +12,6 @@ import java.util.Properties;
 
 public class Server {
     public static void main(String[] args) {
-//        int frontEndPort = Integer.valueOf(args[0]);
-//        int backEndPort = Integer.valueOf(args[1]);
         File configFile = new File("routerConfig/" + args[0]);
         // Create a Properties object
         Properties configProperties = new Properties();
@@ -23,7 +21,6 @@ public class Server {
         } catch (IOException e) {
             System.out.println("Error reading config file: " + e.getMessage());
         }
-
 
         int frontEndPort = Integer.valueOf(configProperties.getProperty("frontend_port"));
         int backEndPort = Integer.valueOf(configProperties.getProperty("backend_port"));

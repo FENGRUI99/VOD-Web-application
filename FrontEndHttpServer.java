@@ -156,7 +156,7 @@ class Sender extends Thread{
                     getRank();
                 }
                 else if(info[1].startsWith("/peer/addneighbor")){
-                    addNeighbor();
+                    addNeighbor(info[1]);
                 }
                 else{
                     //Store peers info.
@@ -692,13 +692,13 @@ class Sender extends Thread{
         //hear from backend
         byte[] recArr = new byte[2048];
         dpack = new DatagramPacket(recArr, recArr.length);
-
+        dsock.receive(dpack);
         Date date = new Date();
         SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
 
         String header = "HTTP/1.1 200 OK" + CRLF +
                 "Content-Length: " + "2048" + CRLF +
-                "Content-Type: " + "json/application" + CRLF +
+                "Content-Type: " + "text/plain" + CRLF +
                 "Cache-Control: " + "public" + CRLF +
                 "Connection: " + "keep-alive" + CRLF +
                 "Access-Control-Allow-Origin: *" + CRLF +
@@ -709,10 +709,8 @@ class Sender extends Thread{
             int length;
             sOut.writeUTF(header);
             byte[] uuid = dpack.getData();
-            while ((length = in.read(uuid, 0, uuid.length)) != -1) {
-                sOut.write(uuid, 0, length);
-                sOut.flush();
-            }
+            sOut.write(uuid);
+            sOut.flush();
             // System.out.println("successful");
         } catch (Exception e) {
             e.printStackTrace();
@@ -729,13 +727,13 @@ class Sender extends Thread{
         //hear from backend
         byte[] recArr = new byte[2048];
         dpack = new DatagramPacket(recArr, recArr.length);
-
+        dsock.receive(dpack);
         Date date = new Date();
         SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
 
         String header = "HTTP/1.1 200 OK" + CRLF +
                 "Content-Length: " + "2048" + CRLF +
-                "Content-Type: " + "json/application" + CRLF +
+                "Content-Type: " + "text/plain" + CRLF +
                 "Cache-Control: " + "public" + CRLF +
                 "Connection: " + "keep-alive" + CRLF +
                 "Access-Control-Allow-Origin: *" + CRLF +
@@ -746,10 +744,9 @@ class Sender extends Thread{
             int length;
             sOut.writeUTF(header);
             byte[] neighbor = dpack.getData();
-            while ((length = in.read(neighbor, 0, neighbor.length)) != -1) {
-                sOut.write(neighbor, 0, length);
-                sOut.flush();
-            }
+            sOut.write(new String(neighbor).trim().getBytes());
+            sOut.flush();
+//            }
             // System.out.println("successful");
         } catch (Exception e) {
             e.printStackTrace();
@@ -766,13 +763,13 @@ class Sender extends Thread{
         //hear from backend
         byte[] recArr = new byte[2048];
         dpack = new DatagramPacket(recArr, recArr.length);
-
+        dsock.receive(dpack);
         Date date = new Date();
         SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
 
         String header = "HTTP/1.1 200 OK" + CRLF +
                 "Content-Length: " + "2048" + CRLF +
-                "Content-Type: " + "json/application" + CRLF +
+                "Content-Type: " + "text/plain" + CRLF +
                 "Cache-Control: " + "public" + CRLF +
                 "Connection: " + "keep-alive" + CRLF +
                 "Access-Control-Allow-Origin: *" + CRLF +
@@ -783,10 +780,8 @@ class Sender extends Thread{
             int length;
             sOut.writeUTF(header);
             byte[] bytes = dpack.getData();
-            while ((length = in.read(bytes, 0, bytes.length)) != -1) {
-                sOut.write(bytes, 0, length);
-                sOut.flush();
-            }
+            sOut.write(bytes);
+            sOut.flush();
             // System.out.println("successful");
         } catch (Exception e) {
             e.printStackTrace();
@@ -803,7 +798,7 @@ class Sender extends Thread{
         //hear from backend
         byte[] recArr = new byte[2048];
         dpack = new DatagramPacket(recArr, recArr.length);
-
+        dsock.receive(dpack);
         Date date = new Date();
         SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
 
@@ -820,20 +815,17 @@ class Sender extends Thread{
             int length;
             sOut.writeUTF(header);
             byte[] bytes = dpack.getData();
-            while ((length = in.read(bytes, 0, bytes.length)) != -1) {
-                sOut.write(bytes, 0, length);
-                sOut.flush();
-            }
+            sOut.write(bytes);
+            sOut.flush();
             // System.out.println("successful");
         } catch (Exception e) {
             e.printStackTrace();
         }
 
     }
-    private void addNeighbor() throws IOException {
+    private void addNeighbor(String message) throws IOException {
         //send to backend
         DatagramSocket dsock = new DatagramSocket();
-        String message = "/peer/addneighbor";
         byte[] sendArr = message.getBytes();
         DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
         dsock.send(dpack);

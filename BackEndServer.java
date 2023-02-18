@@ -15,11 +15,13 @@ public class BackEndServer extends Thread{
     int backEndPort;
     String name;
     List<String> peers;
+    HashMap<String, String[]> peerInfo;
     String peerCount;
     String uuid;
     String content;
     Map<String, Object> peerSeq; // peerName -> sequence
     JSONObject routerMap;
+    HashMap<String, String> peerDistance;
 
     public BackEndServer(String configName){
         File configFile = new File("routerConfig/" + configName);
@@ -51,6 +53,14 @@ public class BackEndServer extends Thread{
         JSONObject localMap = new JSONObject();
         peerSeq.put(uuid, 0);
         routerMap.put(uuid, localMap);
+
+        peerInfo = new HashMap<>();
+        peerDistance = new HashMap<>();
+        for (String s : peers){
+            String[] tmp = s.split(",");
+            peerInfo.put(tmp[0], tmp);
+            peerDistance.put(tmp[0], tmp[4]);
+        }
     }
 
     @Override
@@ -62,16 +72,16 @@ public class BackEndServer extends Thread{
         }
     }
 
-//    public static void main(String[] args) throws Exception{
-//        BackEndServer backend = new BackEndServer(8081);
-//        backend.startServer();
-//    }
+    public static void main(String[] args) throws Exception{
+        BackEndServer backend = new BackEndServer(args[0]);
+        backend.startServer();
+    }
 
     public void startServer() throws Exception{
         ExecutorService pool = Executors.newCachedThreadPool();
         DatagramSocket dsock = new DatagramSocket(backEndPort);
         //Start asker thread periodic inquiring neighbor whether alive or not
-        Asker asker = new Asker(peers, uuid, peerSeq, routerMap);
+        Asker asker = new Asker(peers, uuid, peerSeq, routerMap, peerDistance);
         asker.start();
 
         while(true){
@@ -80,7 +90,7 @@ public class BackEndServer extends Thread{
             DatagramPacket dpack = new DatagramPacket(recArr, recArr.length);
             dsock.receive(dpack);
             String msg = new String(recArr).trim();
-            System.out.println(msg);
+//            System.out.println(msg);
             //message from peer's router
             if (new String(recArr, 36, 6).equals("router")){
                 String id = new String(recArr, 0, 36);
@@ -117,11 +127,45 @@ public class BackEndServer extends Thread{
                 if (msg.equals("/peer/uuid")){
 
                 }
+                //24f22a83-16f4-4bd5-af63-b5c6e979dbb,pi.ece.cmu.edu,18345,18346,10
                 else if (msg.equals("/peer/neighbors")){
-
+                    JSONObject localMap = (JSONObject) routerMap.get(uuid);
+                    List<JSONObject> ans = new ArrayList<>();
+                    for (String id : localMap.keySet()){
+                        JSONObject tmp = new JSONObject();
+                        String[] info = peerInfo.get(id);
+                        tmp.put("uuid", info[0]);
+                        tmp.put("host", info[1]);
+                        tmp.put("frontend", info[2]);
+                        tmp.put("backend", info[3]);
+                        tmp.put("metric", info[4]);
+                        ans.add(tmp);
+                    }
+                    byte[] sendArr = JSONObject.toJSONString(ans).getBytes();
+                    dpack.setData(sendArr);
+                    dsock.send(dpack);
                 }
                 else if (msg.startsWith("/peer/addneighbor?")){
-
+//                    peers.add(msg.split("or?")[1]);
+                    synchronized (this){
+                        String[] tmp = msg.substring(18).split("&");
+                        peerCount += 1;
+                        String[] inf = new String[5];
+                        for (String s : tmp){
+                            System.out.println(s);
+                        }
+                        inf[0] = tmp[0].split("uuid=")[1];
+                        inf[1] = tmp[1].split("host=")[1];
+                        inf[2] = tmp[2].split("frontend=")[1];
+                        inf[3] = tmp[3].split("backend=")[1];
+                        inf[4] = tmp[4].split("metric=")[1];
+                        peerInfo.put(inf[0], inf);
+                        String ans = inf[0] + "," + inf[1] + "," + inf[2] + "," + inf[3] + "," + inf[4];
+                        System.out.println(ans);
+                        peers.add(ans);
+                        peerSeq.put(inf[0], -1);
+                        peerDistance.put(inf[0], inf[4]);
+                    }
                 }
                 else if (msg.equals("/peer/map")){
 
@@ -191,7 +235,7 @@ public class BackEndServer extends Thread{
         HashMap<Integer, String> integerToUuid = new HashMap<>();
 
         int sequence = 0;
-        System.out.println("routerMap.size(): " + routerMap.keySet().size());
+//        System.out.println("routerMap.size(): " + routerMap.keySet().size());
         for(String ID : routerMap.keySet()){
             if(!uuidToInteger.containsKey(ID)){
                 uuidToInteger.put(ID, sequence);
@@ -200,7 +244,7 @@ public class BackEndServer extends Thread{
             }
 
             JSONObject subMap = (JSONObject)routerMap.get(ID);
-            System.out.println("subMap.size(): " + subMap.keySet().size());
+//            System.out.println("subMap.size(): " + subMap.keySet().size());
             for(String id : subMap.keySet()){
                 if(!uuidToInteger.containsKey(id)){
                     uuidToInteger.put(id, sequence);
@@ -209,7 +253,7 @@ public class BackEndServer extends Thread{
                 }
             }
         }
-        System.out.println("sequence: " + sequence);
+//        System.out.println("sequence: " + sequence);
 
         //todo: form graph
         int numVertices = sequence;
@@ -740,13 +784,13 @@ class Asker extends Thread{
     Map<String, Object> peerSeq;
     HashMap<String, Integer> peerCount;
     HashMap<String, String> peerDistance;
-    public Asker(List<String> peers, String uuid,Map<String, Object> peerSeq, JSONObject routerMap){
+    public Asker(List<String> peers, String uuid,Map<String, Object> peerSeq, JSONObject routerMap, HashMap<String, String> peerDistance){
         this.peers = peers;
         this.uuid = uuid;
         this.routerMap = routerMap;
         this.peerSeq = peerSeq;
         this.peerCount = new HashMap<>();
-        this.peerDistance = new HashMap<>();
+        this.peerDistance = peerDistance;
 //        System.out.println("Asker routerMap: " + routerMap.toJSONString());
     }
     public synchronized void modifyMap() throws Exception {
@@ -817,7 +861,7 @@ class Asker extends Thread{
                 peerCount.put(id, 1);
             }
             saveRouterMap(routerMap, uuid.substring(0, 3)+".json");
-            System.out.println("###dijkstra###: " + dijkstra().toString());
+//            System.out.println("###dijkstra###: " + dijkstra().toString());
             long end = System.currentTimeMillis();
 
             try {
@@ -874,7 +918,7 @@ class Asker extends Thread{
         HashMap<Integer, String> integerToUuid = new HashMap<>();
 
         int sequence = 0;
-        System.out.println("routerMap.size(): " + routerMap.keySet().size());
+//        System.out.println("routerMap.size(): " + routerMap.keySet().size());
         for(String ID : routerMap.keySet()){
             if(!uuidToInteger.containsKey(ID)){
                 uuidToInteger.put(ID, sequence);
@@ -883,7 +927,7 @@ class Asker extends Thread{
             }
 
             JSONObject subMap = (JSONObject)routerMap.get(ID);
-            System.out.println("subMap.size(): " + subMap.keySet().size());
+//            System.out.println("subMap.size(): " + subMap.keySet().size());
             for(String id : subMap.keySet()){
                 if(!uuidToInteger.containsKey(id)){
                     uuidToInteger.put(id, sequence);
@@ -892,7 +936,7 @@ class Asker extends Thread{
                 }
             }
         }
-        System.out.println("sequence: " + sequence);
+//        System.out.println("sequence: " + sequence);
 
         //todo: form graph
         int numVertices = sequence;
