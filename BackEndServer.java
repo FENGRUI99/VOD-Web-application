@@ -125,7 +125,9 @@ public class BackEndServer extends Thread{
             //TODO: Lzj responsibility; 后端返回消息给前端；  config文件补全，uuid没给要写入config   /
             else if (msg.startsWith("/peer")){
                 if (msg.equals("/peer/uuid")){
-                    String sendString = "uuid: " + uuid;
+                    JSONObject sendJson = new JSONObject();
+                    sendJson.put("uuid", uuid);
+                    String sendString = sendJson.toJSONString();
                     byte[] sendArr = sendString.getBytes();
                     dpack.setData(sendArr);
                     dsock.send(dpack);
@@ -171,7 +173,7 @@ public class BackEndServer extends Thread{
                     }
                 }
                 else if (msg.equals("/peer/map")){
-                    String sendString = routerMap.toString();
+                    String sendString = routerMap.toJSONString();
                     byte[] sendArr = sendString.getBytes();
                     dpack.setData(sendArr);
                     dsock.send(dpack);

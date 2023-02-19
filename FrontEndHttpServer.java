@@ -709,7 +709,7 @@ class Sender extends Thread{
             int length;
             sOut.writeUTF(header);
             byte[] uuid = dpack.getData();
-            sOut.write(uuid);
+            sOut.write(new String(uuid).trim().getBytes());
             sOut.flush();
             // System.out.println("successful");
         } catch (Exception e) {
@@ -780,7 +780,7 @@ class Sender extends Thread{
             int length;
             sOut.writeUTF(header);
             byte[] bytes = dpack.getData();
-            sOut.write(bytes);
+            sOut.write(new String(bytes).trim().getBytes());
             sOut.flush();
             // System.out.println("successful");
         } catch (Exception e) {
@@ -791,7 +791,7 @@ class Sender extends Thread{
     private void getRank() throws IOException {
         //send to backend
         DatagramSocket dsock = new DatagramSocket();
-        String message = "/peer/rank";
+        String message = "/peer/rank/";
         byte[] sendArr = message.getBytes();
         DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
         dsock.send(dpack);
@@ -804,7 +804,7 @@ class Sender extends Thread{
 
         String header = "HTTP/1.1 200 OK" + CRLF +
                 "Content-Length: " + "2048" + CRLF +
-                "Content-Type: " + "json/application" + CRLF +
+                "Content-Type: " + "text/plain" + CRLF +
                 "Cache-Control: " + "public" + CRLF +
                 "Connection: " + "keep-alive" + CRLF +
                 "Access-Control-Allow-Origin: *" + CRLF +
@@ -815,7 +815,7 @@ class Sender extends Thread{
             int length;
             sOut.writeUTF(header);
             byte[] bytes = dpack.getData();
-            sOut.write(bytes);
+            sOut.write(new String(bytes).trim().getBytes());
             sOut.flush();
             // System.out.println("successful");
         } catch (Exception e) {
