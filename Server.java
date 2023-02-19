@@ -7,11 +7,12 @@
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.Comparator;
 import java.util.Properties;
 
 public class Server {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws UnknownHostException {
         File configFile = new File("routerConfig/" + args[0]);
         // Create a Properties object
         Properties configProperties = new Properties();

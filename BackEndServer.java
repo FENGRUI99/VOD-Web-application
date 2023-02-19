@@ -21,9 +21,11 @@ public class BackEndServer extends Thread{
     String content;
     Map<String, Object> peerSeq; // peerName -> sequence
     JSONObject routerMap;
+    Map<String, Object> peerAddress;
+//    JSONObject
     HashMap<String, String> peerDistance;
 
-    public BackEndServer(String configName){
+    public BackEndServer(String configName) throws UnknownHostException {
         File configFile = new File("routerConfig/" + configName);
         // Create a Properties object
         Properties configProperties = new Properties();
@@ -49,10 +51,13 @@ public class BackEndServer extends Thread{
 
         this.peerSeq = new HashMap<>();
         this.routerMap = new JSONObject();
+        this.peerAddress = new HashMap<>();
 
         JSONObject localMap = new JSONObject();
         peerSeq.put(uuid, 0);
         routerMap.put(uuid, localMap);
+        // TODO ip可能获取有问题
+        peerAddress.put(uuid, InetAddress.getLocalHost().getHostAddress() + "," + backEndPort);
 
         peerInfo = new HashMap<>();
         peerDistance = new HashMap<>();
@@ -81,7 +86,7 @@ public class BackEndServer extends Thread{
         ExecutorService pool = Executors.newCachedThreadPool();
         DatagramSocket dsock = new DatagramSocket(backEndPort);
         //Start asker thread periodic inquiring neighbor whether alive or not
-        Asker asker = new Asker(peers, uuid, peerSeq, routerMap, peerDistance);
+        Asker asker = new Asker(peers, uuid, peerSeq, routerMap, peerDistance, peerAddress);
         asker.start();
 
         while(true){
@@ -114,6 +119,13 @@ public class BackEndServer extends Thread{
                                 peerSeq.put(s, -1);
                                 if (routerMap.containsKey(s)) routerMap.remove(s);
                             }
+                        }
+                    }
+                    //TODO 获取全局IP
+                    Map<String, Object> tmp1 = (Map<String, Object>) peerMap.get("address");
+                    for (String s : tmp1.keySet()){
+                        if (!peerAddress.containsKey(tmp1.get(s))){
+                            peerAddress.put(s, tmp1.get(s));
                         }
                     }
                     System.out.println("########接收并更新路由表: " + routerMap.toJSONString());
@@ -209,8 +221,10 @@ public class BackEndServer extends Thread{
     }
     public synchronized byte[] readRouterMap(){
         routerMap.put("seq", new JSONObject(peerSeq));
+        routerMap.put("address", new JSONObject(peerAddress));
         byte[] res =  routerMap.toJSONString().getBytes();
         routerMap.remove("seq");
+        routerMap.remove("address");
         return res;
     }
     public synchronized int getPeerSeq(String id){
@@ -795,13 +809,15 @@ class Asker extends Thread{
     Map<String, Object> peerSeq;
     HashMap<String, Integer> peerCount;
     HashMap<String, String> peerDistance;
-    public Asker(List<String> peers, String uuid,Map<String, Object> peerSeq, JSONObject routerMap, HashMap<String, String> peerDistance){
+    Map<String, Object> peerAddress;
+    public Asker(List<String> peers, String uuid,Map<String, Object> peerSeq, JSONObject routerMap, HashMap<String, String> peerDistance, Map<String, Object> peerAddress){
         this.peers = peers;
         this.uuid = uuid;
         this.routerMap = routerMap;
         this.peerSeq = peerSeq;
         this.peerCount = new HashMap<>();
         this.peerDistance = peerDistance;
+        this.peerAddress = peerAddress;
 //        System.out.println("Asker routerMap: " + routerMap.toJSONString());
     }
     public synchronized void modifyMap() throws Exception {
@@ -870,6 +886,7 @@ class Asker extends Thread{
 //                System.out.println("########receive date:" + new String(recArr));
                 String id = new String(recArr, 0, 36);
                 peerCount.put(id, 1);
+                peerAddress.put(id, dpack.getAddress().toString() + "," + dpack.getPort());
             }
             saveRouterMap(routerMap, uuid.substring(0, 3)+".json");
 //            System.out.println("###dijkstra###: " + dijkstra().toString());
@@ -877,8 +894,9 @@ class Asker extends Thread{
 
             try {
 //                System.out.println(new JSONObject(peerSeq).toJSONString());
+                System.out.println(new JSONObject(peerAddress).toJSONString());
                 System.out.println("sleep time: " + (5 - (end - start) / 1000));
-                sleep(5000 - (end - start));
+                sleep(Math.max(5000 - (end - start), 1));
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -916,8 +934,10 @@ class Asker extends Thread{
             routerMap.remove(s);
         }
         routerMap.put("seq", new JSONObject(peerSeq));
+        routerMap.put("address", new JSONObject(peerAddress));
         byte[] res =  routerMap.toJSONString().getBytes();
         routerMap.remove("seq");
+        routerMap.remove("address");
         for (String s : removeId){
             peerSeq.put(s, -1);
         }

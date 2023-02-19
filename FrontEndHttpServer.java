@@ -183,11 +183,11 @@ class Sender extends Thread{
                         //System.out.println("namekey: "+nameKey);
                         if (!clientRequest.containsKey("Range")){
                             System.out.println("start to response200 to browser");
-                            httpRetransfer200(info[1]);
+                            //TODO 根据rank分块向peer请求文件
+//                            httpRetransfer200(info[1]);
                             System.out.println("finish response200 to browser");
                         }
                         else {
-                            //TODO LZJ's responsibility
                             System.out.println("start to response206 to browser");
                             String[] headTail = clientRequest.get("Range").split("bytes=")[1].split("-");
                             String tail = ""+FrontEndHttpServer.sharedFileSize.get(nameKey);
@@ -197,7 +197,9 @@ class Sender extends Thread{
                                 tail = String.valueOf((Long.valueOf(headTail[0]) + max));
                             }
                             //System.out.println("@Frontend: head: " + headTail[0] +" tail: "+tail);
-                            httpRetransfer206(info[1], headTail[0], tail);
+                            //TODO 根据rank分块向peer请求文件
+//                            httpRetransfer206(info[1], headTail[0], tail);
+
                             System.out.println("finish response206 to browser");
                         }
                     }
@@ -522,6 +524,149 @@ class Sender extends Thread{
             }
         }
     }
+
+//    private void response200BasedOnRank(String info) throws IOException {
+////        send info to backend listener
+//        peerFilePath = info.substring(11);
+////        ArrayList<String> peerInfo = FrontEndHttpServer.sharedPeersInfo.get(peerFilePath);
+//        //TODO /peer/rank/contentPath
+//        getRank("/peer/rank/" + peerFilePath);
+//        //向几个peers要文件就发送几次报文
+//        //System.out.println("@Frontend/httpRetransfer200: 向peers发送请求报文");
+//        DatagramSocket dsock = new DatagramSocket();
+//        dsock.setSoTimeout(1000);
+//
+//        HashMap<Long, byte[]> fileMap = new HashMap<>();
+//        PriorityQueue<Long> pq = new PriorityQueue<>();
+//
+////        byte[] recArr = new byte[409600];
+//        String filePath = null;
+//        long lastModified = 0;
+//        String httpHeader = null;
+//        long mapPointer = 0;
+//        boolean headerFlag = false;
+//
+//        for(int i = 0; i < peerInfo.size(); i++){
+//            //length 表示总共开了多少个peers
+//            //start：向后端传递你是第几个peer
+//            long start = -(i+1);
+//            long length = -peerInfo.size();
+//            int rate = 0;
+//            String[] tmp = peerInfo.get(i).split("&");
+//            InetAddress peerIp = InetAddress.getByName(tmp[1].substring(5));
+//            int peerPort = Integer.valueOf(tmp[2].substring(5));
+//            if (tmp.length > 3){
+//                rate = Integer.valueOf(tmp[3].substring(5));
+//            }
+//            FrontEndHttpServer.bitRate = rate;
+//            String message = JSONObject.toJSONString(new ListenerHeader(0, InetAddress.getByName("127.0.0.1"), dsock.getPort(), peerIp, peerPort, peerFilePath, start, length, rate));
+//            byte[] sendArr = message.getBytes();
+//            DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
+//            dsock.send(dpack);
+//            //System.out.println("@Frontend/httpRetransfer200: peers_" + i + " 发送成功");
+//            //System.out.println("@Frontend/httpRetransfer200: message" + i + ": " + message.toString());
+//        }
+//        //System.out.println("@Frontend/httpRetransfer200: peers全发送成功");
+//
+//        //wait for response
+//        //一直向所有后端接收
+//        //System.out.println("@Frontend/httpRetransfer200: 开始从peers接受并转发");
+//        while(true) {
+//            byte[] recArr = new byte[204800];
+//            DatagramPacket dpack = new DatagramPacket(recArr, recArr.length);
+//            try{
+//                dsock.receive(dpack);
+//            }
+//            catch (SocketTimeoutException e){
+//                continue;
+//            }
+//            //从dpack中获取header和content信息，分别存在header和content[]中
+//            byte[] bendPackage = dpack.getData();
+//            int headerLen = convertByteToInt(bendPackage, 0);
+//            int contentLen = convertByteToInt(bendPackage, 4);
+//            ResponseHeader header = JSONObject.parseObject(new String(bendPackage, 8, headerLen), ResponseHeader.class);
+//
+///////////////////////////////////////////// todo: mark!!!!!!!!!!!!!
+//            long ackStart = header.start;
+//            long ackLen = header.length;
+//            String ack = "start:"+ackStart + "/len:" + ackLen;
+//            byte[] ackb = ack.getBytes();
+//            DatagramPacket ACKPack = new DatagramPacket(ackb, ackb.length, dpack.getAddress(), dpack.getPort());
+//            dsock.send(ACKPack);
+//
+//
+////            System.out.println(header.toString());
+//            //judge header
+//            if (header.statusCode == 0) {
+//                if(headerFlag == true) continue;
+//
+//                long fileLen = header.getLength();
+//                filePath = header.getFileName();
+//                lastModified = header.getLastModified();
+//                //System.out.println("namekey in map:" + filePath);
+//                FrontEndHttpServer.sharedFileSize.put(filePath,fileLen);
+//                //form header
+//                String fType = URLConnection.guessContentTypeFromName(filePath);
+//                Date date = new Date();
+//                SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
+//                if (fType.equals("audio/ogg")){
+//                    fType = "video/ogg";
+//                }
+//                httpHeader = "HTTP/1.1 200 OK" + CRLF +
+//                        "Content-Length: " + fileLen + CRLF +
+//                        "Content-Type: " + fType + CRLF +
+//                        "Cache-Control: " + "public" + CRLF +
+//                        "Connection: " + "keep-alive" + CRLF +
+//                        "Access-Control-Allow-Origin: *" + CRLF +
+//                        "Accept-Ranges: " + "bytes" + CRLF +
+//                        "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
+//                        "Last-Modified: " + dateFormat1.format(lastModified) + " GMT" + CRLF +CRLF; //todo:可能有问题
+//                if(headerFlag == false){
+//                    sOut.writeUTF(httpHeader);
+//                    headerFlag = true;
+//                    //System.out.println("@Frontend/httpRetransfer200: 200 header发送成功");
+//                }
+//            }
+//            //接受文件存在map中
+//            else if (header.statusCode == 1) {
+//                byte[] content = new byte[contentLen];
+//                System.arraycopy(bendPackage, 8 + headerLen, content, 0, contentLen);
+//                fileMap.put(header.start, content);
+//                pq.add(header.start);
+//
+//                //发送200给browser
+//                if(headerFlag == true){
+//                    while(pq.size() != 0 && mapPointer == pq.peek()){
+//                        byte[] bytes = fileMap.get(mapPointer);    //bytes为空
+//                        try{
+//                            sOut.write(bytes, 0, bytes.length);
+//                            sOut.flush();
+//                        }catch (SocketException e){
+//                            String closeAck = "close";
+//                            byte[] closeByte = closeAck.getBytes();
+//                            DatagramPacket closeACKPack = new DatagramPacket(closeByte, closeByte.length, dpack.getAddress(), dpack.getPort());
+//                            dsock.send(closeACKPack);
+//                            return;
+//                        }
+//                        long top = pq.poll();
+//                        FrontEndHttpServer.oneFileStart += fileMap.get(top).length;
+//                        mapPointer += fileMap.get(top).length;  //get 为空
+//                    }
+//                }
+//                if(mapPointer >= FrontEndHttpServer.sharedFileSize.get(peerFilePath)){
+//                    break;
+//                }
+//                //System.out.println("@Frontend/httpRetransfer200: 200 content发送...");
+//            }
+//            else { //Not found// todo: deal with not found
+//                response404();
+//                break;
+//            }
+//        }
+//    }
+
+
+
     private void httpRetransfer206(String info, String head, String tail) throws IOException {
 //        send info to backend listener
         peerFilePath = info.substring(11);
@@ -679,6 +824,13 @@ class Sender extends Thread{
         }
 
     }
+
+
+
+
+
+
+
     private void killThread() throws IOException{
         responseFake200();
         System.exit(1);
@@ -837,5 +989,4 @@ class Sender extends Thread{
         responseFake200();
 
     }
-
 }
