@@ -153,7 +153,8 @@ class Sender extends Thread{
                     getMap();
                 }
                 else if(info[1].startsWith("/peer/rank")){
-                    getRank();
+                    //String filePath = info[1].substring(10,info[1].length());
+                    getRank(info[1]);
                 }
                 else if(info[1].startsWith("/peer/addneighbor")){
                     addNeighbor(info[1]);
@@ -788,10 +789,10 @@ class Sender extends Thread{
         }
     }
 
-    private void getRank() throws IOException {
+    private void getRank(String filePath) throws IOException {
         //send to backend
         DatagramSocket dsock = new DatagramSocket();
-        String message = "/peer/rank/";
+        String message = filePath;
         byte[] sendArr = message.getBytes();
         DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
         dsock.send(dpack);
