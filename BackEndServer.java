@@ -979,7 +979,12 @@ class Asker extends Thread{
                     peerAddress.put(id,  localIp + "," + dpack.getPort());
                 }
                 else {
-                    peerAddress.put(id, dpack.getAddress().toString() + "," + dpack.getPort());
+                    if (!dpack.getAddress().toString().startsWith("/")){
+                        peerAddress.put(id, dpack.getAddress().toString() + "," + dpack.getPort());
+                    }
+                    else {
+                        peerAddress.put(id, dpack.getAddress().toString().substring(1) + "," + dpack.getPort());
+                    }
                 }
             }
             saveRouterMap(routerMap, uuid.substring(0, 3)+".json");
