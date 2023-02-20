@@ -12,7 +12,8 @@ import java.util.Comparator;
 import java.util.Properties;
 
 public class Server {
-    public static void main(String[] args) throws UnknownHostException {
+
+        public static void main(String[] args) throws UnknownHostException {
         File configFile = new File("routerConfig/" + args[0]);
         // Create a Properties object
         Properties configProperties = new Properties();

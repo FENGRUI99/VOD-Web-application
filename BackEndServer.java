@@ -24,6 +24,7 @@ public class BackEndServer extends Thread{
     Map<String, Object> peerAddress;
 //    JSONObject
     HashMap<String, String> peerDistance;
+    InetAddress localIp = InetAddress.getByName(getServerIp());
 
 
     public BackEndServer(String configName) throws UnknownHostException {
@@ -58,7 +59,7 @@ public class BackEndServer extends Thread{
         peerSeq.put(uuid, 0);
         routerMap.put(uuid, localMap);
         // TODO ip可能获取有问题
-        peerAddress.put(uuid, InetAddress.getLocalHost().getHostAddress() + "," + backEndPort);
+        peerAddress.put(uuid, getServerIp() + "," + backEndPort);
 
         peerInfo = new HashMap<>();
         peerDistance = new HashMap<>();
@@ -216,7 +217,8 @@ public class BackEndServer extends Thread{
                     for(String ID : peerAddress.keySet()) {
                         if(ID == uuid) continue; // skip curNode
                         String message = (String)peerAddress.get(ID);
-                        InetAddress peerIp = InetAddress.getByName(message.split(",")[0].split("/")[1]);
+//                        InetAddress peerIp = InetAddress.getByName(message.split(",")[0].split("/")[1]);
+                        InetAddress peerIp = InetAddress.getByName(message.split(",")[0]);
                         int peerPort = Integer.valueOf(message.split(",")[1]);
                         String sendStr = "contentExist?-" + filePath;
                         byte[] sendArr = sendStr.getBytes();
@@ -396,6 +398,37 @@ public class BackEndServer extends Thread{
             }
         }
         return rank;
+    }
+    public String getServerIp() {
+        String localip = null;// 本地IP，如果没有配置外网IP则返回它
+        String netip = null;// 外网IP
+        try {
+            Enumeration netInterfaces = NetworkInterface.getNetworkInterfaces();
+            InetAddress ip = null;
+            boolean finded = false;// 是否找到外网IP
+            while (netInterfaces.hasMoreElements() && !finded) {
+                NetworkInterface ni = (NetworkInterface) netInterfaces.nextElement();
+                Enumeration address = ni.getInetAddresses();
+                while (address.hasMoreElements()) {
+                    ip = (InetAddress) address.nextElement();
+                    if (!ip.isSiteLocalAddress() && !ip.isLoopbackAddress() && ip.getHostAddress().indexOf(":") == -1) {// 外网IP
+                        netip = ip.getHostAddress();
+                        finded = true;
+                        break;
+                    } else if (ip.isSiteLocalAddress() && !ip.isLoopbackAddress() && ip.getHostAddress().indexOf(":") == -1) {// 内网IP
+                        localip = ip.getHostAddress();
+                    }
+                }
+            }
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+
+        if (netip != null && !"".equals(netip)) {
+            return netip;
+        } else {
+            return localip;
+        }
     }
 }
 
@@ -864,6 +897,7 @@ class Asker extends Thread{
     HashMap<String, Integer> peerCount;
     HashMap<String, String> peerDistance;
     Map<String, Object> peerAddress;
+    String localIp = getServerIp();
     public Asker(List<String> peers, String uuid,Map<String, Object> peerSeq, JSONObject routerMap, HashMap<String, String> peerDistance, Map<String, Object> peerAddress){
         this.peers = peers;
         this.uuid = uuid;
@@ -940,7 +974,13 @@ class Asker extends Thread{
 //                System.out.println("########receive date:" + new String(recArr));
                 String id = new String(recArr, 0, 36);
                 peerCount.put(id, 1);
-                peerAddress.put(id, dpack.getAddress().toString() + "," + dpack.getPort());
+//                System.out.println("####################"+dpack.getAddress().toString());
+                if (dpack.getAddress().toString().equals("/127.0.0.1")){
+                    peerAddress.put(id,  localIp + "," + dpack.getPort());
+                }
+                else {
+                    peerAddress.put(id, dpack.getAddress().toString() + "," + dpack.getPort());
+                }
             }
             saveRouterMap(routerMap, uuid.substring(0, 3)+".json");
 //            System.out.println("###dijkstra###: " + dijkstra().toString());
@@ -954,6 +994,37 @@ class Asker extends Thread{
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
+        }
+    }
+    public String getServerIp() {
+        String localip = null;// 本地IP，如果没有配置外网IP则返回它
+        String netip = null;// 外网IP
+        try {
+            Enumeration netInterfaces = NetworkInterface.getNetworkInterfaces();
+            InetAddress ip = null;
+            boolean finded = false;// 是否找到外网IP
+            while (netInterfaces.hasMoreElements() && !finded) {
+                NetworkInterface ni = (NetworkInterface) netInterfaces.nextElement();
+                Enumeration address = ni.getInetAddresses();
+                while (address.hasMoreElements()) {
+                    ip = (InetAddress) address.nextElement();
+                    if (!ip.isSiteLocalAddress() && !ip.isLoopbackAddress() && ip.getHostAddress().indexOf(":") == -1) {// 外网IP
+                        netip = ip.getHostAddress();
+                        finded = true;
+                        break;
+                    } else if (ip.isSiteLocalAddress() && !ip.isLoopbackAddress() && ip.getHostAddress().indexOf(":") == -1) {// 内网IP
+                        localip = ip.getHostAddress();
+                    }
+                }
+            }
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+
+        if (netip != null && !"".equals(netip)) {
+            return netip;
+        } else {
+            return localip;
         }
     }
     public void saveRouterMap(JSONObject routerMap, String fileName) throws Exception{
