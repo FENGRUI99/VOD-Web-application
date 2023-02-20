@@ -535,7 +535,8 @@ class Sender extends Thread{
         //System.out.println("@Frontend/httpRetransfer200: 向peers发送请求报文");
         DatagramSocket dsock = new DatagramSocket();
         dsock.setSoTimeout(1000);
-        byte[] sendArr = peerFilePath.getBytes();
+
+        byte[] sendArr = ("/peer/rank/" + peerFilePath).getBytes();
         DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
         dsock.send(dpack);
         //hear from backend
@@ -562,6 +563,7 @@ class Sender extends Thread{
             String port = s.split(",")[1];
             peerInfo.add(peerFilePath + "&host=" + ip + "&port=" + port + "&rate=" + 80000);
         }
+        System.out.println(peerInfo.get(0));
         //TODO
         for(int i = 0; i < peerInfo.size(); i++){
             //length 表示总共开了多少个peers

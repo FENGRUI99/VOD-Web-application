@@ -253,6 +253,7 @@ public class BackEndServer extends Thread{
             }
 
             else {
+//                System.out.println(new String(recArr));
                 ListenerHeader header = JSONObject.parseObject(new String(recArr), ListenerHeader.class);
                 // message from http server
                 if (header.getSrc() == 0){
