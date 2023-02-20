@@ -237,9 +237,15 @@ public class BackEndServer extends Thread{
                             containFile.add(message.substring(0, 36));
                         }
                     }
+                    JSONObject address = new JSONObject();
+                    for (String s : containFile){
+                        if (!s.equals(uuid)){
+                            address.put(s, peerAddress.get(s));
+                        }
+                    }
 
                     String sendString = dijkstra(containFile).toString();
-                    byte[] sendArr = sendString.getBytes();
+                    byte[] sendArr = (sendString + "&" + address.toJSONString()).getBytes();
                     dpack.setData(sendArr);
                     dsock.send(dpack);
                 }
