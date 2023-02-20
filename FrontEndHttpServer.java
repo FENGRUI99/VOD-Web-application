@@ -201,7 +201,7 @@ class Sender extends Thread{
                             }
                             //System.out.println("@Frontend: head: " + headTail[0] +" tail: "+tail);
                             //TODO 根据rank分块向peer请求文件
-//                            httpRetransfer206(info[1], headTail[0], tail);
+                            httpRetransfer206(info[1], headTail[0], tail);
 
                             System.out.println("finish response206 to browser");
                         }
@@ -563,6 +563,7 @@ class Sender extends Thread{
             String port = map.get(s).toString().split(",")[1];
             peerInfo.add(peerFilePath + "&host=" + ip + "&port=" + port + "&rate=" + 80000);
         }
+        FrontEndHttpServer.sharedPeersInfo.put(peerFilePath, peerInfo);
         //TODO
         for(int i = 0; i < peerInfo.size(); i++){
             //length 表示总共开了多少个peers
@@ -683,8 +684,6 @@ class Sender extends Thread{
             }
         }
     }
-
-
 
     private void httpRetransfer206(String info, String head, String tail) throws IOException {
 //        send info to backend listener
@@ -843,12 +842,6 @@ class Sender extends Thread{
         }
 
     }
-
-
-
-
-
-
 
     private void killThread() throws IOException{
         responseFake200();
