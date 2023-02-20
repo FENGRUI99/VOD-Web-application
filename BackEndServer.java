@@ -25,6 +25,7 @@ public class BackEndServer extends Thread{
 //    JSONObject
     HashMap<String, String> peerDistance;
 
+
     public BackEndServer(String configName) throws UnknownHostException {
         File configFile = new File("routerConfig/" + configName);
         // Create a Properties object
@@ -135,12 +136,18 @@ public class BackEndServer extends Thread{
                 }
             }
             else if(msg.startsWith("contentExist?")){
-                String[] tmp = msg.split("-"); // todo: tmp[1] -> filePath; tmp[2] -> sourceIp; tmp[3] -> sourcePort;
+                System.out.println("test: receive containFile?");
+                String[] tmp = msg.split("-"); // todo: tmp[1] -> filePath;
+                System.out.println("test: filePath: " + tmp[1]);
                 File f = new File(tmp[1]);
                 if (f.exists()){
+                    System.out.println("test: file Exist");
                     String sendString = uuid + "-" + "fileExist!";
                     byte[] sendArr = sendString.getBytes();
-                    dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName(tmp[2]), Integer.valueOf(tmp[3]));
+                    InetAddress sourceIp = dpack.getAddress();
+                    int sourcePort = dpack.getPort();
+                    System.out.println("test: sourceIp: " + sourceIp + "sourcePort: " + sourcePort);
+                    dpack = new DatagramPacket(sendArr, sendArr.length, sourceIp, sourcePort);
                     dsock.send(dpack);
                 }
             }
@@ -200,45 +207,47 @@ public class BackEndServer extends Thread{
                     dsock.send(dpack);
                 }
                 else if (msg.startsWith("/peer/rank/")){
+                    HashSet<String> containFile = new HashSet<>(); // uuid that contains specific file
+                    DatagramSocket tmpSocket = new DatagramSocket();
+                    tmpSocket.setSoTimeout(1000);
+                    System.out.println("test: Start request containFile?");
                     String filePath = msg.split("/peer/rank/")[1];
-                    HashSet<String> containFile = new HashSet<>();
-
                     // Ask each node in network if they have File: filePath
                     for(String ID : peerAddress.keySet()) {
                         if(ID == uuid) continue; // skip curNode
-
                         String message = (String)peerAddress.get(ID);
                         InetAddress peerIp = InetAddress.getByName(message.split(",")[0].split("/")[1]);
                         int peerPort = Integer.valueOf(message.split(",")[1]);
-
-                        String sendStr = "contentExist?-" + "filePath" + "-" + dsock.getInetAddress().toString() + "-" + backEndPort;
+                        String sendStr = "contentExist?-" + filePath;
                         byte[] sendArr = sendStr.getBytes();
-                        dpack = new DatagramPacket(sendArr, sendArr.length, peerIp, peerPort);
-                        dsock.send(dpack);
+                        DatagramPacket tmpPack = new DatagramPacket(sendArr, sendArr.length, peerIp, peerPort);
+                        tmpSocket.send(tmpPack);
                     }
 
-                    // Wait for response from each node in network
                     while(true){
-                        dsock = new DatagramSocket();
-                        dsock.setSoTimeout(3000);
-                        byte[] receiveArr = new byte[128];
-                        dpack = new DatagramPacket(receiveArr, receiveArr.length);
+                        DatagramPacket tmpPack= new DatagramPacket(recArr, recArr.length);
                         try{
-                            dsock.receive(dpack);
+                            tmpSocket.receive(tmpPack);
+                            System.out.println("received");
                         } catch (SocketTimeoutException e){
                             break;
                         }
-                        receiveArr = dpack.getData();
-                        if(new String(receiveArr, 37, 10) == "fileExist!"){
-                            containFile.add(new String(receiveArr, 0, 36));
+                        String message = new String(tmpPack.getData()).trim();
+                        System.out.println("received message: " + message);
+                        if(message.substring(37).startsWith("fileExist!")){
+                            containFile.add(message.substring(0, 36));
                         }
+                        System.out.println("containFile.size: "+containFile.size());
                     }
 
                     String sendString = dijkstra(containFile).toString();
+                    System.out.println("dijkstra String: "+sendString);
                     byte[] sendArr = sendString.getBytes();
+//                    dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getLocalHost(), frontEndPort);
                     dpack.setData(sendArr);
                     dsock.send(dpack);
                 }
+
             }
 
             else {

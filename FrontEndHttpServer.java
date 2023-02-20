@@ -968,6 +968,7 @@ class Sender extends Thread{
             int length;
             sOut.writeUTF(header);
             byte[] bytes = dpack.getData();
+            System.out.println(new String(bytes).trim());
             sOut.write(new String(bytes).trim().getBytes());
             sOut.flush();
             // System.out.println("successful");
