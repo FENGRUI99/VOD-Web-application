@@ -534,7 +534,7 @@ class Sender extends Thread{
         //向几个peers要文件就发送几次报文
         //System.out.println("@Frontend/httpRetransfer200: 向peers发送请求报文");
         DatagramSocket dsock = new DatagramSocket();
-        dsock.setSoTimeout(1000);
+        dsock.setSoTimeout(5000);
 
         byte[] sendArr = ("/peer/rank/" + peerFilePath).getBytes();
         DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
@@ -559,11 +559,10 @@ class Sender extends Thread{
 //      TODO peerInfo:  content/test.ogg&host=172.16.7.12&port=18344&rate=80000
         ArrayList<String> peerInfo = new ArrayList<>();
         for (String s : map.keySet()){
-            String ip = s.split(",")[0];
-            String port = s.split(",")[1];
+            String ip = map.get(s).toString().split(",")[0];
+            String port = map.get(s).toString().split(",")[1];
             peerInfo.add(peerFilePath + "&host=" + ip + "&port=" + port + "&rate=" + 80000);
         }
-        System.out.println(peerInfo.get(0));
         //TODO
         for(int i = 0; i < peerInfo.size(); i++){
             //length 表示总共开了多少个peers

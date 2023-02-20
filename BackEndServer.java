@@ -227,7 +227,7 @@ public class BackEndServer extends Thread{
                         DatagramPacket tmpPack= new DatagramPacket(recArr, recArr.length);
                         try{
                             tmpSocket.receive(tmpPack);
-                            //System.out.println("received");
+//                            System.out.println("received");
                         } catch (SocketTimeoutException e){
                             break;
                         }
