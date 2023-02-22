@@ -12,6 +12,7 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 public class FrontEndHttpServer extends Thread{
     public static HashMap<String, ArrayList<String>> sharedPeersInfo = new HashMap<>();
@@ -125,8 +126,6 @@ class Sender extends Thread{
                         in.close();
                     }
                     else if (f.exists()){
-                        // System.out.println("response code: 206");
-                        // System.out.println(request.get("Range"));
                         String[] headTail = clientRequest.get("Range").split("bytes=")[1].split("-");
                         String tail = "";
                         if (headTail.length > 1) tail = headTail[1];
@@ -185,8 +184,7 @@ class Sender extends Thread{
                         if (!clientRequest.containsKey("Range")){
                             System.out.println("start to response200 to browser");
                             //TODO 根据rank分块向peer请求文件
-
-//                            httpRetransfer200(info[1]);
+//                            httpRetransfer200New(info[1]);
                             response200BasedOnRank(info[1]);
                             System.out.println("finish response200 to browser");
                         }
@@ -201,8 +199,8 @@ class Sender extends Thread{
                             }
                             //System.out.println("@Frontend: head: " + headTail[0] +" tail: "+tail);
                             //TODO 根据rank分块向peer请求文件
-                            httpRetransfer206(info[1], headTail[0], tail);
-
+//                            httpRetransfer206(info[1], headTail[0], tail);
+                            response206BasedOnRank(info[1], headTail[0], tail);
                             System.out.println("finish response206 to browser");
                         }
                     }
@@ -530,12 +528,12 @@ class Sender extends Thread{
     private void response200BasedOnRank(String info) throws IOException {
 //        send info to backend listener
         peerFilePath = info.substring(11);
-//        ArrayList<String> peerInfo = FrontEndHttpServer.sharedPeersInfo.get(peerFilePath);
         //向几个peers要文件就发送几次报文
         //System.out.println("@Frontend/httpRetransfer200: 向peers发送请求报文");
         DatagramSocket dsock = new DatagramSocket();
         dsock.setSoTimeout(5000);
 
+        //将/peer/rank/<filePath>报文发送后端，后端返回dijkstra List & address of each node
         byte[] sendArr = ("/peer/rank/" + peerFilePath).getBytes();
         DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
         dsock.send(dpack);
@@ -544,8 +542,8 @@ class Sender extends Thread{
         dpack = new DatagramPacket(recArr, recArr.length);
         dsock.receive(dpack);
         //TODO 如果为空怎么办
-        String tmp1 = new String(dpack.getData()).trim().split("&")[1];
-        JSONObject map = JSONObject.parseObject(tmp1);
+        String tmp1 = new String(dpack.getData()).trim().split("&")[1]; // tmp1 -> address
+        JSONObject map = JSONObject.parseObject(tmp1);                        // map -> address Json map
         System.out.println(map.toJSONString());
         HashMap<Long, byte[]> fileMap = new HashMap<>();
         PriorityQueue<Long> pq = new PriorityQueue<>();
@@ -556,6 +554,7 @@ class Sender extends Thread{
         String httpHeader = null;
         long mapPointer = 0;
         boolean headerFlag = false;
+
 //      TODO peerInfo:  content/test.ogg&host=172.16.7.12&port=18344&rate=80000
         ArrayList<String> peerInfo = new ArrayList<>();
         for (String s : map.keySet()){
@@ -563,21 +562,30 @@ class Sender extends Thread{
             String port = map.get(s).toString().split(",")[1];
             peerInfo.add(peerFilePath + "&host=" + ip + "&port=" + port + "&rate=" + 80000);
         }
-        FrontEndHttpServer.sharedPeersInfo.put(peerFilePath, peerInfo);
+        FrontEndHttpServer.sharedPeersInfo.put(peerFilePath, peerInfo);      //sharedPeersInfo -> 根据fileName（path）存含有该文件的peers的信息，threads间共享
+        List<String> addressFor200 = devideContent(new String(dpack.getData()).trim().getBytes());  // addressFor200 -> devideContent() output: ["ip,port","ip,port"...]
+
+
+        HashMap<String, Integer> peersNum = new HashMap<>();
+        for(String s : addressFor200){
+            peersNum.put(s, peersNum.getOrDefault(s,0)+1);
+        }
+        System.out.println("@ response200BasedOnRank: Mapsize: " + peersNum.size());
+        for(String s : peersNum.keySet()){
+            System.out.println("@ response200BasedOnRank: key: " + s + "value: " + peersNum.get(s));
+        }
+
         //TODO
-        for(int i = 0; i < peerInfo.size(); i++){
+        for(int i = 0; i < addressFor200.size(); i++){
             //length 表示总共开了多少个peers
             //start：向后端传递你是第几个peer
             long start = -(i+1);
-            long length = -map.size();
-            int rate = 0;
-            String[] tmp = peerInfo.get(i).split("&");
-            InetAddress peerIp = InetAddress.getByName(tmp[1].substring(5));
-            int peerPort = Integer.valueOf(tmp[2].substring(5));
-            if (tmp.length > 3){
-                rate = Integer.valueOf(tmp[3].substring(5));
-            }
+            long length = -addressFor200.size();
+            int rate = 80000;
             FrontEndHttpServer.bitRate = rate;
+            InetAddress peerIp = InetAddress.getByName(addressFor200.get(i).split(",")[0]);
+            int peerPort = Integer.valueOf(addressFor200.get(i).split(",")[1]);
+
             String message = JSONObject.toJSONString(new ListenerHeader(0, InetAddress.getByName("127.0.0.1"), dsock.getPort(), peerIp, peerPort, peerFilePath, start, length, rate));
             sendArr = message.getBytes();
             dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
@@ -585,7 +593,6 @@ class Sender extends Thread{
             //System.out.println("@Frontend/httpRetransfer200: peers_" + i + " 发送成功");
             //System.out.println("@Frontend/httpRetransfer200: message" + i + ": " + message.toString());
         }
-        //System.out.println("@Frontend/httpRetransfer200: peers全发送成功");
 
         //wait for response
         //一直向所有后端接收
@@ -684,7 +691,6 @@ class Sender extends Thread{
             }
         }
     }
-
     private void httpRetransfer206(String info, String head, String tail) throws IOException {
 //        send info to backend listener
         peerFilePath = info.substring(11);
@@ -842,7 +848,190 @@ class Sender extends Thread{
         }
 
     }
+    private void response206BasedOnRank(String info, String head, String tail) throws IOException{
+        //        send info to backend listener
+        peerFilePath = info.substring(11);
+        //向几个peers要文件就发送几次报文
+        DatagramSocket dsock = new DatagramSocket();
+        dsock.setSoTimeout(1000);
+        //将/peer/rank/<filePath>报文发送后端，后端返回dijkstra List & address of each node
+        byte[] sendArr = ("/peer/rank/" + peerFilePath).getBytes();
+        DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
+        dsock.send(dpack);
+        //hear from backend
+        byte[] recArr = new byte[2048];
+        dpack = new DatagramPacket(recArr, recArr.length);
+        dsock.receive(dpack);
+        //TODO 如果为空怎么办
 
+        List<String> addressFor206 = devideContent(new String(dpack.getData()).trim().getBytes());  // addressFor206 -> devideContent() output: ["ip,port","ip,port"...]
+        long splitSize = (Long.parseLong(tail) - Long.parseLong(head)) / (long)addressFor206.size();
+        System.out.println("@ response206BasedOnRank: head: " + Long.parseLong(head));
+        System.out.println("@ response206BasedOnRank: tail: " + Long.parseLong(tail));
+        System.out.println("@ response206BasedOnRank: Splitesize: " + splitSize);
+        //ArrayList<String> peerInfo = FrontEndHttpServer.sharedPeersInfo.get(peerFilePath);
+        long start = Long.parseLong(head);
+
+        // store the number of different peers in addressFor206
+        HashMap<String, Integer> peersNum = new HashMap<>();
+        for(String s : addressFor206){
+            peersNum.put(s, peersNum.getOrDefault(s,0)+1);
+        }
+
+        System.out.println("@ response206BasedOnRank: Mapsize: " + peersNum.size());
+        for(String s : peersNum.keySet()){
+            System.out.println("@ response206BasedOnRank: key: " + s + " value: " + peersNum.get(s));
+        }
+
+
+        int idx = 0;
+        for(String s : peersNum.keySet()){
+            long length = splitSize * peersNum.get(s);
+            System.out.println("@ response206BasedOnRank: peersNum.get(s): " + peersNum.get(s));
+            System.out.println("@ response206BasedOnRank: idx: " + idx);
+            if(idx == peersNum.size()-1) length = (Long.parseLong(tail)-start);
+            System.out.println("@ response206BasedOnRank: start: " + start);
+            System.out.println("@ response206BasedOnRank: length: " + length);
+            int rate = 80000;
+            FrontEndHttpServer.bitRate = rate;
+            InetAddress peerIp = InetAddress.getByName(s.split(",")[0]);
+            int peerPort = Integer.valueOf(s.split(",")[1]);
+
+            String message = JSONObject.toJSONString(new ListenerHeader(0, InetAddress.getByName("127.0.0.1"), dsock.getPort(), peerIp, peerPort, peerFilePath, start, length, rate));
+            sendArr = message.getBytes();
+            dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
+            dsock.send(dpack);
+            start += length;
+            idx++;
+            //System.out.println("@Frontend/httpRetransfer206: peers_" + i + " 发送成功");
+            //System.out.println("@Frontend/httpRetransfer206: message" + i + ": " + message.toString());
+        }
+
+        //wait for response
+        HashMap<Long, byte[]> fileMap = new HashMap<>();
+        PriorityQueue<Long> pq = new PriorityQueue<Long>();
+        HashSet<Long> visited = new HashSet<>();
+//        byte[] recArr = new byte[102400];
+        String fileName = null;
+        long lastModified = 0;
+        String httpHeader = null;
+        long mapPointer = Long.parseLong(head);
+        boolean headerFlag = false;
+
+        //一直向所有后端接收
+
+        while(true) {
+            recArr = new byte[204800];
+            dpack = new DatagramPacket(recArr, recArr.length);
+            try{
+                dsock.receive(dpack);
+            }
+            catch (SocketTimeoutException e){
+                System.out.println("waiting for data: " + mapPointer);
+                if (!fileMap.containsKey(mapPointer)) continue;
+            }
+            //从dpack中获取header和content信息，分别存在header和content[]中
+            byte[] bendPackage = dpack.getData();
+            int headerLen = convertByteToInt(bendPackage, 0);
+            int contentLen = convertByteToInt(bendPackage, 4);
+            ResponseHeader header = JSONObject.parseObject(new String(bendPackage, 8, headerLen), ResponseHeader.class);
+            //System.out.println(header.toString());
+            //judge header
+
+            /////////////////////////////////////////// todo: mark!!!!!!!!!!!!!
+//            if (dpack.getAddress() != null){
+            long ackStart = header.start;
+            long ackLen = header.length;
+            String ack = "start:"+ackStart + "/len:" + ackLen;
+//                System.out.println("收到文件start: " + ack);
+            byte[] ackb = ack.getBytes();
+            DatagramPacket ACKPack = new DatagramPacket(ackb, ackb.length, dpack.getAddress(), dpack.getPort());
+            dsock.send(ACKPack);
+
+//            }
+
+
+            if (header.statusCode == 0) {
+                //System.out.println("fileName: " + fileName);
+                fileName = header.getFileName();
+                lastModified = header.getLastModified();
+                //form header
+                String fType = URLConnection.guessContentTypeFromName(fileName);
+                Date date = new Date();
+                SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
+                if (fType.equals("audio/ogg")){
+                    fType = "video/ogg";
+                }
+                httpHeader = "HTTP/1.1 206 OK" + CRLF +
+                        "Content-Length: " + (Long.parseLong(tail)-Long.parseLong(head)) + CRLF +
+                        "Content-Type: " + fType + CRLF +
+                        "Cache-Control: " + "public" + CRLF +
+                        "Connection: " + "keep-alive" + CRLF +
+                        "Access-Control-Allow-Origin: *" + CRLF +
+                        "Accept-Ranges: " + "bytes" + CRLF +
+                        "Content-Range: " + "bytes " + head + "-" + tail + "/" + FrontEndHttpServer.sharedFileSize.get(fileName) +  CRLF +
+                        "Date: " + dateFormat1.format(date) + " GMT" + CRLF +
+                        "Last-Modified: " + dateFormat1.format(lastModified) + " GMT" + CRLF +CRLF;
+                if(headerFlag == false){
+                    sOut.writeUTF(httpHeader);
+                    headerFlag = true;
+                }
+
+            }
+            //接受文件存在map中
+            else if (header.statusCode == 1) {
+                byte[] content = new byte[contentLen];
+                System.arraycopy(bendPackage, 8 + headerLen, content, 0, contentLen);
+                if(!visited.contains(header.start)){
+                    fileMap.put(header.start, content);
+                    pq.add(header.start);
+                    visited.add(header.start);
+                }
+                else {
+                    continue;
+                }
+//                System.out.println("@Frontend: fileMap size: " + fileMap.size() + " ");
+
+                //发送206给browser
+                if(headerFlag == true){
+                    while(pq.size() != 0 && mapPointer == pq.peek()){
+                        byte[] bytes = fileMap.get(mapPointer);    //bytes为空
+                        try{
+                            sOut.write(bytes, 0, bytes.length);
+                            sOut.flush();
+//                            System.out.println("mapPointer: " + mapPointer + " pq.peek(): " + pq.peek() + " pq.size(): " + pq.size());
+                        }catch (SocketException e){
+                            System.out.println("browser close http");
+                            String closeAck = "close";
+                            byte[] closeByte = closeAck.getBytes();
+                            DatagramPacket closeACKPack = new DatagramPacket(closeByte, closeByte.length, dpack.getAddress(), dpack.getPort());
+                            dsock.send(closeACKPack);
+                            return;
+                        }
+                        long top = pq.poll();
+//                        System.out.println("top: " + top);
+                        FrontEndHttpServer.oneFileStart += fileMap.get(top).length;
+                        mapPointer += fileMap.get(top).length;  //get 为空
+                    }
+                }
+//                if(mapPointer >= FrontEndHttpServer.sharedFileSize.get(peerFilePath)){
+//                    break;
+//                }
+                if(mapPointer >= Long.valueOf(tail)){
+                    String closeAck = "close";
+                    byte[] closeByte = closeAck.getBytes();
+                    DatagramPacket closeACKPack = new DatagramPacket(closeByte, closeByte.length, dpack.getAddress(), dpack.getPort());
+                    dsock.send(closeACKPack);
+                    break;
+                }
+            }
+            else { //Not found// todo: deal with not found
+                response404();
+                break;
+            }
+        }
+
+    }
     private void killThread() throws IOException{
         responseFake200();
         System.exit(1);
@@ -1001,5 +1190,68 @@ class Sender extends Thread{
         dpack = new DatagramPacket(recArr, recArr.length);
         responseFake200();
 
+    }
+    /*根据dijkstra分割文件：
+            List<String> orderedList = new ArrayList<>();
+            orderedList.add("nodeA: 10");
+            orderedList.add("nodeB: 20");
+            orderedList.add("nodeC: 30");
+
+            JSONObject address = new JSONObject();
+            address.put("nodeA", "172.16.7.18,18344");
+            address.put("nodeB", "172.16.7.10,18344");
+            address.put("nodeC", "172.16.7.42,18344");
+
+
+            String s1 = orderedList.toString();
+            String s2 = "&";  // 分隔符
+            String s3 = address.toJSONString();
+            byte[] input = (s1 + s2 + s3).getBytes();
+
+
+            output: List<String>: ["172.16.7.18,18344", "172.16.7.18,18344", "172.16.7.18,18344",
+                                   "172.16.7.10,18344", "172.16.7.10,18344",
+                                   "172.16.7.42,18344"];
+            */
+    private List<String> devideContent(byte[] input){
+        List<String> res = new ArrayList<>();
+        String[] tmp = new String(input).split("&");
+        // address: Json;
+        // distanceMap: <String, int>;
+        JSONObject address = JSONObject.parseObject(tmp[1]);
+        Map<String, Integer> distanceMap = new HashMap<>();
+
+        String distanceString = tmp[0].substring(1, tmp[0].length()-1);
+        String[] nodeDist = distanceString.split(", ");
+        System.out.println(distanceString);
+
+        // delete nodes that are too far away
+        int i = 0;
+        while(i < nodeDist.length && Double.valueOf(nodeDist[0].split(": ")[1]) / Double.valueOf(nodeDist[i].split(": ")[1]) > 0.1){
+            distanceMap.put(nodeDist[i].split(": ")[0], Integer.valueOf(nodeDist[i].split(": ")[1]));
+            i++;
+        }
+
+        int limit = Math.min(10, distanceMap.size()*2);
+        Map<String, Integer> sortedPeers = distanceMap.entrySet()
+                .stream()
+                .sorted(Map.Entry.comparingByValue())
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> Math.max(1, Math.min(limit, limit+1 - entry.getValue() / limit)), // assign an integer value based on the distance
+                        (oldValue, newValue) -> oldValue, // keep the old value if keys are duplicated
+                        HashMap::new
+                ));
+        System.out.println(sortedPeers);
+
+        // generate result
+        for(int k = 0; k < distanceMap.size(); k++){
+            String s = nodeDist[k].split(": ")[0];
+            int times = sortedPeers.get(s);
+            for(int j = 0; j < times; j++){
+                res.add(address.get(s).toString());
+            }
+        }
+        return res;
     }
 }
