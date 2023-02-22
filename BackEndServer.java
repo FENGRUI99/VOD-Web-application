@@ -207,11 +207,12 @@ public class BackEndServer extends Thread{
                 else if (msg.startsWith("/peer/rank/")){
                     HashSet<String> containFile = new HashSet<>(); // uuid that contains specific file
                     DatagramSocket tmpSocket = new DatagramSocket();
-                    tmpSocket.setSoTimeout(1000);
+                    tmpSocket.setSoTimeout(500);
                     //System.out.println("test: Start request containFile?");
                     String filePath = msg.split("/peer/rank/")[1];
                     // Ask each node in network if they have File: filePath
                     for(String ID : peerAddress.keySet()) {
+                        System.out.println(ID);
                         if(ID == uuid) continue; // skip curNode
                         String message = (String)peerAddress.get(ID);
 //                        InetAddress peerIp = InetAddress.getByName(message.split(",")[0].split("/")[1]);
@@ -550,6 +551,7 @@ class BackEndRequest extends Thread{
                 RTT = (int) (endTime-startTime);
                 if (rate == 0) rate = 8000000;
                 chunkSize = Math.min(50000, RTT * rate/8);
+                if (chunkSize == 0) chunkSize = 50000;
                 dsock.setSoTimeout(100*RTT);
                 frontSock.setSoTimeout(100*RTT);
                 fileSize = header.length;
@@ -988,15 +990,15 @@ class Asker extends Thread{
                     }
                 }
             }
-            saveRouterMap(routerMap, uuid.substring(0, 3)+".json");
+//            saveRouterMap(routerMap, uuid.substring(0, 3)+".json");
 //            System.out.println("###dijkstra###: " + dijkstra().toString());
             long end = System.currentTimeMillis();
 
             try {
 //                System.out.println(new JSONObject(peerSeq).toJSONString());
-                System.out.println(new JSONObject(peerAddress).toJSONString());
-                System.out.println("sleep time: " + (5 - (end - start) / 1000));
-                sleep(Math.max(5000 - (end - start), 1));
+//                System.out.println(new JSONObject(peerAddress).toJSONString());
+                System.out.println("sleep time: " + (10 - (end - start) / 1000));
+                sleep(Math.max(10000 - (end - start), 1));
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
