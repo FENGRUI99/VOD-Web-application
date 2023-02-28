@@ -153,6 +153,9 @@ class Sender extends Thread{
                 else if(info[1].startsWith("/peer/addneighbor")){
                     addNeighbor(info[1]);
                 }
+                else if(info[1].startsWith("/peer/search/")){
+                    searchPeer(info[1]);
+                }
                 else{
                     //Store peers info.
                     //System.out.println("@Frontend: 分析client header得出文件在peers");
@@ -1185,6 +1188,43 @@ class Sender extends Thread{
         responseFake200();
 
     }
+
+    private void searchPeer(String filePath) throws IOException {
+        //send to backend
+        DatagramSocket dsock = new DatagramSocket();
+        String message = filePath;
+        byte[] sendArr = message.getBytes();
+        DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
+        dsock.send(dpack);
+        //hear from backend
+        byte[] recArr = new byte[2048];
+        dpack = new DatagramPacket(recArr, recArr.length);
+        dsock.receive(dpack);
+        Date date = new Date();
+        SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
+
+        String header = "HTTP/1.1 200 OK" + CRLF +
+                "Content-Length: " + "2048" + CRLF +
+                "Content-Type: " + " application/json" + CRLF +
+                "Cache-Control: " + "public" + CRLF +
+                "Connection: " + "keep-alive" + CRLF +
+                "Access-Control-Allow-Origin: *" + CRLF +
+                "Accept-Ranges: " + "bytes" + CRLF +
+                "Date: " + dateFormat1.format(date) + " GMT" + CRLF + CRLF;
+        //send to page
+        try {
+            int length;
+            sOut.writeUTF(header);
+            byte[] bytes = dpack.getData();
+            sOut.write(new String(bytes).trim().getBytes());
+            sOut.flush();
+            // System.out.println("successful");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
     /*根据dijkstra分割文件：
             List<String> orderedList = new ArrayList<>();
             orderedList.add("nodeA: 10");
