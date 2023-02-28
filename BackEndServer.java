@@ -24,11 +24,11 @@ public class BackEndServer extends Thread{
     Map<String, Object> peerAddress;
 //    JSONObject
     HashMap<String, String> peerDistance;
-    InetAddress localIp = InetAddress.getByName(getServerIp());
-
+    int ttl;
+    int interval;
 
     public BackEndServer(String configName) throws UnknownHostException {
-        File configFile = new File("routerConfig/" + configName);
+        File configFile = new File( configName);
         // Create a Properties object
         Properties configProperties = new Properties();
         //Read the properties file
@@ -42,7 +42,7 @@ public class BackEndServer extends Thread{
         this.name = configProperties.getProperty("name");
         this.peerCount = configProperties.getProperty("peer_count");
         this.content = configProperties.getProperty("content_dir");
-        this.peers = new ArrayList<String>();
+        this.peers = new ArrayList<>();
         for(int i = 0; i < Integer.valueOf(peerCount); i++){
             peers.add(configProperties.getProperty("peer_" + i));
         }
@@ -58,7 +58,6 @@ public class BackEndServer extends Thread{
         JSONObject localMap = new JSONObject();
         peerSeq.put(uuid, 0);
         routerMap.put(uuid, localMap);
-        // TODO ip可能获取有问题
         peerAddress.put(uuid, getServerIp() + "," + backEndPort);
 
         peerInfo = new HashMap<>();
@@ -68,6 +67,16 @@ public class BackEndServer extends Thread{
             peerInfo.put(tmp[0], tmp);
             peerDistance.put(tmp[0], tmp[4]);
         }
+
+        this.ttl = Integer.valueOf(configProperties.getProperty("search_ttl"));
+        if (ttl == 0){
+            this.ttl = 15;
+        }
+        this.interval = Integer.valueOf(configProperties.getProperty("search_interval"));
+        if (interval == 0){
+            this.interval = 100;
+        }
+
     }
 
     @Override
@@ -77,11 +86,6 @@ public class BackEndServer extends Thread{
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public static void main(String[] args) throws Exception{
-        BackEndServer backend = new BackEndServer(args[0]);
-        backend.startServer();
     }
 
     public void startServer() throws Exception{
@@ -108,13 +112,13 @@ public class BackEndServer extends Thread{
 //                System.out.println("######receive data: " + new String(recArr));
 
                     // neighbor's peerSeq
-                    Map<String, Object> tmp = (Map<String, Object>) peerMap.get("seq"); //TODO 这里可能有问题
+                    Map<String, Object> tmp = (Map<String, Object>) peerMap.get("seq");
                     for (String s : tmp.keySet()){
                         if ((int)tmp.get(s) > (int)peerSeq.getOrDefault(s, -1)){
                             //更新路由表
                             if (peerMap.containsKey(s)){
                                 peerSeq.put(s, tmp.get(s));
-                                routerMap.put(s, peerMap.get(s)); //TODO 这里可能有问题
+                                routerMap.put(s, peerMap.get(s));
                             }
                             //删除路由表
                             else {
@@ -212,7 +216,6 @@ public class BackEndServer extends Thread{
                     String filePath = msg.split("/peer/rank/")[1];
                     // Ask each node in network if they have File: filePath
                     for(String ID : peerAddress.keySet()) {
-                        System.out.println(ID);
                         if(ID == uuid) continue; // skip curNode
                         String message = (String)peerAddress.get(ID);
 //                        InetAddress peerIp = InetAddress.getByName(message.split(",")[0].split("/")[1]);

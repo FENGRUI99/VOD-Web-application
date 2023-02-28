@@ -13,8 +13,9 @@ import java.util.Properties;
 
 public class Server {
 
-        public static void main(String[] args) throws UnknownHostException {
-        File configFile = new File("routerConfig/" + args[0]);
+    public static void main(String[] args) throws UnknownHostException {
+        System.out.println(args[1]);
+        File configFile = new File(args[1]);
         // Create a Properties object
         Properties configProperties = new Properties();
         //Read the properties file
@@ -27,7 +28,7 @@ public class Server {
         int frontEndPort = Integer.valueOf(configProperties.getProperty("frontend_port"));
         int backEndPort = Integer.valueOf(configProperties.getProperty("backend_port"));
         FrontEndHttpServer frontEndListener = new FrontEndHttpServer(frontEndPort, backEndPort);
-        BackEndServer backEndListener = new BackEndServer(args[0]);
+        BackEndServer backEndListener = new BackEndServer(args[1]);
         frontEndListener.start();
         backEndListener.start();
     }

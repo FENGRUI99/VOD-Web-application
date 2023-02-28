@@ -52,12 +52,6 @@ public class FrontEndHttpServer extends Thread{
             pool.execute(new Sender(clientSocket, Integer.valueOf(backEndPort)));
         }
     }
-
-    public static void main(String[] args) {
-        FrontEndHttpServer server = new FrontEndHttpServer(8080, 8081);
-        server.startServer();
-    }
-
 }
 
 class Sender extends Thread{
