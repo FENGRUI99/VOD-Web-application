@@ -94,9 +94,6 @@ public class BackEndServer extends Thread{
         this.peerHashMap = new JSONObject();
     }
 
-    public static void main(String[] args) {
-        //findAll(s);
-    }
     @Override
     public void run() {
         try {
@@ -1318,7 +1315,7 @@ class Gossiper extends Thread{
         //Search
         for (File file : f) {
             if (file.isFile()) {
-                if(Pattern.matches("**"+name+"**" ,file.getName())) files.add(file.getName());
+                if(Pattern.matches(".*"+name+".*" ,file.getName())) files.add(file.getName());
             }
         }
         return files;
