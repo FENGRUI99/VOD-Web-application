@@ -3,6 +3,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.w3c.dom.CharacterData;
 
+import javax.swing.*;
 import java.io.*;
 import java.math.BigInteger;
 import java.net.*;
@@ -1303,5 +1304,13 @@ class Gossiper extends Thread{
             }
             peerHashMap.put(filePath, exchangeList);
         }
+    }
+}
+class Monitor extends Thread{
+    List<String> peers;
+    String uuid;
+    public Monitor(List<String> peers, String uuid){
+        this.peers = peers;
+        this.uuid = uuid;
     }
 }
