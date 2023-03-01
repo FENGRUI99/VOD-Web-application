@@ -1161,7 +1161,7 @@ class Gossiper extends Thread{
     int interval;
     List<String> requestList;
     HashMap<String, Integer> ttlHashMap;
-    JSONObject peerHashMap; // filePath -> jsonArray of uuid
+    JSONObject peerHashMap; // filePath -> hm： jsonArray of uuid
     public Gossiper(List<String> peers, String uuid, int interval, List<String> requestList, HashMap<String, Integer> ttlHashMap, JSONObject peerHashMap){
         this.peers = peers;
         this.uuid = uuid;
@@ -1178,6 +1178,72 @@ class Gossiper extends Thread{
             e.printStackTrace();
         }
     }
+//    public void startThread() throws Exception{
+//        while (true){
+//            long start = System.currentTimeMillis();
+//            if (requestList.size() > 0) {
+//                synchronized (this){
+//                    for (String f : requestList){
+//                        System.out.println(f);
+//                        if (ttlHashMap.get(f) == 0){
+//                            requestList.remove(f);
+//                            ttlHashMap.remove(f);
+//                            break;
+//                        }
+//                        File file = new File("./" + f);
+//                        JSONArray arr = (JSONArray) peerHashMap.getOrDefault(f, new JSONArray());
+//                        if (file.exists() && !arr.contains(uuid)){
+//                            arr.add(uuid);
+//                        }
+//                        int randomPeer = (int) (Math.random() * (peers.size()));
+//                        String[] peer = peers.get(randomPeer).split(",");
+//                        String peerId = peer[0];
+//                        System.out.println("randomly choose : " + peerId);
+//                        InetAddress peerIp;
+//                        peerIp = InetAddress.getByName(peer[1]);
+//                        int peerPort = Integer.valueOf(peer[3]);
+//                        sendAndReceive(peerIp, peerPort, f, ttlHashMap.getOrDefault(f, 15), arr, peerHashMap);
+//                        peerHashMap.put(f, arr);
+//                        ttlHashMap.put(f, ttlHashMap.get(f) - 1);
+//                        System.out.println(((JSONArray)peerHashMap.get(f)).toJSONString());
+//                    }
+//                }
+//            }
+//            long end = System.currentTimeMillis();
+//            sleep(Math.max(1, interval - (end - start)));
+//        }
+//    }
+//
+//    public void sendAndReceive(InetAddress peerIp, int peerPort, String filePath, int ttl, JSONArray exchangeList, JSONObject peerHashMap) throws IOException {
+//        DatagramSocket dsock = new DatagramSocket();
+//        DatagramPacket dpack;
+//        dsock.setSoTimeout(500);
+//        String header = "gossip," + filePath + "," + ttl;
+//        String content = exchangeList.toJSONString();
+//        byte[] sendArr = new byte[64 + content.length()];
+//        System.arraycopy(header.getBytes(), 0, sendArr, 0, header.length());
+//        System.arraycopy(content.getBytes(), 0, sendArr, 64, content.length());
+//        dpack = new DatagramPacket(sendArr, sendArr.length, peerIp, peerPort);
+//        dsock.send(dpack);
+//        byte[] recArr = new byte[2048];
+//        dpack.setData(recArr);
+//        try{
+//            dsock.receive(dpack);
+//        }catch (SocketTimeoutException e){
+//            return;
+//        }
+//        String flag = new String(recArr, 0, 1);
+//        if (flag.equals("1")){
+//            JSONArray arr = JSONArray.parseArray(new String(recArr, 1, recArr.length - 1).trim());
+//            for (Object id : arr){
+//                if (!exchangeList.contains(id)){
+//                    exchangeList.add(id);
+//                }
+//            }
+//            peerHashMap.put(filePath, exchangeList);
+//        }
+//    }
+
     public void startThread() throws Exception{
         while (true){
             long start = System.currentTimeMillis();
@@ -1210,7 +1276,6 @@ class Gossiper extends Thread{
                 }
             }
             long end = System.currentTimeMillis();
-//            System.out.println("Sleep time: " + (end - start));
             sleep(Math.max(1, interval - (end - start)));
         }
     }
