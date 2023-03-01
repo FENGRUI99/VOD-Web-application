@@ -11,6 +11,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class BackEndServer extends Thread{
     int frontEndPort;
@@ -92,6 +94,9 @@ public class BackEndServer extends Thread{
         this.peerHashMap = new JSONObject();
     }
 
+    public static void main(String[] args) {
+        //findAll(s);
+    }
     @Override
     public void run() {
         try {
@@ -1238,5 +1243,19 @@ class Gossiper extends Thread{
             }
             peerHashMap.put(filePath, exchangeList);
         }
+    }
+
+    public List<String> findAll(String name){
+        List<String> files = new ArrayList<>();
+        File directory = new File("./content");
+        // Get all the files in the directory
+        File[] f = directory.listFiles();
+        //Search
+        for (File file : f) {
+            if (file.isFile()) {
+                if(Pattern.matches("**"+name+"**" ,file.getName())) files.add(file.getName());
+            }
+        }
+        return files;
     }
 }
