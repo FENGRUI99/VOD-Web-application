@@ -1,4 +1,5 @@
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
 import java.awt.*;
@@ -1216,7 +1217,11 @@ class Sender extends Thread{
             int length;
             sOut.writeUTF(header);
             byte[] bytes = dpack.getData();
-            sOut.write(new String(bytes).trim().getBytes());
+            JSONObject output = new JSONObject();
+//            JSONArray output = new JSONArray();
+            output.put("content", "./" + filePath.split("search/")[1]);
+            output.put("peers",  new String(bytes).trim());
+            sOut.write(output.toJSONString().getBytes());
             sOut.flush();
             // System.out.println("successful");
         } catch (Exception e) {

@@ -300,6 +300,21 @@ public class BackEndServer extends Thread{
                     dpack.setData(sendArr);
                     dsock.send(dpack);
                 }
+                else if (msg.startsWith("/peer/search")){
+                    String filePath = msg.split("search/")[1];
+                    synchronized (this){
+                        requestList.add(filePath);
+                        ttlHashMap.put(filePath, ttl);
+                    }
+                    //TODO 给前端response
+                    while (ttlHashMap.containsKey(filePath) && ttlHashMap.get(filePath) > 0){
+                        sleep(interval);
+                    }
+                    String content = ((JSONArray)peerHashMap.get(filePath)).toJSONString();
+                    byte[] sendArr = content.getBytes();
+                    dpack.setData(sendArr);
+                    dsock.send(dpack);
+                }
             }
             else {
 //                System.out.println(new String(recArr));
@@ -1157,43 +1172,48 @@ class Gossiper extends Thread{
         }catch (Exception e){
             e.printStackTrace();
         }
-
     }
     public void startThread() throws Exception{
         while (true){
-                if (requestList.size() > 0) {
-                    synchronized (this){
-                        for (String f : requestList){
-                            if (ttlHashMap.get(f) == 0){
-                                requestList.remove(f);
-                                ttlHashMap.remove(f);
-                                break;
-                            }
-                            File file = new File("./" + f);
-                            JSONArray arr = (JSONArray) peerHashMap.get(f);
-                            if (file.exists() && !arr.contains(uuid)){
-                                arr.add(uuid);
-                            }
-                            int randomPeer = (int) (Math.random() * (peers.size() + 1));
-                            String[] peer = peers.get(randomPeer).split(",");
-                            String peerId = peer[0];
-                            InetAddress peerIp;
-                            peerIp = InetAddress.getByName(peer[1]);
-                            int peerPort = Integer.valueOf(peer[3]);
-                            sendAndReceive(peerIp, peerPort, f, ttlHashMap.getOrDefault(f, 15), arr, peerHashMap);
-                            //
-                            peerHashMap.put(f, arr);
-                            ttlHashMap.put(f, ttlHashMap.get(f) - 1);
+            long start = System.currentTimeMillis();
+            if (requestList.size() > 0) {
+                synchronized (this){
+                    for (String f : requestList){
+                        System.out.println(f);
+                        if (ttlHashMap.get(f) == 0){
+                            requestList.remove(f);
+                            ttlHashMap.remove(f);
+                            break;
                         }
+                        File file = new File("./" + f);
+                        JSONArray arr = (JSONArray) peerHashMap.getOrDefault(f, new JSONArray());
+                        if (file.exists() && !arr.contains(uuid)){
+                            arr.add(uuid);
+                        }
+                        int randomPeer = (int) (Math.random() * (peers.size()));
+                        String[] peer = peers.get(randomPeer).split(",");
+                        String peerId = peer[0];
+                        System.out.println("randomly choose : " + peerId);
+                        InetAddress peerIp;
+                        peerIp = InetAddress.getByName(peer[1]);
+                        int peerPort = Integer.valueOf(peer[3]);
+                        sendAndReceive(peerIp, peerPort, f, ttlHashMap.getOrDefault(f, 15), arr, peerHashMap);
+                        peerHashMap.put(f, arr);
+                        ttlHashMap.put(f, ttlHashMap.get(f) - 1);
+                        System.out.println(((JSONArray)peerHashMap.get(f)).toJSONString());
                     }
                 }
-                sleep(interval);
+            }
+            long end = System.currentTimeMillis();
+//            System.out.println("Sleep time: " + (end - start));
+            sleep(Math.max(1, interval - (end - start)));
         }
     }
 
     public void sendAndReceive(InetAddress peerIp, int peerPort, String filePath, int ttl, JSONArray exchangeList, JSONObject peerHashMap) throws IOException {
         DatagramSocket dsock = new DatagramSocket();
         DatagramPacket dpack;
+        dsock.setSoTimeout(500);
         String header = "gossip," + filePath + "," + ttl;
         String content = exchangeList.toJSONString();
         byte[] sendArr = new byte[64 + content.length()];
@@ -1203,7 +1223,11 @@ class Gossiper extends Thread{
         dsock.send(dpack);
         byte[] recArr = new byte[2048];
         dpack.setData(recArr);
-        dsock.receive(dpack);
+        try{
+            dsock.receive(dpack);
+        }catch (SocketTimeoutException e){
+            return;
+        }
         String flag = new String(recArr, 0, 1);
         if (flag.equals("1")){
             JSONArray arr = JSONArray.parseArray(new String(recArr, 1, recArr.length - 1).trim());

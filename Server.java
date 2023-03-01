@@ -24,7 +24,6 @@ public class Server {
         } catch (IOException e) {
             System.out.println("Error reading config file: " + e.getMessage());
         }
-
         int frontEndPort = Integer.valueOf(configProperties.getProperty("frontend_port"));
         int backEndPort = Integer.valueOf(configProperties.getProperty("backend_port"));
         FrontEndHttpServer frontEndListener = new FrontEndHttpServer(frontEndPort, backEndPort);
