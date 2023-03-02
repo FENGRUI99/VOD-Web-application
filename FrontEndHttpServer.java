@@ -41,6 +41,12 @@ public class FrontEndHttpServer extends Thread{
             e.printStackTrace();
         }
         ExecutorService pool = Executors.newCachedThreadPool();
+        File htmlFile = new File("html/views/homePage.html");
+        try {
+            Desktop.getDesktop().browse(htmlFile.toURI());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         while (true){
             Socket clientSocket = null;
             try {
@@ -89,8 +95,10 @@ class Sender extends Thread{
                     String[] tmp = inputLine.split(": ");
                     clientRequest.put(tmp[0], tmp[1]);
                 }
-
-                if (info[1].equals("/status/request")){
+                if (info[1].equals("/")){
+                    homePage();
+                }
+                else if (info[1].equals("/status/request")){
                     OutputStreamWriter out = new OutputStreamWriter(clientSocket.getOutputStream());
                     String header = "HTTP/1.1 200 OK" + CRLF +
                             "Connection: " + "keep-alive" + CRLF +
@@ -1227,7 +1235,6 @@ class Sender extends Thread{
         } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
 
     /*根据dijkstra分割文件：
@@ -1292,5 +1299,29 @@ class Sender extends Thread{
             }
         }
         return res;
+    }
+    private void homePage() throws IOException {
+        DatagramSocket dsock = new DatagramSocket();
+        byte[] sendArr = "/".getBytes();
+        DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
+        dsock.send(dpack);
+        //hear from backend
+        Date date = new Date();
+        SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
+        String header = "HTTP/1.1 200 OK" + CRLF +
+                "Content-Length: " + "2048" + CRLF +
+                "Content-Type: " + " application/json" + CRLF +
+                "Cache-Control: " + "public" + CRLF +
+                "Connection: " + "keep-alive" + CRLF +
+                "Access-Control-Allow-Origin: *" + CRLF +
+                "Accept-Ranges: " + "bytes" + CRLF +
+                "Date: " + dateFormat1.format(date) + " GMT" + CRLF + CRLF;
+        sOut.writeUTF(header);
+        byte[] recArr = new byte[2048];
+        dpack = new DatagramPacket(recArr, recArr.length);
+        dsock.receive(dpack);
+        sOut.write(JSONArray.parseArray(new String(recArr).trim()).toJSONString().getBytes());
+//        sOut.write("1".getBytes());
+        sOut.flush();
     }
 }

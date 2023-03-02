@@ -33,6 +33,8 @@ public class BackEndServer extends Thread{
     List<String> requestList;
     HashMap<String, Integer> ttlHashMap;
     JSONObject peerHashMap; // filePath -> jsonArray of uuid
+    JSONArray fileList; // file in peers
+    List<Integer> frontPortList;
 
     public BackEndServer(String configName) throws UnknownHostException {
         File configFile = new File( configName);
@@ -61,7 +63,7 @@ public class BackEndServer extends Thread{
         this.peerSeq = new HashMap<>();
         this.routerMap = new JSONObject();
         this.peerAddress = new HashMap<>();
-
+        this.fileList = new JSONArray();
         JSONObject localMap = new JSONObject();
         peerSeq.put(uuid, 0);
         routerMap.put(uuid, localMap);
@@ -92,6 +94,7 @@ public class BackEndServer extends Thread{
         this.requestList = new ArrayList<>();
         this.ttlHashMap = new HashMap<>();
         this.peerHashMap = new JSONObject();
+        this.frontPortList = new ArrayList<>();
     }
 
     @Override
@@ -111,13 +114,14 @@ public class BackEndServer extends Thread{
         asker.start();
         Gossiper gossiper = new Gossiper(peers, uuid, interval, requestList, ttlHashMap, peerHashMap);
         gossiper.start();
+        Monitor monitor = new Monitor(InetAddress.getByName("127.0.0.1"), frontPortList, peers, uuid, fileList);
+        monitor.start();
         while(true){
             //listener
             byte[] recArr = new byte[2048];
             DatagramPacket dpack = new DatagramPacket(recArr, recArr.length);
             dsock.receive(dpack);
             String msg = new String(recArr).trim();
-//            System.out.println(msg);
             //message from peer's router
             if (new String(recArr, 36, 6).equals("router")){
                 String id = new String(recArr, 0, 36);
@@ -201,6 +205,21 @@ public class BackEndServer extends Thread{
                     dsock.send(dpack);
                 }
 
+            }
+            else if (msg.startsWith("monitor")){
+                JSONArray arr = JSONArray.parseArray(new String(recArr, 64, recArr.length - 64).trim());
+                synchronized (this){
+                    for (Object file : arr){
+                        if (!fileList.contains(file)){
+                            fileList.add(file);
+                        }
+                    }
+                }
+            }
+            else if (msg.equals("/")){
+                synchronized (this){
+                    frontPortList.add(dpack.getPort());
+                }
             }
             else if (msg.startsWith("/peer")){
                 if (msg.equals("/peer/uuid")){
@@ -373,7 +392,12 @@ public class BackEndServer extends Thread{
         for(int i = 0; i < peers.size(); i++){//1，3
             String[] peerInfo = peers.get(i).split(",");
             dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName(peerInfo[1]), Integer.valueOf(peerInfo[3]));
-            dsock.send(dpack);
+            try{
+                dsock.send(dpack);
+            } catch (SocketException s){
+
+            }
+
         }
     }
     public synchronized List<String> dijkstra(HashSet<String> containFile) {
@@ -1026,7 +1050,10 @@ class Asker extends Thread{
                 System.arraycopy(header, 0, sendArr, 0, header.length);
                 System.arraycopy(content, 0, sendArr, 74, content.length);
                 dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName(tmp[1]), Integer.valueOf(tmp[3]));
-                dsock.send(dpack);
+                try {
+                    dsock.send(dpack);
+                }catch (SocketException s){
+                }
             }
             while (true){
                 try{
@@ -1123,7 +1150,11 @@ class Asker extends Thread{
         for(int i = 0; i < peers.size(); i++){//1，3
             String[] peerInfo = peers.get(i).split(",");
             dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName(peerInfo[1]), Integer.valueOf(peerInfo[3]));
-            dsock.send(dpack);
+            try{
+                dsock.send(dpack);
+            }catch (SocketException s){
+            }
+
         }
     }
     public synchronized byte[] readRouterMap(List<String> removeId){
@@ -1240,7 +1271,6 @@ class Gossiper extends Thread{
 //            peerHashMap.put(filePath, exchangeList);
 //        }
 //    }
-
     public void startThread() throws Exception{
         while (true){
             long start = System.currentTimeMillis();
@@ -1276,7 +1306,6 @@ class Gossiper extends Thread{
             sleep(Math.max(1, interval - (end - start)));
         }
     }
-
     public void sendAndReceive(InetAddress peerIp, int peerPort, String filePath, int ttl, JSONArray exchangeList, JSONObject peerHashMap) throws IOException {
         DatagramSocket dsock = new DatagramSocket();
         DatagramPacket dpack;
@@ -1306,7 +1335,6 @@ class Gossiper extends Thread{
             peerHashMap.put(filePath, exchangeList);
         }
     }
-
     public List<String> findAll(String name){
         List<String> files = new ArrayList<>();
         File directory = new File("./content");
@@ -1320,4 +1348,78 @@ class Gossiper extends Thread{
         }
         return files;
     }
+}
+
+class Monitor extends Thread{
+    InetAddress frontIp;
+    List<Integer> frontPortList;
+    List<String> peers;
+    String uuid;
+    JSONArray fileList;
+    public Monitor(InetAddress frontIp, List<Integer> frontPortList, List<String> peers, String uuid, JSONArray fileList){
+        this.frontIp = frontIp;
+        this.frontPortList = frontPortList;
+        this.peers = peers;
+        this.uuid = uuid;
+        this.fileList = fileList;
+    }
+    @Override
+    public void run() {
+        try{
+            startThread();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+    public void startThread() throws Exception{
+        while (true){
+            long start = System.currentTimeMillis();
+            String path = "./content/";
+            File file = new File(path);
+            File[] files = file.listFiles();
+            synchronized (this){
+                for (File f : files){
+                    if (!fileList.contains("content/" + f.getName())){
+                        fileList.add("content/" + f.getName());
+                    }
+                }
+            }
+            for (String p : peers){
+                String[] peer = p.split(",");
+                String peerId = peer[0];
+                InetAddress peerIp;
+                peerIp = InetAddress.getByName(peer[1]);
+                int peerPort = Integer.valueOf(peer[3]);
+                try{
+                    send(peerIp, peerPort, fileList);
+                }catch (SocketException e){
+
+                }
+            }
+            synchronized (this){
+                for (Integer port : frontPortList){
+                    DatagramSocket dsock = new DatagramSocket();
+                    byte[] sendArr = fileList.toJSONString().getBytes();
+                    DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, frontIp, port);
+                    dsock.send(dpack);
+                }
+                frontPortList.clear();
+            }
+            long end = System.currentTimeMillis();
+            sleep(Math.max(500 - (end - start), 1));
+
+        }
+    }
+    public void send(InetAddress peerIp, int peerPort, JSONArray fileList) throws IOException {
+        DatagramSocket dsock = new DatagramSocket();
+        DatagramPacket dpack;
+        String header = "monitor";
+        String content = fileList.toJSONString();
+        byte[] sendArr = new byte[64 + content.length()];
+        System.arraycopy(header.getBytes(), 0, sendArr, 0, header.length());
+        System.arraycopy(content.getBytes(), 0, sendArr, 64, content.length());
+        dpack = new DatagramPacket(sendArr, sendArr.length, peerIp, peerPort);
+        dsock.send(dpack);
+    }
+
 }
