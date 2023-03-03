@@ -1309,6 +1309,7 @@ class Sender extends Thread{
         return res;
     }
     private void homePage() throws IOException {
+        OutputStreamWriter out = new OutputStreamWriter(clientSocket.getOutputStream());
         DatagramSocket dsock = new DatagramSocket();
         byte[] sendArr = "/".getBytes();
         DatagramPacket dpack = new DatagramPacket(sendArr, sendArr.length, InetAddress.getByName("127.0.0.1"), backEndPort);
@@ -1317,19 +1318,21 @@ class Sender extends Thread{
         Date date = new Date();
         SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
         String header = "HTTP/1.1 200 OK" + CRLF +
-                "Content-Length: " + "2048" + CRLF +
                 "Content-Type: " + " application/json" + CRLF +
                 "Cache-Control: " + "public" + CRLF +
                 "Connection: " + "keep-alive" + CRLF +
                 "Access-Control-Allow-Origin: *" + CRLF +
                 "Accept-Ranges: " + "bytes" + CRLF +
                 "Date: " + dateFormat1.format(date) + " GMT" + CRLF + CRLF;
-        sOut.writeUTF(header);
+        out.write(header);
         byte[] recArr = new byte[2048];
         dpack = new DatagramPacket(recArr, recArr.length);
         dsock.receive(dpack);
-        sOut.write(JSONArray.parseArray(new String(recArr).trim()).toJSONString().getBytes());
-//        sOut.write("1".getBytes());
-        sOut.flush();
+
+//        obj.put("key", JSONArray.parseArray(new String(recArr).trim()).toJSONString());
+
+        out.write(JSONArray.parseArray(new String(recArr).trim()).toJSONString());
+        out.flush();
+        out.close();
     }
 }
