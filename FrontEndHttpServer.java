@@ -246,7 +246,6 @@ class Sender extends Thread{
                 }
                 break;
             }
-//            System.out.println("@Frontend: ########close###########");
             sOut.close();
             sIn.close();
             clientSocket.close();
@@ -1225,10 +1224,17 @@ class Sender extends Thread{
             int length;
             sOut.writeUTF(header);
             byte[] bytes = dpack.getData();
-            JSONObject output = new JSONObject();
-//            JSONArray output = new JSONArray();
-            output.put("content", "./" + filePath.split("search/")[1]);
-            output.put("peers",  new String(bytes).trim());
+            JSONArray output = new JSONArray();
+            JSONObject hm = JSONObject.parseObject(new String(bytes).trim());
+            for (String f : hm.keySet()){
+                JSONObject outputHm = new JSONObject();
+                outputHm.put("peers", hm.get(f));
+                outputHm.put("content", f.split("content/")[1]);
+                output.add(outputHm);
+            }
+//            output.put("content", "./" + filePath.split("search/")[1]);
+//            output.put("peers",  new String(bytes).trim());
+//            sOut.write(output.toJSONString().getBytes());
             sOut.write(output.toJSONString().getBytes());
             sOut.flush();
             // System.out.println("successful");

@@ -8,7 +8,6 @@
 <div id="response-content">11111</div>
 <script>
     const responseDiv = document.getElementById("response-content");
-
     function sendRequest() {
         const xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() {
@@ -17,7 +16,6 @@
                 // responseDiv.innerHTML = responseData;
                 responseDiv.innerHTML = this.responseText;
             }
-
         };
         xhttp.open("GET", "http://localhost:18343/", true);
         xhttp.send();
