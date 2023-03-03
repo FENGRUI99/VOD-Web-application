@@ -2,13 +2,36 @@
 <html>
 <head>
     <title>Homepage</title>
+    <style>
+        h1{
+            color: #ffffff;
+            font-family: Georgia;
+            font-size: 54px;
+            font-weight: 300;
+            line-height: 30px;
+            margin: 1% 0 20px;
+            text-shadow: 1px 1px 2px rgb(117, 10, 231), 0 0 1em rgb(222, 6, 222), 0 0 0.2em rgb(222, 6, 222);
+            display:inline-block;
+        }
+        cons{
+            font-family: Georgia;
+            font-size: 30px;
+            margin: 5% 0 20px;
+        }
+        cons:hover {
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-<h1>Homepage</h1>
-<div>
-    <ul id="json-list"></ul>
+<div style="text-align: center;">
+    <h1>Homepage</h1>
+    <div>
+        <cons id="json-list"></cons>
+    </div>
 </div>
 <script>
+
     const ul = document.getElementById("json-list");
     function sendRequest() {
         fetch('http://localhost:18343/')
@@ -17,9 +40,14 @@
                 ul.innerHTML = "";
                 // Use the data object here
                 data.forEach(function(item) {
-                    const li = document.createElement("li");
-                    li.textContent = item;
-                    ul.appendChild(li);
+                    const titles = document.createElement("titles");
+                    titles.textContent = item;
+
+                    titles.onclick = function(){
+                        window.location.href = 'http://localhost:18343/peer/view/' + item;
+                    }
+
+                    ul.appendChild(titles);
                 });
 
             })
@@ -29,8 +57,10 @@
 
     }
 
+
     // Send the initial request
     sendRequest();
+
 
     // Send the request every 5 seconds
     setInterval(sendRequest, 3000);
