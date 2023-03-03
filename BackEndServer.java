@@ -502,7 +502,7 @@ public class BackEndServer extends Thread{
         //Search
         for (File file : f) {
             if (file.isFile()) {
-                if(Pattern.matches(".*"+name+".*" ,file.getName())) files.add(file.getName());
+                if(Pattern.matches(".*"+name+".*" ,file.getName())) files.add("content/" + file.getName());
             }
         }
         return files;

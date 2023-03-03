@@ -1231,7 +1231,7 @@ class Sender extends Thread{
             for (String f : hm.keySet()){
                 JSONObject outputHm = new JSONObject();
                 outputHm.put("peers", hm.get(f));
-                outputHm.put("content", f.split("content/")[1]);
+                outputHm.put("content", f);
                 output.add(outputHm);
             }
 //            output.put("content", "./" + filePath.split("search/")[1]);
