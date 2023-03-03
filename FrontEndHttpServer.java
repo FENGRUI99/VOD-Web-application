@@ -41,11 +41,13 @@ public class FrontEndHttpServer extends Thread{
             e.printStackTrace();
         }
         ExecutorService pool = Executors.newCachedThreadPool();
-        File htmlFile = new File("html/views/homePage.html");
-        try {
-            Desktop.getDesktop().browse(htmlFile.toURI());
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (frontEndPort == 18343){
+            File htmlFile = new File("html/views/homePage.html");
+            try {
+                Desktop.getDesktop().browse(htmlFile.toURI());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         while (true){
             Socket clientSocket = null;
