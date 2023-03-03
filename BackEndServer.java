@@ -403,9 +403,17 @@ public class BackEndServer extends Thread{
         int numVertices = sequence;
         int[][] graph = new int[numVertices][numVertices];
         for(String s : routerMap.keySet()){
+//            System.out.println(s);
             JSONObject subMap = (JSONObject)routerMap.get(s);
             for(String id : subMap.keySet()){
-                graph[uuidToInteger.get(s)][uuidToInteger.get(id)] = Integer.valueOf((String)subMap.get(id));
+//                System.out.println(id);
+//                System.out.println(subMap.toJSONString());
+                try{
+                    graph[uuidToInteger.get(s)][uuidToInteger.get(id)] = Integer.valueOf((String)subMap.get(id));
+                }
+                catch(NumberFormatException e){
+                    continue;
+                }
             }
         }
 

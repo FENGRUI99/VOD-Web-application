@@ -551,7 +551,7 @@ class Sender extends Thread{
         //TODO 如果为空怎么办
         String tmp1 = new String(dpack.getData()).trim().split("&")[1]; // tmp1 -> address
         JSONObject map = JSONObject.parseObject(tmp1);                        // map -> address Json map
-        System.out.println(map.toJSONString());
+
         HashMap<Long, byte[]> fileMap = new HashMap<>();
         PriorityQueue<Long> pq = new PriorityQueue<>();
 
@@ -569,6 +569,7 @@ class Sender extends Thread{
             String port = map.get(s).toString().split(",")[1];
             peerInfo.add(peerFilePath + "&host=" + ip + "&port=" + port + "&rate=" + 80000);
         }
+        System.out.println(peerInfo.toString());
         FrontEndHttpServer.sharedPeersInfo.put(peerFilePath, peerInfo);      //sharedPeersInfo -> 根据fileName（path）存含有该文件的peers的信息，threads间共享
         List<String> addressFor200 = devideContent(new String(dpack.getData()).trim().getBytes());  // addressFor200 -> devideContent() output: ["ip,port","ip,port"...]
 
