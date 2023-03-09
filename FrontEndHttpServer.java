@@ -122,11 +122,20 @@ class Sender extends Thread{
                     out.close();
                 }
                 // 请求本地文件
-                else if (!info[1].startsWith("/peer")){
+                else if (!info[1].startsWith("/peer") || info[1].startsWith("/peer/view/")){
 //                    System.out.println("@Frontend: 分析client header得出文件在本地");
+                    if (info[1].startsWith("/peer/view/")){
+                        info[1] = info[1].split("view/")[1];
+                    }
                     f = findFile(info[1]);
+
                     if (f.exists() && !clientRequest.containsKey("Range")){
                         // System.out.println("response code: 200");
+                        try{
+                            sleep(600);
+                        }catch (Exception e){
+                            continue;
+                        }
                         response200();
                         in.close();
                     }
@@ -134,6 +143,11 @@ class Sender extends Thread{
                         String[] headTail = clientRequest.get("Range").split("bytes=")[1].split("-");
                         String tail = "";
                         if (headTail.length > 1) tail = headTail[1];
+                        try{
+                            sleep(450);
+                        }catch (Exception e){
+                            continue;
+                        }
                         response206(headTail[0], tail);
                         in.close();
                     }
@@ -285,8 +299,11 @@ class Sender extends Thread{
                 ((bytes[start + 3] & 0xFF) << 0 );
     }
     private File findFile(String path) {
-        File file = new File("." + path);
-        if (!file.exists()) file = new File("./content" + path);
+        if (path.startsWith("content/")){
+            path = "contentA/" + path.split("content/")[1];
+        }
+        File file = new File("./" + path);
+        if (!file.exists()) file = new File("./content/" + path);
         return file;
     }
 
