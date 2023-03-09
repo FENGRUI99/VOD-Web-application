@@ -1232,7 +1232,6 @@ class Sender extends Thread{
         SimpleDateFormat dateFormat1 = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss");
 
         String header = "HTTP/1.1 200 OK" + CRLF +
-                "Content-Length: " + "2048" + CRLF +
                 "Content-Type: " + " application/json" + CRLF +
                 "Cache-Control: " + "public" + CRLF +
                 "Connection: " + "keep-alive" + CRLF +
