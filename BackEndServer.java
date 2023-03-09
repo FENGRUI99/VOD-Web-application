@@ -258,8 +258,9 @@ public class BackEndServer extends Thread{
                     String filePath = msg.split("/peer/rank/")[1];
                     // Ask each node in network if they have File: filePath
                     for(String ID : peerAddress.keySet()) {
-                        if(ID == uuid) continue; // skip curNode
+                        if(ID.equals(uuid)) continue; // skip curNode
                         String message = (String)peerAddress.get(ID);
+                        System.out.println(message);
 //                        InetAddress peerIp = InetAddress.getByName(message.split(",")[0].split("/")[1]);
                         InetAddress peerIp = InetAddress.getByName(message.split(",")[0]);
                         int peerPort = Integer.valueOf(message.split(",")[1]);

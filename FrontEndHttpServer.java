@@ -41,14 +41,14 @@ public class FrontEndHttpServer extends Thread{
             e.printStackTrace();
         }
         ExecutorService pool = Executors.newCachedThreadPool();
-        if (frontEndPort == 18343){
-            File htmlFile = new File("html/views/homePage.html");
-            try {
-                Desktop.getDesktop().browse(htmlFile.toURI());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        // if (frontEndPort == 18343){
+        //     File htmlFile = new File("html/views/homePage.html");
+        //     try {
+        //         Desktop.getDesktop().browse(htmlFile.toURI());
+        //     } catch (IOException e) {
+        //         e.printStackTrace();
+        //     }
+        // }
         while (true){
             Socket clientSocket = null;
             try {
@@ -189,7 +189,7 @@ class Sender extends Thread{
                         //info[1]: peer/view/content/test.png
                         String nameKey = info[1].substring(11);
                         //System.out.println("namekey: "+nameKey);
-                        if (!clientRequest.containsKey("Range")){
+                        if (!clientRequest.containsKey("Range") || clientRequest.get("Range").equals("bytes=0-")){
                             System.out.println("start to response200 to browser");
                             //TODO 根据rank分块向peer请求文件
 //                            httpRetransfer200New(info[1]);
