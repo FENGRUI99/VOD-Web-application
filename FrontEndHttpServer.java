@@ -4,6 +4,9 @@ import com.alibaba.fastjson.JSONObject;
 
 import java.awt.*;
 import java.io.*;
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
 import java.math.BigInteger;
 import java.net.*;
 import java.security.MessageDigest;
@@ -11,8 +14,7 @@ import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 public class FrontEndHttpServer extends Thread{
@@ -41,6 +43,8 @@ public class FrontEndHttpServer extends Thread{
             e.printStackTrace();
         }
         ExecutorService pool = Executors.newCachedThreadPool();
+        ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+
         // if (frontEndPort == 18343){
         //     File htmlFile = new File("html/views/homePage.html");
         //     try {
@@ -56,9 +60,15 @@ public class FrontEndHttpServer extends Thread{
             } catch (IOException e){
                 e.printStackTrace();
             }
-
-            // System.out.println("Client IP: " + clientSocket.getInetAddress() + ": " + clientSocket.getPort());
             pool.execute(new Sender(clientSocket, Integer.valueOf(backEndPort)));
+            ThreadInfo[] threadInfos = threadMXBean.getThreadInfo(threadMXBean.getAllThreadIds());
+            int runningThreadCount = 0;
+            for (ThreadInfo threadInfo : threadInfos) {
+                if (threadInfo != null && threadInfo.getThreadName().contains("pool")) {
+                    runningThreadCount++;
+                }
+            }
+            System.out.println("Running thread count: " + runningThreadCount);
         }
     }
 }
@@ -91,7 +101,7 @@ class Sender extends Thread{
             while ((inputLine = sIn.readLine()) != null){
 //                System.out.println("@Frontend: Get input from browser: " + inputLine);
                 info = inputLine.split(" ");
-
+                System.out.println("request: " + info[1]);
                 while (!(inputLine = sIn.readLine()).equals("")) {
                     //System.out.println("@Frontend: Get input from browser: " + inputLine);
                     String[] tmp = inputLine.split(": ");
@@ -265,6 +275,7 @@ class Sender extends Thread{
             sOut.close();
             sIn.close();
             clientSocket.close();
+            System.out.println("close");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -388,7 +399,7 @@ class Sender extends Thread{
             int length;
             in.skip(startByte);  //Skip 'startbytes' bytes tp reach the start point
             while ((length = in.read(bytes, 0, bytes.length)) != -1) {
-                System.out.println("send");
+//                System.out.println("send");
                 if (max <= length){
                     sOut.write(bytes, 0, (int)max);
                     sOut.flush();
@@ -715,6 +726,7 @@ class Sender extends Thread{
                 break;
             }
         }
+        dsock.close();
     }
     private void httpRetransfer206(String info, String head, String tail) throws IOException {
 //        send info to backend listener
@@ -1055,6 +1067,7 @@ class Sender extends Thread{
                 break;
             }
         }
+        dsock.close();
 
     }
     private void killThread() throws IOException{
@@ -1130,6 +1143,7 @@ class Sender extends Thread{
         } catch (Exception e) {
             e.printStackTrace();
         }
+        dsock.close();
     }
 
     private void getMap() throws IOException {
@@ -1165,6 +1179,7 @@ class Sender extends Thread{
         } catch (Exception e) {
             e.printStackTrace();
         }
+        dsock.close();
     }
 
     private void getRank(String filePath) throws IOException {
@@ -1201,7 +1216,7 @@ class Sender extends Thread{
         } catch (Exception e) {
             e.printStackTrace();
         }
-
+        dsock.close();
     }
     private void addNeighbor(String message) throws IOException {
         //send to backend
@@ -1214,7 +1229,7 @@ class Sender extends Thread{
         byte[] recArr = new byte[2048];
         dpack = new DatagramPacket(recArr, recArr.length);
         responseFake200();
-
+        dsock.close();
     }
 
     private void searchPeer(String filePath) throws IOException {
@@ -1260,6 +1275,7 @@ class Sender extends Thread{
         } catch (Exception e) {
             e.printStackTrace();
         }
+        dsock.close();
     }
 
     /*根据dijkstra分割文件：
@@ -1347,7 +1363,7 @@ class Sender extends Thread{
         dsock.receive(dpack);
 
 //        obj.put("key", JSONArray.parseArray(new String(recArr).trim()).toJSONString());
-
+        dsock.close();
         out.write(JSONArray.parseArray(new String(recArr).trim()).toJSONString());
         out.flush();
         out.close();
