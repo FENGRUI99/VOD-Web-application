@@ -6,6 +6,23 @@
 
 - 后端是基于P2P架构的分布式系统。在同一个局域网中的不同主机上设置多个后端服务器。不同的主机可能有不同的文件，或者多个主机可能有共同的文件。
 
+### 安装与使用
+
+content文件夹存放视频文件
+
+config存在配资文件
+
+```shell
+git clone https://github.com/FENGRUI99/VOD-Web-application.git
+修改config
+IDEA 运行 Server.java
+Firefox输入localhost:<port>/content/文件名
+具体指令参考项目要求，或搭配VOD-Front-End使用
+```
+
+
+
+
 ### 项目1
 
 在您的第一个项目中，您应该实现系统的前端组件，它可以通过web浏览器与用户交互。 
