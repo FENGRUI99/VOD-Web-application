@@ -15,7 +15,7 @@ config存在配资文件
 ```shell
 git clone https://github.com/FENGRUI99/VOD-Web-application.git
 修改config
-IDEA 运行 Server.java
+IDEA 运行 Server.java -C nodeA.config
 Firefox输入localhost:<port>/content/文件名
 具体指令参考项目要求，或搭配VOD-Front-End使用
 ```
